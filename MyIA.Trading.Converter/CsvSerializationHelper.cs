@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using CsvHelper;
+using CsvHelper.Configuration;
 using FileHelpers;
 using FlatFiles;
 using FlatFiles.TypeMapping;
@@ -113,8 +114,7 @@ namespace MyIA.Trading.Converter
         private static List<Trade> LoadTradesCsvHelper(this Stream entryStream)
         {
             using var objReader = new StreamReader(entryStream);
-            using var csv = new CsvReader(objReader, CultureInfo.InvariantCulture);
-            csv.Configuration.HasHeaderRecord = false;
+            using var csv = new CsvReader(objReader, new CsvConfiguration(CultureInfo.InvariantCulture){HasHeaderRecord = false}, false );
             return csv.GetRecords<Trade>().ToList();
         }
 

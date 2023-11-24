@@ -35,14 +35,14 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="QuantConnect.pythonnet" Version="2.0.24" />
-    <PackageReference Include="Accord" Version="3.6.0" />
-    <PackageReference Include="Accord.Fuzzy" Version="3.6.0" />
-    <PackageReference Include="Accord.MachineLearning" Version="3.6.0" />
-    <PackageReference Include="Accord.Math" Version="3.6.0" />
-    <PackageReference Include="Accord.Statistics" Version="3.6.0" />
+    <PackageReference Include="Accord" Version="3.8.2-alpha" />
+    <PackageReference Include="Accord.Fuzzy" Version="3.8.2-alpha" />
+    <PackageReference Include="Accord.MachineLearning" Version="3.8.2-alpha" />
+    <PackageReference Include="Accord.Math" Version="3.8.2-alpha" />
+    <PackageReference Include="Accord.Statistics" Version="3.8.2-alpha" />
     <PackageReference Include="DynamicInterop" Version="0.9.1" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NodaTime" Version="3.0.5" />
   </ItemGroup>
   <ItemGroup>
@@ -53,6 +53,7 @@
     <ProjectReference Include="..\Algorithm\QuantConnect.Algorithm.csproj" />
     <ProjectReference Include="..\Common\QuantConnect.csproj" />
     <ProjectReference Include="..\Indicators\QuantConnect.Indicators.csproj" />
+    <ProjectReference Include="..\MyIA.Trading.Backtester\MyIA.Trading.Backtester.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE">

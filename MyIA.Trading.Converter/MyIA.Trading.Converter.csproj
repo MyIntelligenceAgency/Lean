@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<AssemblyName>MyIA.Trading.Converter</AssemblyName>
 		<RootNamespace>MyIA.Trading.Converter</RootNamespace>
@@ -20,7 +20,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Apex.Serialization" Version="4.0.5" />
-		<PackageReference Include="CsvHelper" Version="15.0.5" />
+		<PackageReference Include="CsvHelper" Version="30.0.1" />
 		<PackageReference Include="FileHelpers" Version="3.4.1" />
 		<PackageReference Include="FlatFiles" Version="5.0.4" />
 		<PackageReference Include="MessagePack" Version="2.6.100-alpha" />
@@ -28,7 +28,7 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="SevenZipExtractor" Version="1.0.17" />
 		<PackageReference Include="SharpCompress" Version="0.34.2" />
 		<PackageReference Include="SimdJsonSharp.Managed" Version="1.5.0" />
