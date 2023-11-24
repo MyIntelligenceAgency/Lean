@@ -133,6 +133,14 @@ namespace QuantConnect.Interfaces
         }
 
         /// <summary>
+        /// Gets the risk free interest rate model used to get the interest rates
+        /// </summary>
+        IRiskFreeInterestRateModel RiskFreeInterestRateModel
+        {
+            get;
+        }
+
+        /// <summary>
         /// Gets the brokerage message handler used to decide what to do
         /// with each message sent from the brokerage
         /// </summary>
@@ -446,12 +454,24 @@ namespace QuantConnect.Interfaces
         void SetParameters(Dictionary<string, string> parameters);
 
         /// <summary>
-        /// Checks if the provided asset is shortable at the brokerage
+        /// Determines if the Symbol is shortable at the brokerage
         /// </summary>
-        /// <param name="symbol">Symbol to check if it is shortable</param>
-        /// <param name="quantity">Order quantity to check if shortable</param>
-        /// <returns></returns>
-        bool Shortable(Symbol symbol, decimal quantity);
+        /// <param name="symbol">Symbol to check if shortable</param>
+        /// <param name="shortQuantity">Order's quantity to check if it is currently shortable, taking into account current holdings and open orders</param>
+        /// <param name="updateOrderId">Optionally the id of the order being updated. When updating an order
+        /// we want to ignore it's submitted short quantity and use the new provided quantity to determine if we
+        /// can perform the update</param>
+        /// <returns>True if the symbol can be shorted by the requested quantity</returns>
+        bool Shortable(Symbol symbol, decimal shortQuantity, int? updateOrderId = null);
+
+        /// <summary>
+        /// Gets the quantity shortable for the given asset
+        /// </summary>
+        /// <returns>
+        /// Quantity shortable for the given asset. Zero if not
+        /// shortable, or a number greater than zero if shortable.
+        /// </returns>
+        long ShortableQuantity(Symbol symbol);
 
         /// <summary>
         /// Sets the brokerage model used to resolve transaction models, settlement models,

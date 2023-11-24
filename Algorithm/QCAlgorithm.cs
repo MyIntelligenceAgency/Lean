@@ -174,6 +174,7 @@ namespace QuantConnect.Algorithm
             SignalExport = new SignalExportManager(this);
 
             BrokerageModel = new DefaultBrokerageModel();
+            RiskFreeInterestRateModel = new InterestRateProvider();
             Notify = new NotificationManager(false); // Notification manager defaults to disabled.
 
             //Initialise to unlocked:
@@ -335,6 +336,16 @@ namespace QuantConnect.Algorithm
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Gets the risk free interest rate model used to get the interest rates
+        /// </summary>
+        [DocumentationAttribute(Modeling)]
+        public IRiskFreeInterestRateModel RiskFreeInterestRateModel
+        {
+            get;
+            private set;
         }
 
         /// <summary>
@@ -1279,6 +1290,16 @@ namespace QuantConnect.Algorithm
         }
 
         /// <summary>
+        /// Sets the risk free interest rate model to be used in the algorithm
+        /// </summary>
+        /// <param name="model">The risk free interest rate model to use</param>
+        [DocumentationAttribute(Modeling)]
+        public void SetRiskFreeInterestRateModel(IRiskFreeInterestRateModel model)
+        {
+            RiskFreeInterestRateModel = model ?? throw new ArgumentNullException(nameof(model));
+        }
+
+        /// <summary>
         /// Sets the benchmark used for computing statistics of the algorithm to the specified symbol
         /// </summary>
         /// <param name="symbol">symbol to use as the benchmark</param>
@@ -1851,7 +1872,10 @@ namespace QuantConnect.Algorithm
                 if (!UniverseManager.ContainsKey(symbol))
                 {
                     var canonicalConfig = configs.First();
-                    var settings = new UniverseSettings(canonicalConfig.Resolution, leverage, fillForward, extendedMarketHours, UniverseSettings.MinimumTimeInUniverse);
+                    var settings = new UniverseSettings(canonicalConfig.Resolution, leverage, fillForward, extendedMarketHours, UniverseSettings.MinimumTimeInUniverse)
+                    {
+                        Asynchronous = UniverseSettings.Asynchronous
+                    };
                     if (symbol.SecurityType.IsOption())
                     {
                         universe = new OptionChainUniverse((Option)security, settings);
@@ -1868,6 +1892,7 @@ namespace QuantConnect.Algorithm
                             DataNormalizationMode = dataNormalizationMode ?? UniverseSettings.GetUniverseNormalizationModeOrDefault(symbol.SecurityType),
                             ContractDepthOffset = (int)contractOffset,
                             SubscriptionDataTypes = dataTypes,
+                            Asynchronous = UniverseSettings.Asynchronous
                         };
                         ContinuousContractUniverse.AddConfigurations(SubscriptionManager.SubscriptionDataConfigService, continuousUniverseSettings, security.Symbol);
 
@@ -2965,18 +2990,25 @@ namespace QuantConnect.Algorithm
         /// </summary>
         /// <param name="symbol">Symbol to check if shortable</param>
         /// <param name="shortQuantity">Order's quantity to check if it is currently shortable, taking into account current holdings and open orders</param>
-        /// <returns>True if shortable</returns>
+        /// <param name="updateOrderId">Optionally the id of the order being updated. When updating an order
+        /// we want to ignore it's submitted short quantity and use the new provided quantity to determine if we
+        /// can perform the update</param>
+        /// <returns>True if the symbol can be shorted by the requested quantity</returns>
         [DocumentationAttribute(TradingAndOrders)]
-        public bool Shortable(Symbol symbol, decimal shortQuantity)
+        public bool Shortable(Symbol symbol, decimal shortQuantity, int? updateOrderId = null)
         {
-            var shortableQuantity = Securities[symbol].ShortableProvider.ShortableQuantity(symbol, Time);
+            var security = Securities[symbol];
+            var shortableQuantity = security.ShortableProvider.ShortableQuantity(symbol, security.LocalTime);
             if (shortableQuantity == null)
             {
                 return true;
             }
 
-            var openOrderQuantity = Transactions.GetOpenOrdersRemainingQuantity(symbol);
-            var portfolioQuantity = Portfolio.ContainsKey(symbol) ? Portfolio[symbol].Quantity : 0;
+            var openOrderQuantity = Transactions.GetOpenOrdersRemainingQuantity(
+                // if 'updateOrderId' was given, ignore that orders quantity
+                order => order.Symbol == symbol && (!updateOrderId.HasValue || order.OrderId != updateOrderId.Value));
+
+            var portfolioQuantity = security.Holdings.Quantity;
             // We check portfolio and open orders beforehand to ensure that orderQuantity == 0 case does not return
             // a true result whenever we have no more shares left to short.
             if (portfolioQuantity + openOrderQuantity <= -shortableQuantity)
@@ -2998,7 +3030,8 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(TradingAndOrders)]
         public long ShortableQuantity(Symbol symbol)
         {
-            return Securities[symbol].ShortableProvider.ShortableQuantity(symbol, Time) ?? 0;
+            var security = Securities[symbol];
+            return security.ShortableProvider.ShortableQuantity(symbol, security.LocalTime) ?? 0;
         }
 
         /// <summary>
