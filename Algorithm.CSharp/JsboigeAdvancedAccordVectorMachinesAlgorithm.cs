@@ -18,7 +18,14 @@ using QuantConnect.Brokerages;
 using QuantConnect.Algorithm.Framework.Selection;
 using QuantConnect.Indicators;
 using System;
+using System.Collections.Generic;
+using MessagePack.Resolvers;
+using MyIA.Trading.Backtester;
+using MyIA.Trading.Converter;
 using QuantConnect.Orders;
+using static QuantConnect.Messages;
+using QLNet;
+using QuantConnect.Data;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -34,13 +41,19 @@ namespace QuantConnect.Algorithm.CSharp
         private const int _lookback = 30;
         private const int _inputSize = 30;
 
+        TradingTrainingConfig _trainingConfig;
 
 
-
-        private RollingWindow<double> _window = new RollingWindow<double>(_inputSize * _lookback + 2);
 
         private Symbol _btcusd;
 
+        // Choix de la résolution des données
+        private Resolution _resolution = Resolution.Daily;
+
+
+        private List<Trade> _HistoricalPrices = new();
+
+        private ITradingModel _Model;
 
         public override void Initialize()
         {
@@ -54,64 +67,136 @@ namespace QuantConnect.Algorithm.CSharp
             //Capital initial
             SetCash(10000);
 
+
             //Definition de notre univers
 
             // even though we're using a framework algorithm, we can still add our securities
             // using the AddEquity/Forex/Crypto/ect methods and then pass them into a manual
             // universe selection model using Securities.Keys
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
-            var btcSecurity = AddCrypto("BTCUSD", Resolution.Daily);
+            var btcSecurity = AddCrypto("BTCUSD", _resolution);
             _btcusd = btcSecurity.Symbol;
 
             // define a manual universe of all the securities we manually registered
             SetUniverseSelection(new ManualUniverseSelectionModel());
 
-            ROC(_btcusd, 1, Resolution.Daily).Updated += (s, e) => _window.Add((double)e.Value);
 
-            Schedule.On(DateRules.Every(DayOfWeek.Monday),
-                TimeRules.Midnight,
-                TrainAndTrade);
+            var resolutionSpan = _resolution.ToTimeSpan();
 
-            SetWarmUp(_window.Size, Resolution.Daily);
+            var inputSpan = TimeSpan.FromTicks((_inputSize + 1) * resolutionSpan.Ticks);
+
+
+            SetWarmUp(inputSpan);
+
+
+            _trainingConfig = new TradingTrainingConfig()
+            {
+                DataConfig = new TradingTrainingDataConfig()
+                {
+                    // Durée de la prédiction
+                    OutputPrediction = TimeSpan.FromHours(48),
+                    // Pourcentage de variation du prix à partir duquel on considère que le prix a augmenté ou baissé
+                    OutputThresold = 10,
+                    TrainNb = 2000,
+                    TestNb = 500,
+                    TrainStartDate = new DateTime(2011, 01, 01),
+                    TrainEndDate = new DateTime(2016, 12, 31),
+                    TestStartDate = new DateTime(2017, 01, 01),
+                    TestEndDate = new DateTime(2017, 12, 31),
+                    PredictionMode = PredictionMode.ThresholdPeak,
+                    //Taux de prédictions classifiées minimum
+                    ClassifiedRate = 0,
+                    SampleConfig = new TradingSampleConfig()
+                    {
+                        Filename = @"A:\TradingTests\bitstampUSD.bin.7z",
+                        //Fenêtre d'échantillonnage
+                        StartDate = new DateTime(2011, 01, 01),
+                        EndDate = new DateTime(2022, 12, 31),
+                        // Nombre d'échantillons à générer
+                        NbSamples = 400000,
+                        // Résolution minimale des inputs
+                        MinSlice = resolutionSpan,
+                        // largeur de la fenêtre d'inputs
+                        LeftWindow = inputSpan,
+                        // Les inputs sont échantillonés à des intervalles de temps réguliers
+                        SamplingMode = SamplingMode.Constant,
+                        ConstantSliceSpan = resolutionSpan,
+                        // Les inputs sont échantillonés à des intervalles de temps se rapprochant exponentiellement
+                        //SamplingMode = SamplingMode.Exponential,
+                        //TimeCoef = 0.7m,
+                    }
+                },
+                ModelsConfig = new TradingModelsConfig()
+                {
+                    SvmModelConfig = new TradingSvmModelConfig()
+                    {
+                        Kernel = KnownKernel.NormalizedPolynomial3,
+                        Complexity = 0.023,
+                        TrainingTimeout = TimeSpan.FromSeconds(30),
+                    }
+                }
+            };
+
         }
+
+        public override void OnData(Slice data)
+        {
+            var currentBar = CurrentSlice.Bars[_btcusd];
+            var currentTrade = new Trade()
+            {
+                UnixTime = currentBar.Time.ToUnixTime(),
+                Price = currentBar.Close,
+                Amount = currentBar.Volume
+            };
+            _HistoricalPrices.Add(currentTrade);
+
+            if (this.IsWarmingUp) return;
+
+            TrainAndTrade();
+
+        }
+
 
         private void TrainAndTrade()
         {
-            if (!_window.IsReady) return;
 
-            // Convert the rolling window of rate of change into the Learn method
-            var returns = new double[_inputSize];
-            var targets = new double[_lookback];
-            var inputs = new double[_lookback][];
+            var objSample = _trainingConfig.DataConfig.SampleConfig.CreateInput(_HistoricalPrices, _HistoricalPrices.Count - 1);
 
-            // Use the sign of the returns to predict the direction
-            for (var i = 0; i < _lookback; i++)
+            if (objSample != null)
             {
-                for (var j = 0; j < _inputSize; j++)
+                var objInputs = _trainingConfig.DataConfig.GetTrainingData(objSample);
+
+                var result = GetResult(objInputs, this.Time);
+                switch (result)
                 {
-                    returns[j] = Math.Sign(_window[i + j + 1]);
+                    case 1:
+                        SetHoldings(_btcusd, 1);
+                        break;
+                    case 2:
+                        SetHoldings(_btcusd, 0);
+                        break;
                 }
 
-                targets[i] = Math.Sign(_window[i]);
-                inputs[i] = returns;
             }
+            
+        }
 
-            // Train SupportVectorMachine using SetHoldings("SPY", percentage);
-            var teacher = new LinearCoordinateDescent();
-            teacher.Learn(inputs, targets);
-
-            var svm = teacher.Model;
-
-            // Compute the value for the last rate of change
-            var last = (double) Math.Sign(_window[0]);
-            var value = svm.Compute(new[] {last});
-            if (value.IsNaNOrZero()) return;
-
-            SetHoldings(_btcusd,  Math.Max(Math.Sign(value), 0));
+        public virtual int GetResult(TradingTrainingSample objInputs, DateTime time)
+        {
+            var objData = new List<TradingTrainingSample>();
+            objData.Add(objInputs);
+            if (_Model == null)
+            {
+                double testError = 0;
+                _Model = this._trainingConfig.TrainModel(Log, ref testError);
+            }
+            var result = this._Model.Predict(objData);
+            return (int)result[0].Output;
         }
 
 
-        public override void OnOrderEvent(OrderEvent orderEvent)
+
+        public override void OnOrderEvent(Orders.OrderEvent orderEvent)
         {
 
             if (orderEvent.Status == OrderStatus.Filled)
@@ -154,8 +239,8 @@ namespace QuantConnect.Algorithm.CSharp
             //SetStartDate(2017, 08, 08); // début backtest 3412
             //SetEndDate(2019, 02, 05); // fin backtest 3432
 
-            SetStartDate(2018, 01, 30); // début backtest 9971
-            SetEndDate(2020, 07, 26); // fin backtest 9945
+            //SetStartDate(2018, 01, 30); // début backtest 9971
+            //SetEndDate(2020, 07, 26); // fin backtest 9945
 
 
             //SetStartDate(2017, 12, 15); // début backtest 17478
@@ -164,8 +249,8 @@ namespace QuantConnect.Algorithm.CSharp
             //SetStartDate(2017, 11, 25); // début backtest 8718
             //SetEndDate(2020, 05, 1); // fin backtest 8832
 
-            //SetStartDate(2021, 1, 1); // début backtest 29410
-            //SetEndDate(2023, 10, 20); // fin backtest 29688
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
         }
 
 

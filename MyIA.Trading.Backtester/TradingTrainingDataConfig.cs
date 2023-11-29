@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Accord.Math;
 using MyIA.Trading.Converter;
+using Newtonsoft.Json;
 
 namespace MyIA.Trading.Backtester
 {
@@ -34,7 +35,8 @@ namespace MyIA.Trading.Backtester
 
         public decimal PriceCoef { get; set; } = 10;
 
-
+        [JsonIgnore]
+        public Func<TradingSample, List<double>> InputDataFunction { get; set; }
 
         public TimeSpan OutputPrediction { get; set; } = TimeSpan.FromHours(5);
 
@@ -78,6 +80,7 @@ namespace MyIA.Trading.Backtester
             var toReturn = $"{GetFilenameBase()}-Complete-TrainData.bin.lz4";
             return toReturn;
         }
+
 
 
 
@@ -311,6 +314,11 @@ namespace MyIA.Trading.Backtester
 
         public List<double> GetInputData(TradingSample objSample)
         {
+            if (InputDataFunction != null)
+            {
+                return InputDataFunction(objSample);
+            }
+
             //return objSample.Inputs.Select(trade => 10*((float) (trade.Price/objSample.TargetTrade.Price)-1)).ToList();
             //return objSample.Inputs.Select(trade => (double)trade.Price ).ToList();
             return objSample.Inputs.Select(trade => (double)this.PriceCoef * ((double)(trade.Price / objSample.TargetTrade.Price) - 1)).ToList();
