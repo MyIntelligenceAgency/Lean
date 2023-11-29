@@ -141,7 +141,7 @@ namespace QuantConnect.Algorithm.CSharp
 
         public override void OnData(Slice data)
         {
-            var currentBar = CurrentSlice.Bars[_btcusd];
+            var currentBar = data.Bars[_btcusd];
             var currentTrade = new Trade()
             {
                 UnixTime = currentBar.Time.ToUnixTime(),
