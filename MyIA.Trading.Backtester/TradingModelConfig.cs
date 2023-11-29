@@ -15,6 +15,12 @@ namespace MyIA.Trading.Backtester
     public abstract class TradingModelConfig
     {
 
+        public string GetModelExceptionFileName(TradingTrainingDataConfig dataConfig)
+        {
+            return GetModelName(dataConfig) + "Fail.txt";
+        }
+
+
         public TimeSpan TrainingTimeout { get; set; } = TimeSpan.FromSeconds(20);
 
         public abstract string GetModelName(TradingTrainingDataConfig dataConfig);

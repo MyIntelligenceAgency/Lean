@@ -29,7 +29,7 @@ namespace MyIA.Trading.Backtester
             if (_PredictionEngine == null)
             {
                 var mlContext = new MLContext();
-               //var pipeLine =  Model.Append(mlContext.Transforms.Conversion.MapKeyToValue(outputColumnName: nameof(ClassifiedTradingSample.Output), inputColumnName: "Label"));
+                //var pipeLine =  Model.Append(mlContext.Transforms.Conversion.MapKeyToValue(outputColumnName: nameof(ClassifiedTradingSample.Output), inputColumnName: "Label"));
                 _PredictionEngine = mlContext.Model.CreatePredictionEngine<ClassifiedTradingSample, ClassifiedTradingPrediction>(Model);
                 //var keyValues = default(VBuffer<float>);
                 //Model.GetOutputSchema(Model.s)[nameof(TradingTrainingSample.Output)].GetKeyValues<float>(ref keyValues);
@@ -38,7 +38,7 @@ namespace MyIA.Trading.Backtester
             var toReturn = new List<TradingTrainingSample>(inputs.Count);
             foreach (var sample in inputs)
             {
-                var newSample = new TradingTrainingSample(){Inputs = sample.Inputs, Sample = sample.Sample};
+                var newSample = new TradingTrainingSample() { Inputs = sample.Inputs, Sample = sample.Sample };
                 var sampleML = new ClassifiedTradingSample()
                 {
                     Features = sample.Inputs.Select(i => Convert.ToSingle(i)).ToArray(),
@@ -49,7 +49,7 @@ namespace MyIA.Trading.Backtester
                 newSample.Output = prediction.PredictedLabel;
                 toReturn.Add(newSample);
             }
-            
+
             return toReturn;
 
         }
@@ -59,7 +59,7 @@ namespace MyIA.Trading.Backtester
 
     }
 
-  
+
 
     public class TradingAutoMlModelConfig : TradingModelConfig
     {
@@ -76,6 +76,8 @@ namespace MyIA.Trading.Backtester
             return modelName;
         }
 
+
+
         public override ITradingModel TrainModel(Action<string> logger, TradingTrainingDataConfig dataConfig, ref double testError)
         {
             var objTransformer = TrainModelInternal(logger, dataConfig, ref testError);
@@ -91,11 +93,11 @@ namespace MyIA.Trading.Backtester
         {
 
 
-            var modelName = GetModelName(dataConfig);
+
 
 
             ITransformer toReturn = null;
-            var exceptionFileName = modelName + "Fail.txt";
+            var exceptionFileName = GetModelExceptionFileName(dataConfig);
             if (File.Exists(exceptionFileName))
             {
                 logger($"Skipping previously failed Model: {exceptionFileName}");
@@ -104,6 +106,8 @@ namespace MyIA.Trading.Backtester
 
             var mlContext = new MLContext();
             TradingTrainTestData data = null;
+
+            var modelName = GetModelName(dataConfig);
             if (File.Exists(modelName))
             {
                 logger($"Loading Saved Model: {modelName}");
@@ -130,11 +134,11 @@ namespace MyIA.Trading.Backtester
                 catch (Exception e)
                 {
                     string exceptionMessage = e.ToString();
-                    logger($"Exception: {exceptionMessage}");
+                    logger($"AutoML Training Exception: {exceptionMessage}");
                     WriteExceptionFile(logger, exceptionFileName, exceptionMessage);
                     toReturn = null;
                 }
-              
+
 
                 if (toReturn == null)
                 {
@@ -143,13 +147,13 @@ namespace MyIA.Trading.Backtester
 
 
 
-               
+
 
 
 
                 logger("AutoMl Training finished");
             }
-          
+
             if (dataConfig.EnsureModelTested && testingError < 0)
             {
                 if (data == null)
@@ -189,7 +193,7 @@ namespace MyIA.Trading.Backtester
                 Label = /*(TradingTrend)*/ Convert.ToInt32(r.Output)//.ToString(CultureInfo.InvariantCulture)
             });
             var trainTest = trainAutoMl.Concat(testAutoMl).ToList();
-           
+
             // Create a data view.
             var trainTestDataView = mlContext.Data.LoadFromEnumerable<ClassifiedTradingSample>(trainTest, ClassifiedTradingSample.GetSchema());
             var trainDataView = mlContext.Data.TakeRows(trainTestDataView, trainAutoMl.Count);
@@ -210,9 +214,9 @@ namespace MyIA.Trading.Backtester
             EvaluateModel(mlContext, experimentResult.BestRun.Model, experimentResult.BestRun.TrainerName, testDataView);
 
 
-           var toReturn = experimentResult.BestRun.Model;
+            var toReturn = experimentResult.BestRun.Model;
 
-           var dataViewSchema = trainTestDataView.Schema;
+            var dataViewSchema = trainTestDataView.Schema;
 
             //// Save / persist the best model to a.ZIP file.
             SaveModel(mlContext, modelPath, toReturn, dataViewSchema);
@@ -240,7 +244,7 @@ namespace MyIA.Trading.Backtester
         }
 
 
-        private  ExperimentResult<Microsoft.ML.Data.MulticlassClassificationMetrics> RunAutoMLExperiment(MLContext mlContext,
+        private ExperimentResult<Microsoft.ML.Data.MulticlassClassificationMetrics> RunAutoMLExperiment(MLContext mlContext,
            IDataView trainData, IDataView testData)
         {
             // STEP 1: Display first few rows of the training data.
@@ -259,7 +263,7 @@ namespace MyIA.Trading.Backtester
 
 
 
-           // STEP 3: Customize column information returned by InferColumns API.
+            // STEP 3: Customize column information returned by InferColumns API.
             //ColumnInformation columnInformation = columnInference.ColumnInformation;
             //columnInformation.CategoricalColumnNames.Remove("payment_type");
             //columnInformation.IgnoredColumnNames.Add("payment_type");
@@ -302,7 +306,7 @@ namespace MyIA.Trading.Backtester
             CancellationTokenSource cts)
         {
             var experimentSettings = new MulticlassExperimentSettings();
-            experimentSettings.MaxExperimentTimeInSeconds = (uint) this.TrainingTimeout.TotalSeconds;
+            experimentSettings.MaxExperimentTimeInSeconds = (uint)this.TrainingTimeout.TotalSeconds;
             experimentSettings.CancellationToken = cts.Token;
 
             // Set the metric that AutoML will try to optimize over the course of the experiment.
@@ -372,10 +376,10 @@ namespace MyIA.Trading.Backtester
         /// <summary>
         /// Save/persist the best model to a .ZIP file
         /// </summary>
-        private void SaveModel(MLContext mlContext, string modelPath, ITransformer model, DataViewSchema schema )
+        private void SaveModel(MLContext mlContext, string modelPath, ITransformer model, DataViewSchema schema)
         {
             ConsoleHelper.ConsoleWriteHeader("=============== Saving the model ===============");
-            
+
             mlContext.Model.Save(model, schema, modelPath);
             Console.WriteLine($"The model is saved to {modelPath}");
         }
@@ -383,14 +387,14 @@ namespace MyIA.Trading.Backtester
 
 
         private static Dictionary<string, ITransformer> _CachedModels = new Dictionary<string, ITransformer>();
-        
-        
+
+
         /// <summary>
         /// Save/persist the best model to a .ZIP file
         /// </summary>
         private ITransformer LoadModel(MLContext mlContext, string modelPath)//, out DataViewSchema schema )
         {
-            
+
             ConsoleHelper.ConsoleWriteHeader("=============== Loading the model ===============");
 
             ITransformer toReturn = null;
@@ -402,7 +406,7 @@ namespace MyIA.Trading.Backtester
                     _CachedModels[modelPath] = toReturn;
                 }
 
-                
+
             }
             //else
             //{
@@ -430,7 +434,7 @@ namespace MyIA.Trading.Backtester
 
             var trainPredictions = trader.Predict(trainData);
 
-            for (int i = 0; i < trainData.Count ; i++)
+            for (int i = 0; i < trainData.Count; i++)
             {
                 Console.WriteLine("**********************************************************************");
                 Console.WriteLine($"Predicted Class: {trainPredictions[i].Output}, actual Class: {trainData[i].Output}");

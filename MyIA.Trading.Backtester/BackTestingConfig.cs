@@ -109,7 +109,7 @@ namespace MyIA.Trading.Backtester
 
 #if DEBUG
 
-            new FileBasedSimulation(){DatasourcePath =@"A:\TradingTests\krakenEUR.bin.7z", StartDate = new DateTime(2018, 1, 1), EndDate = new DateTime(2020, 5, 1),},
+            new FileBasedSimulation(){DatasourcePath =@"A:\TradingTests\krakenEUR.bin.7z", StartDate = new DateTime(2018, 1, 1), EndDate = new DateTime(2018, 5, 1),},
             //new FileBasedSimulation(){DatasourcePath =@"A:\TradingTests\bitstampUSD.bin.7z", StartDate = new DateTime(2015, 1, 1), EndDate = new DateTime(2018, 1, 1),},
             //new FileBasedSimulation(){DatasourcePath =@"A:\TradingTests\zaifJPY.2018-2020.0.5.bin.lz4", StartDate = new DateTime(2018, 1, 1), EndDate = new DateTime(2020, 5, 1),},
             //new FileBasedSimulation(){DatasourcePath =@"A:\TradingTests\bitstampUSD.bin.7z", StartDate = new DateTime(2018, 1, 1), EndDate = new DateTime(2020, 5, 1),},

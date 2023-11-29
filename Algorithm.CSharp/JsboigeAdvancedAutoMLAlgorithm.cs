@@ -33,16 +33,12 @@ namespace QuantConnect.Algorithm.CSharp
     /// Machine Learning example using Accord VectorMachines Learning
     /// In this example, the algorithm forecasts the direction based on the last 5 days of rate of return
     /// </summary>
-    public class JsboigeAdvancedAccordVectorMachinesAlgorithm : QCAlgorithm
+    public class JsboigeAdvancedAutoMLAlgorithm : QCAlgorithm
     {
         // Define the size of the data used to train the model
-        // It will use _lookback sets with _inputSize members
-        // Those members are rate of return
-        private const int _lookback = 30;
-        private const int _inputSize = 30;
+        private const int _inputSize = 32;
 
         TradingTrainingConfig _trainingConfig;
-
 
 
         private Symbol _btcusd;
@@ -94,10 +90,10 @@ namespace QuantConnect.Algorithm.CSharp
                 DataConfig = new TradingTrainingDataConfig()
                 {
                     // Durée de la prédiction
-                    OutputPrediction = TimeSpan.FromHours(48),
+                    OutputPrediction = TimeSpan.FromDays(10),
                     // Pourcentage de variation du prix à partir duquel on considère que le prix a augmenté ou baissé
-                    OutputThresold = 10,
-                    TrainNb = 2000,
+                    OutputThresold = 20,
+                    TrainNb = 10000,
                     TestNb = 500,
                     TrainStartDate = new DateTime(2011, 01, 01),
                     TrainEndDate = new DateTime(2016, 12, 31),
@@ -128,15 +124,13 @@ namespace QuantConnect.Algorithm.CSharp
                 },
                 ModelsConfig = new TradingModelsConfig()
                 {
-                    SvmModelConfig = new TradingSvmModelConfig()
+                    ModelType = TradingModelType.AutoML,
+                    AutomMlModelConfig = new TradingAutoMlModelConfig()
                     {
-                        Kernel = KnownKernel.NormalizedPolynomial3,
-                        Complexity = 0.023,
-                        TrainingTimeout = TimeSpan.FromSeconds(30),
-                    }
+                        TrainingTimeout = TimeSpan.FromSeconds(30)
+                    },
                 }
             };
-
         }
 
         public override void OnData(Slice data)
@@ -191,7 +185,7 @@ namespace QuantConnect.Algorithm.CSharp
                 _Model = this._trainingConfig.TrainModel(Log, ref testError);
                 if (_Model == null)
                 {
-                    this.Error($"Model could not be trained, check model exception file in {_trainingConfig.ModelsConfig.CurrentModelConfig.GetModelExceptionFileName(_trainingConfig.DataConfig)}");
+                    throw new ApplicationException($"Model could not be trained, check model exception file in {_trainingConfig.ModelsConfig.CurrentModelConfig.GetModelExceptionFileName(_trainingConfig.DataConfig)}");
                 }
             }
             var result = this._Model.Predict(objData);
@@ -247,14 +241,14 @@ namespace QuantConnect.Algorithm.CSharp
             //SetEndDate(2020, 07, 26); // fin backtest 9945
 
 
-            //SetStartDate(2017, 12, 15); // début backtest 17478
-            //SetEndDate(2022, 12, 12); // fin backtest 17209
+            SetStartDate(2017, 12, 15); // début backtest 17478
+            SetEndDate(2022, 12, 12); // fin backtest 17209
 
             //SetStartDate(2017, 11, 25); // début backtest 8718
             //SetEndDate(2020, 05, 1); // fin backtest 8832
 
-            SetStartDate(2021, 1, 1); // début backtest 29410
-            SetEndDate(2023, 10, 20); // fin backtest 29688
+            //SetStartDate(2021, 1, 1); // début backtest 29410
+            //SetEndDate(2023, 10, 20); // fin backtest 29688
         }
 
 
