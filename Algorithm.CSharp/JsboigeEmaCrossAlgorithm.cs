@@ -24,6 +24,7 @@ using QuantConnect.Data;
 using QuantConnect.Orders.Fees;
 using QuantConnect.Securities;
 using QuantConnect.Orders;
+using System.Drawing;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -56,6 +57,14 @@ namespace QuantConnect.Algorithm.CSharp
         //private string _PortfoliovalueSeriesName = "PortFolioValue";
 
 
+        private string _ChartName = "Trade Plot";
+        private string _PriceSeriesName = "Price";
+        private string _PortfoliovalueSeriesName = "PortFolioValue";
+        private string _FastSeriesName = "FastEMA";
+        private string _SlowSeriesName = "SlowEMA";
+
+
+
         public override void Initialize()
         {
             this.InitPeriod();
@@ -74,7 +83,28 @@ namespace QuantConnect.Algorithm.CSharp
             Fast = EMA(_btcusd, FastPeriod, Resolution.Daily);
             Slow = EMA(_btcusd, SlowPeriod, Resolution.Daily);
 
+            // Dealing with plots
+            var stockPlot = new Chart(_ChartName);
+            var assetPrice = new Series(_PriceSeriesName, SeriesType.Line, "$", Color.Blue);
+            var portFolioValue = new Series(_PortfoliovalueSeriesName, SeriesType.Line, "$", Color.Green);
+            var fastSeries = new Series(_FastSeriesName, SeriesType.Line, "$", Color.Red);
+            var slowSeries = new Series(_SlowSeriesName, SeriesType.Line, "$", Color.Yellow);
 
+            stockPlot.AddSeries(assetPrice);
+            stockPlot.AddSeries(portFolioValue);
+            stockPlot.AddSeries(fastSeries);
+            stockPlot.AddSeries(slowSeries);
+            AddChart(stockPlot);
+            Schedule.On(DateRules.EveryDay(), TimeRules.Every(TimeSpan.FromDays(1)), DoPlots);
+
+        }
+
+        private void DoPlots()
+        {
+            Plot(_ChartName, _PriceSeriesName, Securities[_btcusd].Price);
+            Plot(_ChartName, _PortfoliovalueSeriesName, Portfolio.TotalPortfolioValue);
+            Plot(_ChartName, _FastSeriesName, Fast);
+            Plot(_ChartName, _SlowSeriesName, Slow);
         }
 
 
