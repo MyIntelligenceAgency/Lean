@@ -1,5 +1,6 @@
 using System;
 using MyIA.Trading.Backtester;
+using QuantConnect.Algorithm.CSharp.Alphas;
 using QuantConnect.Algorithm.Framework.Alphas;
 using QuantConnect.Algorithm.Framework.Execution;
 using QuantConnect.Algorithm.Framework.Portfolio;
