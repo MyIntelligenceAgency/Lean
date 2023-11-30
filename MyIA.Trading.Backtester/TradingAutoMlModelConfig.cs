@@ -69,6 +69,9 @@ namespace MyIA.Trading.Backtester
             MulticlassClassificationMetric.MacroAccuracy;
 
 
+
+
+
         public override string GetModelName(TradingTrainingDataConfig dataConfig)
         {
             var toREturn = dataConfig.GetSampleTrainName();
@@ -91,9 +94,6 @@ namespace MyIA.Trading.Backtester
 
         private ITransformer TrainModelInternal(Action<string> logger, TradingTrainingDataConfig dataConfig, ref double testingError)
         {
-
-
-
 
 
             ITransformer toReturn = null;
@@ -284,6 +284,8 @@ namespace MyIA.Trading.Backtester
 
             // STEP 7: Run AutoML regression experiment.
             var experiment = mlContext.Auto().CreateMulticlassClassificationExperiment(experimentSettings);
+
+
             ConsoleHelper.ConsoleWriteHeader("=============== Running AutoML experiment ===============");
             //Console.WriteLine($"Running AutoML regression experiment...");
             var stopwatch = Stopwatch.StartNew();

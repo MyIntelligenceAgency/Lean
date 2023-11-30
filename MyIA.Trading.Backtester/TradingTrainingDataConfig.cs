@@ -10,8 +10,17 @@ namespace MyIA.Trading.Backtester
 {
     public enum PredictionMode
     {
+        /// <summary>
+        /// Exact prediction mode means the price will be compared to the target price at the exact time of the prediction
+        /// </summary>
         Exact,
+        /// <summary>
+        /// Peak prediction mode means the price will be compared to the peak price in the next OutputPrediction time span
+        /// </summary>
         Peak,
+        /// <summary>
+        /// ThresholdPeak prediction mode means the price will be compared to the peak price in the next OutputPrediction time span that is above the OutputThresold relative to the target price
+        /// </summary>
         ThresholdPeak
     }
 
@@ -42,6 +51,11 @@ namespace MyIA.Trading.Backtester
 
         public decimal OutputThresold { get; set; } = 5;
 
+        /// <summary>
+        /// Exact prediction mode means the price will be compared to the target price at the exact time of the prediction
+        /// Peak prediction mode means the price will be compared to the peak price in the next OutputPrediction time span
+        /// ThresholdPeak prediction mode means the price will be compared to the peak price in the next OutputPrediction time span that is above the OutputThresold relative to the target price
+        /// </summary>
         public PredictionMode PredictionMode { get; set; } = PredictionMode.Exact;
 
 

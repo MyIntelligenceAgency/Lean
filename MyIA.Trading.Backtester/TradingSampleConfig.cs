@@ -53,7 +53,7 @@ namespace MyIA.Trading.Backtester
 
         public TimeSpan MinSlice { get; set; } = TimeSpan.FromMinutes(1);
 
-        public  List<TimeSpan> PredictionTimes =>  new List<TimeSpan>( new []{
+        public List<TimeSpan> PredictionTimes => new List<TimeSpan>(new[]{
             //TimeSpan.FromMinutes(5),
             //TimeSpan.FromMinutes(10),
             //TimeSpan.FromMinutes(20),
@@ -92,14 +92,14 @@ namespace MyIA.Trading.Backtester
         }
 
         private static readonly Dictionary<string, List<TradingSample>> _samplesByConfig = new Dictionary<string, List<TradingSample>>();
-        public  List<TradingSample> Load( Action<string> logger)
+        public List<TradingSample> Load(Action<string> logger)
         {
             //var strKey = JsonConvert.SerializeObject(this);
             var sampleFileName = this.GetSamplesFileName();
             logger($"Loading samples");
             if (!_samplesByConfig.TryGetValue(sampleFileName, out var toReturn))
             {
-               
+
 
                 if (SaveSamples && File.Exists(sampleFileName))
                 {
@@ -112,14 +112,14 @@ namespace MyIA.Trading.Backtester
                     //        TradeHelper.DeSerializationConfig.Compression, InputArchiveFormat.SevenZip);
                     //    toReturn = decompressed.DeserializeApexFormatter<List<TradingSample>>(new[] { typeof(Trade), typeof(TradingSample) });
                     //}
-                        
+
                     logger($"Loaded {sampleFileName}");
                 }
                 else
                 {
                     logger($"Creating {sampleFileName}");
-                   
-                    var trades = TradeHelper.Load(this.Filename, this.StartDate-this.LeftWindow, this.EndDate+PredictionTimes.Last(), logger, false);
+
+                    var trades = TradeHelper.Load(this.Filename, this.StartDate - this.LeftWindow, this.EndDate + PredictionTimes.Last(), logger, false);
                     logger($"Creating samples");
                     toReturn = CreateSamples(trades);
                     logger($"Created samples");
@@ -129,7 +129,7 @@ namespace MyIA.Trading.Backtester
                         TradeConverter.SaveFile(toReturn, sampleFileName, "", logger, TradeHelper.SerializationConfig);
                         logger($"Created {sampleFileName}");
                     }
-                    
+
                 }
 
                 _samplesByConfig[sampleFileName] = toReturn;
@@ -152,7 +152,7 @@ namespace MyIA.Trading.Backtester
 
         private FastRandom _FastRandom = new FastRandom(new Random().Next());
 
-        
+
 
         public List<TradingSample> CreateSamplesBySearch(List<Trade> trades, int firstIdx, int slice)
         {
@@ -161,13 +161,13 @@ namespace MyIA.Trading.Backtester
 
             var peaks = PredictionPeaks
                 .Select(threshold => new KeyValuePair<decimal, List<KeyValuePair<int, Trade>>>(threshold, GetPeaks(trades, threshold)))
-                .ToDictionary(x => x.Key, x=>x.Value);
+                .ToDictionary(x => x.Key, x => x.Value);
             var currentPeakIndices = PredictionPeaks.ToDictionary(x => x, x => 0);
             for (int i = 0; i < this.NbSamples; i++)
             {
                 var randomIndexOffset = UseFastRandom ? _FastRandom.Next(0, slice) : _Random.Next(0, slice);
                 var startIdx = firstIdx + (i * slice) + randomIndexOffset;
-                
+
                 var sample = Create(trades, startIdx, peaks, ref currentPeakIndices);
                 if (sample != null)
                 {
@@ -178,6 +178,13 @@ namespace MyIA.Trading.Backtester
             return toReturn;
         }
 
+
+        /// <summary>
+        /// Returns a list of key-value pairs representing the peaks in a list of trades based on a given variation threshold.
+        /// </summary>
+        /// <param name="trades">The list of trades to analyze.</param>
+        /// <param name="threshold">The threshold value to determine if a trade is a peak.</param>
+        /// <returns>A list of key-value pairs where the key represents the index of the peak trade and the value represents the peak trade itself.</returns>
         public List<KeyValuePair<int, Trade>> GetPeaks(List<Trade> trades, decimal threshold)
         {
             var percentThresold = threshold / 100;
@@ -189,14 +196,14 @@ namespace MyIA.Trading.Backtester
                 var currentTrade = new KeyValuePair<int, Trade>(currentTradeIndex, trades[currentTradeIndex]);
                 if (currentMinTrade.Key > -1)
                 {
-                    
+
                     if (currentTrade.Value.Price < currentMinTrade.Value.Price)
                     {
                         currentMinTrade = currentTrade;
                     }
                     if ((currentTrade.Value.Price - currentMinTrade.Value.Price) / currentMinTrade.Value.Price > percentThresold)
                     {
-                        
+
                         toReturn.Add(currentMinTrade);
                         currentMinTrade = new KeyValuePair<int, Trade>(-1, null);
                         currentMaxTrade = currentTrade;
@@ -276,7 +283,7 @@ namespace MyIA.Trading.Backtester
 
 
 
-        public  TradingSample AddOutputs(TradingSample sample, List<Trade> trades, int idx)
+        public TradingSample AddOutputs(TradingSample sample, List<Trade> trades, int idx)
         {
             var targetTime = sample.TargetTrade.Time;
             foreach (var predictionTime in this.PredictionTimes)
@@ -293,9 +300,12 @@ namespace MyIA.Trading.Backtester
             return sample;
         }
 
-        public TradingSample AddPeaks(TradingSample sample, List<Trade> trades, int idx, Dictionary<decimal, List<KeyValuePair<int, Trade>>> peaks, ref Dictionary<decimal, int> currentPeakIndices )
+        /// <summary>
+        /// Adds to the current sample the peaks based on variation threshold and threshold peaks based on variation threshold from target trade following the target trade.
+        /// </summary>
+        public TradingSample AddPeaks(TradingSample sample, List<Trade> trades, int idx, Dictionary<decimal, List<KeyValuePair<int, Trade>>> peaks, ref Dictionary<decimal, int> currentPeakIndices)
         {
-            
+
             var targetTime = sample.TargetTrade.Time;
             foreach (var threshold in peaks.Keys)
             {
@@ -305,7 +315,7 @@ namespace MyIA.Trading.Backtester
                 do
                 {
                     var currentPeak = currentPeaks[currentPeakIndex];
-                    if (currentPeak.Key>idx)
+                    if (currentPeak.Key > idx)
                     {
                         currentPeakIndices[threshold] = currentPeakIndex;
                         sample.Peaks[threshold] = currentPeak.Value;
@@ -328,7 +338,7 @@ namespace MyIA.Trading.Backtester
                         break;
                     }
                     currentPeakIndex += 1;
-                } while (currentPeakIndex<currentPeaks.Count);
+                } while (currentPeakIndex < currentPeaks.Count);
                 if (!sample.Peaks.ContainsKey(threshold))
                 {
                     return null;
@@ -379,7 +389,7 @@ namespace MyIA.Trading.Backtester
         }
 
 
-        public  TradingSample CreateInput(List<OrderTrade> trades, int idx)
+        public TradingSample CreateInput(List<OrderTrade> trades, int idx)
         {
             var toReturn = new TradingSample();
             toReturn.TargetTrade = new Trade()
@@ -473,5 +483,5 @@ namespace MyIA.Trading.Backtester
 
     }
 
-   
+
 }
