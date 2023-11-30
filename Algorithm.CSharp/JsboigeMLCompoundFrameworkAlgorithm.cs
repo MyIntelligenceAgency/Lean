@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MyIA.Trading.Backtester;
 using MyIA.Trading.Converter;
+using QuantConnect.Algorithm.CSharp.Alphas;
 using QuantConnect.Algorithm.Framework.Alphas;
 using QuantConnect.Algorithm.Framework.Execution;
 using QuantConnect.Algorithm.Framework.Portfolio;
