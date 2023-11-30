@@ -382,6 +382,7 @@ namespace MyIA.Trading.Backtester
         {
             ConsoleHelper.ConsoleWriteHeader("=============== Saving the model ===============");
 
+            new FileInfo(modelPath).Directory.Create();
             mlContext.Model.Save(model, schema, modelPath);
             Console.WriteLine($"The model is saved to {modelPath}");
         }
