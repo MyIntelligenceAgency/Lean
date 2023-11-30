@@ -143,8 +143,8 @@ namespace QuantConnect.Algorithm.CSharp
             //SetStartDate(2017, 08, 08); // début backtest 3412
             //SetEndDate(2019, 02, 05); // fin backtest 3432
 
-            SetStartDate(2018, 01, 30); // début backtest 9971
-            SetEndDate(2020, 07, 26); // fin backtest 9945
+            //SetStartDate(2018, 01, 30); // début backtest 9971
+            //SetEndDate(2020, 07, 26); // fin backtest 9945
 
 
             //SetStartDate(2017, 12, 15); // début backtest 17478
@@ -153,8 +153,8 @@ namespace QuantConnect.Algorithm.CSharp
             //SetStartDate(2017, 11, 25); // début backtest 8718
             //SetEndDate(2020, 05, 1); // fin backtest 8832
 
-            //SetStartDate(2021, 1, 1); // début backtest 29410
-            //SetEndDate(2023, 10, 20); // fin backtest 29688
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
         }
 
 

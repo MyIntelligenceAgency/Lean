@@ -54,7 +54,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!Portfolio.Invested)
             {
-                SetHoldings(_btcEur, 1);
+                SetHoldings(this._btcEur, 1);
                 Debug("Purchased Stock");
             }
             else

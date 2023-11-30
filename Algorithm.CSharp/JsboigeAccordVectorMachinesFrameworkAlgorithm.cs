@@ -38,6 +38,14 @@ public class JsboigeAccordVectorMachinesFrameworkAlgorithm : QCAlgorithm
 
     private TimeSpan _insightPeriod = TimeSpan.FromDays(365);
 
+
+    private TimeSpan _trainingTimout = TimeSpan.FromSeconds(30);
+
+    private KnownKernel _kernel = KnownKernel.NormalizedPolynomial3;
+
+    private double _complexity = 0.023;
+
+
     public override void Initialize()
     {
 
@@ -70,7 +78,7 @@ public class JsboigeAccordVectorMachinesFrameworkAlgorithm : QCAlgorithm
 
         // define alpha model as a composite of the rsi and ema cross models
         SetAlpha(new JsboigeAccordBtcUsdSVMAlphaModel(this, _btcusd, LoopBack, 
-            InputSize, _resolution, _insightPeriod));
+            InputSize, _resolution, _insightPeriod, _trainingTimout, _kernel, _complexity));
 
         // default models for the rest
         SetPortfolioConstruction(new EqualWeightingPortfolioConstructionModelWithoutExpiry(Resolution.Daily, PortfolioBias.Long));
@@ -166,15 +174,23 @@ public class JsboigeAccordBtcUsdSVMAlphaModel : AlphaModel
 
     private ITradingModel _Model;
 
+    private KnownKernel _kernel;
+
+    private double _complexity;
+
+    private TimeSpan _trainingTimout = TimeSpan.FromSeconds(30);
 
     public JsboigeAccordBtcUsdSVMAlphaModel(QCAlgorithm algorithm, Symbol btcusd, int lookback,
-        int inputSize, Resolution resolution, TimeSpan insightPeriod) : base()
+        int inputSize, Resolution resolution, TimeSpan insightPeriod, TimeSpan trainingTimout, KnownKernel kernel = KnownKernel.NormalizedPolynomial3, double complexity = 0.023) : base()
     {
         _btcusd = btcusd;
        _lookback = lookback;
        _inputSize = inputSize;
        _resolution = resolution;
        _insightPeriod = insightPeriod;
+       _trainingTimout = trainingTimout;
+       _kernel = kernel;
+       _complexity = complexity;
 
 
 
@@ -227,9 +243,9 @@ public class JsboigeAccordBtcUsdSVMAlphaModel : AlphaModel
             {
                 SvmModelConfig = new TradingSvmModelConfig()
                 {
-                    Kernel = KnownKernel.NormalizedPolynomial3,
-                    Complexity = 0.023,
-                    TrainingTimeout = TimeSpan.FromSeconds(30),
+                    Kernel = _kernel,
+                    Complexity = _complexity,
+                    TrainingTimeout = _trainingTimout,
                 }
             }
         };

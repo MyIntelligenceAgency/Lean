@@ -47,6 +47,8 @@ public class JsboigeMLCompoundFrameworkAlgorithm : QCAlgorithm
 
     private TimeSpan _insightPeriod = TimeSpan.FromDays(365);
 
+    private TimeSpan _trainingTimout = TimeSpan.FromSeconds(30);
+
     public override void Initialize()
     {
 
@@ -78,15 +80,18 @@ public class JsboigeMLCompoundFrameworkAlgorithm : QCAlgorithm
         SetUniverseSelection(new ManualUniverseSelectionModel());
 
         var svmALpha = new JsboigeAccordBtcUsdSVMAlphaModel(this, _btcusd, LoopBack,
-            InputSize, _resolution, _insightPeriod);
+            InputSize, _resolution, _insightPeriod, _trainingTimout);
+
+        var svmALpha2 = new JsboigeAccordBtcUsdSVMAlphaModel(this, _btcusd, LoopBack,
+            InputSize, _resolution, _insightPeriod, _trainingTimout, KnownKernel.NormalizedPolynomial3, 0.1);
 
         var emaCrossAlpha = new EmaCrossAlphaModel(FastPeriod, SlowPeriod, _resolution);
 
         
-        var compaositeAlpha = new CompositeAlphaModel(svmALpha, emaCrossAlpha);
+        var compositeAlphaModel = new CompositeAlphaModel(svmALpha, svmALpha2, emaCrossAlpha);
 
         // define alpha model as a composite of the rsi and ema cross models
-        SetAlpha(compaositeAlpha);
+        SetAlpha(compositeAlphaModel);
 
         // default models for the rest
         SetPortfolioConstruction(new EqualWeightingPortfolioConstructionModelWithoutExpiry(Resolution.Daily, PortfolioBias.Long));
