@@ -76,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetUniverseSelection(new ManualUniverseSelectionModel());
 
             // define alpha model as a composite of the rsi and ema cross models
-            SetAlpha(new EmaCrossAlphaModel(FastPeriod, SlowPeriod, Resolution.Daily));
+            this.SetAlpha(new EmaCrossAlphaModel(FastPeriod, SlowPeriod, Resolution.Daily));
 
             // default models for the rest
             SetPortfolioConstruction(new EqualWeightingPortfolioConstructionModelWithoutExpiry(Resolution.Daily, PortfolioBias.Long));
@@ -103,14 +103,13 @@ namespace QuantConnect.Algorithm.CSharp
 
 
             //SetStartDate(2017, 12, 15); // début backtest 17478
-            SetStartDate(2018, 01, 30); 
-            SetEndDate(2022, 12, 12); // fin backtest 17209
+            //SetEndDate(2022, 12, 12); // fin backtest 17209
 
             //SetStartDate(2017, 11, 25); // début backtest 8718
             //SetEndDate(2020, 05, 1); // fin backtest 8832
 
-            //SetStartDate(2021, 1, 1); // début backtest 29410
-            //SetEndDate(2023, 10, 20); // fin backtest 29688
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
         }
 
 
