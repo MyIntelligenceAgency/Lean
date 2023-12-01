@@ -21,7 +21,7 @@ namespace QuantConnect.Algorithm.CSharp;
 /// <summary>
 /// Show cases how to use the <see cref="EmaCrossAlphaModel"/> 
 /// </summary>
-public class JsboigeMLCompoundFrameworkAlgorithm : QCAlgorithm
+public class JsboigeCompositeAlphaSVMFrameworkAlgorithm : QCAlgorithm
 {
 
     private Symbol _btcusd;

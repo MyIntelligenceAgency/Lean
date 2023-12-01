@@ -41,24 +41,24 @@ namespace QuantConnect.Algorithm.CSharp
 
         // Taille de la fenêtre d'inputs en nombre de résolutions
         [Parameter("input-size")]
-        public int _inputSize = 60;
+        public int InputSize = 60;
 
         // Mode d'échantillonnage des inputs: Constant (intervalles de temps réguliers) ou Exponential (intervalles de temps se rapprochant exponentiellement)
-        public SamplingMode _samplingMode = SamplingMode.Exponential;
+        public SamplingMode SamplingMode = SamplingMode.Exponential;
 
         // Coefficient de rapprochement exponentiel des intervalles de temps
         [Parameter("time-coef")]
-        public decimal _timeCoef = 0.7m;
+        public decimal TimeCoef = 0.7m;
 
         // Nombre d'échantillons pour l'ensemble d'entraînement du modèle
         [Parameter("train-nb")]
-        public int _trainNb = 10000;
+        public int TrainNb = 10000;
         // Pourcentage de variation du prix à partir duquel on considère que le prix a augmenté ou baissé
         [Parameter("output-thresold")]
-        public int _outputThresold = 20;
+        public int OutputThresold = 20;
         
         // Durée de la prédiction en jours (au choix parmi 1,6,12h ou bien 1,2,3,5,10,20,30 jours)
-        private int _outputPredictionNb = 10;
+        private int OutputPredictionNb = 10;
 
         
         
@@ -109,12 +109,12 @@ namespace QuantConnect.Algorithm.CSharp
 
             var resolutionSpan = _resolution.ToTimeSpan();
 
-            var inputSpan = TimeSpan.FromTicks((_inputSize + 1) * resolutionSpan.Ticks);
+            var inputSpan = TimeSpan.FromTicks((InputSize + 1) * resolutionSpan.Ticks);
 
 
             SetWarmUp(inputSpan);
 
-            _outputPredictionSpan = TimeSpan.FromDays(_outputPredictionNb);
+            _outputPredictionSpan = TimeSpan.FromDays(OutputPredictionNb);
 
 
             _trainingConfig = new TradingTrainingConfig()
@@ -124,8 +124,8 @@ namespace QuantConnect.Algorithm.CSharp
                     // Durée de la prédiction
                     OutputPrediction = _outputPredictionSpan,
                     // Pourcentage de variation du prix à partir duquel on considère que le prix a augmenté ou baissé
-                    OutputThresold = _outputThresold,
-                    TrainNb = _trainNb,
+                    OutputThresold = OutputThresold,
+                    TrainNb = TrainNb,
                     TestNb = 500,
                     TrainStartDate = new DateTime(2011, 01, 01),
                     TrainEndDate = new DateTime(2016, 12, 31),
@@ -146,12 +146,11 @@ namespace QuantConnect.Algorithm.CSharp
                         MinSlice = resolutionSpan,
                         // largeur de la fenêtre d'inputs
                         LeftWindow = inputSpan,
-                        // Les inputs sont échantillonés à des intervalles de temps réguliers
-                        SamplingMode = _samplingMode,
+                        // Les inputs sont échantillonés à des intervalles de temps réguliers ou  des intervalles de temps se rapprochant exponentiellement
+                        SamplingMode = SamplingMode,
                         ConstantSliceSpan = resolutionSpan,
-                        // Les inputs sont échantillonés à des intervalles de temps se rapprochant exponentiellement
-                        //SamplingMode = SamplingMode.Exponential,
-                        //TimeCoef = _timeCoef,
+                        //coef de rétrecissement des intervalles de sampling
+                        TimeCoef = TimeCoef,
                     }
                 },
                 ModelsConfig = new TradingModelsConfig()
