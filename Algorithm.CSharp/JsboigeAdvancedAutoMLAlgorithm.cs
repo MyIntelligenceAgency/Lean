@@ -26,6 +26,7 @@ using QuantConnect.Orders;
 using static QuantConnect.Messages;
 using QLNet;
 using QuantConnect.Data;
+using QuantConnect.Parameters;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -35,21 +36,50 @@ namespace QuantConnect.Algorithm.CSharp
     /// </summary>
     public class JsboigeAdvancedAutoMLAlgorithm : QCAlgorithm
     {
-        // Define the size of the data used to train the model
-        private const int _inputSize = 32;
-
-        TradingTrainingConfig _trainingConfig;
+        // Paramètres de l'algorithme
 
 
-        private Symbol _btcusd;
+        // Taille de la fenêtre d'inputs en nombre de résolutions
+        [Parameter("input-size")]
+        public int _inputSize = 60;
 
-        // Choix de la résolution des données
+        // Mode d'échantillonnage des inputs: Constant (intervalles de temps réguliers) ou Exponential (intervalles de temps se rapprochant exponentiellement)
+        public SamplingMode _samplingMode = SamplingMode.Exponential;
+
+        // Coefficient de rapprochement exponentiel des intervalles de temps
+        [Parameter("time-coef")]
+        public decimal _timeCoef = 0.7m;
+
+        // Nombre d'échantillons pour l'ensemble d'entraînement du modèle
+        [Parameter("train-nb")]
+        public int _trainNb = 10000;
+        // Pourcentage de variation du prix à partir duquel on considère que le prix a augmenté ou baissé
+        [Parameter("output-thresold")]
+        public int _outputThresold = 20;
+        
+        // Durée de la prédiction en jours (au choix parmi 1,6,12h ou bien 1,2,3,5,10,20,30 jours)
+        private int _outputPredictionNb = 10;
+
+        
+        
+        // Mode de prédiction: Exact (prix exact à la fin de période de prédiction) Peak (prix du premier pic de variation du seuil s'il est dans la période de prédiction) ou ThresholdPeak (prix du prochain pic de variation du seuil par rapport au prix initial s'il est dans la période de prédiction)
+        private PredictionMode _predictionMode = PredictionMode.ThresholdPeak;
+
+
+        
+
+        // Résolution des données
         private Resolution _resolution = Resolution.Daily;
 
+        //Symbole à trader
+        private Symbol _btcusd;
 
+        // Membres privés d'infrastructure
+        TradingTrainingConfig _trainingConfig;
+        private TimeSpan _outputPredictionSpan;
         private List<Trade> _HistoricalPrices = new();
-
         private ITradingModel _Model;
+
 
         public override void Initialize()
         {
@@ -84,22 +114,24 @@ namespace QuantConnect.Algorithm.CSharp
 
             SetWarmUp(inputSpan);
 
+            _outputPredictionSpan = TimeSpan.FromDays(_outputPredictionNb);
+
 
             _trainingConfig = new TradingTrainingConfig()
             {
                 DataConfig = new TradingTrainingDataConfig()
                 {
                     // Durée de la prédiction
-                    OutputPrediction = TimeSpan.FromDays(10),
+                    OutputPrediction = _outputPredictionSpan,
                     // Pourcentage de variation du prix à partir duquel on considère que le prix a augmenté ou baissé
-                    OutputThresold = 20,
-                    TrainNb = 10000,
+                    OutputThresold = _outputThresold,
+                    TrainNb = _trainNb,
                     TestNb = 500,
                     TrainStartDate = new DateTime(2011, 01, 01),
                     TrainEndDate = new DateTime(2016, 12, 31),
                     TestStartDate = new DateTime(2017, 01, 01),
                     TestEndDate = new DateTime(2017, 12, 31),
-                    PredictionMode = PredictionMode.ThresholdPeak,
+                    PredictionMode = _predictionMode,
                     //Taux de prédictions classifiées minimum
                     ClassifiedRate = 0,
                     SampleConfig = new TradingSampleConfig()
@@ -115,11 +147,11 @@ namespace QuantConnect.Algorithm.CSharp
                         // largeur de la fenêtre d'inputs
                         LeftWindow = inputSpan,
                         // Les inputs sont échantillonés à des intervalles de temps réguliers
-                        SamplingMode = SamplingMode.Constant,
+                        SamplingMode = _samplingMode,
                         ConstantSliceSpan = resolutionSpan,
                         // Les inputs sont échantillonés à des intervalles de temps se rapprochant exponentiellement
                         //SamplingMode = SamplingMode.Exponential,
-                        //TimeCoef = 0.7m,
+                        //TimeCoef = _timeCoef,
                     }
                 },
                 ModelsConfig = new TradingModelsConfig()
@@ -241,14 +273,14 @@ namespace QuantConnect.Algorithm.CSharp
             //SetEndDate(2020, 07, 26); // fin backtest 9945
 
 
-            SetStartDate(2017, 12, 15); // début backtest 17478
-            SetEndDate(2022, 12, 12); // fin backtest 17209
+            //SetStartDate(2017, 12, 15); // début backtest 17478
+            //SetEndDate(2022, 12, 12); // fin backtest 17209
 
             //SetStartDate(2017, 11, 25); // début backtest 8718
             //SetEndDate(2020, 05, 1); // fin backtest 8832
 
-            //SetStartDate(2021, 1, 1); // début backtest 29410
-            //SetEndDate(2023, 10, 20); // fin backtest 29688
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
         }
 
 

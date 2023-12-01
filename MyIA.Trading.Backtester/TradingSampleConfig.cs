@@ -14,9 +14,9 @@ namespace MyIA.Trading.Backtester
     public enum SamplingMode
     {
         // Slices are taken at intervals reducing exponentially using TimeCoef from LeftWindow to MinSlice
-        Exponential,
+        Exponential = 0,
         // Slices are taken at constants intervals using TimeCoef from LeftWindow
-        Constant,
+        Constant = 1,
     }
 
 
@@ -59,15 +59,7 @@ namespace MyIA.Trading.Backtester
             //TimeSpan.FromMinutes(20),
             //TimeSpan.FromMinutes(30),
             TimeSpan.FromHours(1),
-            //TimeSpan.FromHours(2),
-            //TimeSpan.FromHours(3),
-            //TimeSpan.FromHours(4),
-            //TimeSpan.FromHours(5),
             TimeSpan.FromHours(6),
-            //TimeSpan.FromHours(7),
-            //TimeSpan.FromHours(8),
-            //TimeSpan.FromHours(9),
-            //TimeSpan.FromHours(10),
             TimeSpan.FromHours(12),
             TimeSpan.FromDays(1),
             TimeSpan.FromDays(2),

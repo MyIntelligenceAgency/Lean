@@ -28,9 +28,16 @@ namespace MyIA.Trading.Backtester
         {
             if (_PredictionEngine == null)
             {
+                var nbInputs = inputs.First().Inputs.Count;
                 var mlContext = new MLContext();
+
+                var predictionEngineOptions = new Microsoft.ML.PredictionEngineOptions()
+                {
+                    InputSchemaDefinition = ClassifiedTradingSample.GetSchema(nbInputs)
+                };
+
                 //var pipeLine =  Model.Append(mlContext.Transforms.Conversion.MapKeyToValue(outputColumnName: nameof(ClassifiedTradingSample.Output), inputColumnName: "Label"));
-                _PredictionEngine = mlContext.Model.CreatePredictionEngine<ClassifiedTradingSample, ClassifiedTradingPrediction>(Model);
+                _PredictionEngine = mlContext.Model.CreatePredictionEngine<ClassifiedTradingSample, ClassifiedTradingPrediction>(Model, predictionEngineOptions);
                 //var keyValues = default(VBuffer<float>);
                 //Model.GetOutputSchema(Model.s)[nameof(TradingTrainingSample.Output)].GetKeyValues<float>(ref keyValues);
                 //var keys = keyValues.Items().ToDictionary(x => (int)x.Value, x => x.Key);
@@ -179,6 +186,8 @@ namespace MyIA.Trading.Backtester
 
         private ITransformer AutoMLTrainingMain(Action<string> logger, string modelPath, TradingTrainTestData data)
         {
+            var nbInputs = data.Training.First().Inputs.Count;
+
             var mlContext = new MLContext();
 
             // Load data from memory data.
@@ -195,7 +204,7 @@ namespace MyIA.Trading.Backtester
             var trainTest = trainAutoMl.Concat(testAutoMl).ToList();
 
             // Create a data view.
-            var trainTestDataView = mlContext.Data.LoadFromEnumerable<ClassifiedTradingSample>(trainTest, ClassifiedTradingSample.GetSchema());
+            var trainTestDataView = mlContext.Data.LoadFromEnumerable<ClassifiedTradingSample>(trainTest, ClassifiedTradingSample.GetSchema(nbInputs));
             var trainDataView = mlContext.Data.TakeRows(trainTestDataView, trainAutoMl.Count);
             var testDataView = mlContext.Data.SkipRows(trainTestDataView, trainAutoMl.Count);
 
@@ -467,9 +476,9 @@ namespace MyIA.Trading.Backtester
     {
         private static SchemaDefinition _schemaDef;
         public const int NbClasses = 3;
-        public const int NbInputs = 32;
+        //public const int NbInputs = 32;
 
-        public static SchemaDefinition GetSchema()
+        public static SchemaDefinition GetSchema(int nbInputs)
         {
 
             if (_schemaDef == null)
@@ -477,7 +486,7 @@ namespace MyIA.Trading.Backtester
                 _schemaDef = SchemaDefinition.Create(typeof(ClassifiedTradingSample));
 
                 // Specify the right vector size.
-                _schemaDef[nameof(ClassifiedTradingSample.Features)].ColumnType = new VectorDataViewType(NumberDataViewType.Single, TradingTrainingSample.NbInputs);
+                _schemaDef[nameof(ClassifiedTradingSample.Features)].ColumnType = new VectorDataViewType(NumberDataViewType.Single, nbInputs);
                 _schemaDef[nameof(ClassifiedTradingSample.Label)].ColumnType = NumberDataViewType.Single; //TextDataViewType.Instance; //new VectorDataViewType(NumberDataViewType.Int32, TradingTrainingSample.NbClasses);//= NumberDataViewType.Single;
                 //schemaDef["Score"].ColumnType = new VectorDataViewType(NumberDataViewType.Single, TradingTrainingSample.NbClasses);    
             }
@@ -486,9 +495,9 @@ namespace MyIA.Trading.Backtester
         }
 
 
-        [VectorType(NbInputs)]
+        [VectorType]
         [ColumnName("Features")]
-        public float[] Features { get; set; } = new float[NbInputs];
+        public float[] Features { get; set; } 
 
 
         //[ColumnName("Label")]
