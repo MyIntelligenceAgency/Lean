@@ -94,7 +94,7 @@ public class JsboigeCompositeAlphaMLFrameworkAlgorithm : QCAlgorithm
 
         //1er alpha: modèle SVM multiclasse avec Accord.NET
 
-        var svmConfig = new TradingModelsConfig()
+        var svmConfig1 = new TradingModelsConfig()
         {
             ModelType = TradingModelType.MulticlassSvm,
             SvmModelConfig = new TradingSvmModelConfig()
@@ -105,7 +105,7 @@ public class JsboigeCompositeAlphaMLFrameworkAlgorithm : QCAlgorithm
             }
         };
 
-        var svmALpha = new JsboigeBtcUsdMachineLearningAlphaModel(this, _btcusd, svmConfig,
+        var svmALpha1 = new JsboigeBtcUsdMachineLearningAlphaModel(this, _btcusd, svmConfig1,
              resolution: _resolution, 
              insightPeriodDays:InsightNbDays, 
              historicalTradesFilePath: @"A:\TradingTests\bitstampUSD.bin.7z", 
@@ -118,7 +118,7 @@ public class JsboigeCompositeAlphaMLFrameworkAlgorithm : QCAlgorithm
 
         //2ème alpha: modèle multiclasse AutoML avec ML.NET
 
-        var autoMLConfig = new TradingModelsConfig()
+        var autoMLConfig1 = new TradingModelsConfig()
         {
             ModelType = TradingModelType.AutoML,
             AutomMlModelConfig = new TradingAutoMlModelConfig()
@@ -127,7 +127,7 @@ public class JsboigeCompositeAlphaMLFrameworkAlgorithm : QCAlgorithm
             }
         };
 
-        var autoMLAlpha1 =  new JsboigeBtcUsdMachineLearningAlphaModel(this, _btcusd, autoMLConfig,
+        var autoMLAlpha1 =  new JsboigeBtcUsdMachineLearningAlphaModel(this, _btcusd, autoMLConfig1,
             resolution: _resolution,
             insightPeriodDays: InsightNbDays,
             historicalTradesFilePath: @"A:\TradingTests\bitstampUSD.bin.7z",
@@ -142,7 +142,7 @@ public class JsboigeCompositeAlphaMLFrameworkAlgorithm : QCAlgorithm
         var emaCrossAlpha = new EmaCrossAlphaModel(FastPeriod, SlowPeriod, _resolution);
 
         
-        var compositeAlphaModel = new CompositeAlphaModel(svmALpha, autoMLAlpha1, emaCrossAlpha);
+        var compositeAlphaModel = new CompositeAlphaModel(svmALpha1, autoMLAlpha1, emaCrossAlpha);
 
         // define alpha model as a composite of the rsi and ema cross models
         SetAlpha(compositeAlphaModel);
