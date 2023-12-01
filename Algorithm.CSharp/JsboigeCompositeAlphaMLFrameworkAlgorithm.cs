@@ -140,9 +140,10 @@ public class JsboigeCompositeAlphaMLFrameworkAlgorithm : QCAlgorithm
             timeCoef:0.7m);
 
         var emaCrossAlpha = new EmaCrossAlphaModel(FastPeriod, SlowPeriod, _resolution);
+        var rsiAlpha = new RsiAlphaModel(FastPeriod, _resolution);
 
         
-        var compositeAlphaModel = new CompositeAlphaModel(svmALpha1, autoMLAlpha1, emaCrossAlpha);
+        var compositeAlphaModel = new CompositeAlphaModel(svmALpha1, autoMLAlpha1, emaCrossAlpha, rsiAlpha);
 
         // define alpha model as a composite of the rsi and ema cross models
         SetAlpha(compositeAlphaModel);
