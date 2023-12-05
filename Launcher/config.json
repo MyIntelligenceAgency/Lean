@@ -9,14 +9,14 @@
   "environment": "backtesting", // "live-paper", "backtesting", "live-interactive", "live-interactive-iqfeed"
 
   // algorithm class selector
-  "algorithm-type-name": "BasicTemplateFrameworkAlgorithm",
+  "algorithm-type-name": "MeanReversionLunchBreakAlpha(QCAlgorithm)",
 
   // Algorithm language selector - options CSharp, Python
-  "algorithm-language": "CSharp",
+  "algorithm-language": "Python",
 
   //Physical DLL location
-  "algorithm-location": "QuantConnect.Algorithm.CSharp.dll",
-  //"algorithm-location": "../../../Algorithm.Python/BasicTemplateFrameworkAlgorithm.py",
+  // "algorithm-location": "QuantConnect.Algorithm.CSharp.dll",
+  "algorithm-location": "C:\\Users\\maxim\\source\\repos\\TradeFusion\\TradeFusion_Algorithm\\TradeFusion_Algorithm.pyproj",
 
   //Research notebook
   //"composer-dll-directory": ".",

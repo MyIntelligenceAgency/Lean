@@ -35,7 +35,7 @@ class MeanReversionLunchBreakAlpha(QCAlgorithm):
 class MeanReversionLunchBreakAlphaModel(AlphaModel):
     '''Uses the price return between the close of previous day to 12:00 the day after to
     predict mean-reversion of stock price during lunch break and creates direction prediction
-    for insights accordingly.'''
+    for insights accordingly.''' 'we are trying to modify the previous parameters into a monthly basis'
 
     def __init__(self, *args, **kwargs):
         lookback = kwargs['lookback'] if 'lookback' in kwargs else 1
