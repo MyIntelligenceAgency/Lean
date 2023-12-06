@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -38,7 +38,7 @@ namespace MyIA.Trading.Converter
         static TradeConverter GetConfig()
         {
 
-            var configFileName = Path.Combine(Environment.CurrentDirectory, "ConverterConfig.json");
+            var configFileName = Path.Combine(Environment.CurrentDirectory, "ConverterConfig.daily.json");
             CompositeResolver.RegisterAndSetAsDefault(new IJsonFormatter[] { new TimeSpanFormatter() }, new IJsonFormatterResolver[] { StandardResolver.Default });
             if (!File.Exists(configFileName))
             {
