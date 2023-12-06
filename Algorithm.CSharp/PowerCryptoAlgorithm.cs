@@ -66,6 +66,7 @@ namespace QuantConnect
             // RCI
             _btcusd = AddCrypto("BTCUSD", Resolution.Daily).Symbol;
             _priceWindow = new RollingWindow<decimal>(WindowSize);
+            
             _correlationWindow = new RollingWindow<decimal>(WindowSize);
         }
 
@@ -109,7 +110,7 @@ namespace QuantConnect
             // Par exemple, si la corrélation est inférieure à un certain seuil, cela pourrait être une condition de vente
 
             // Exemple :
-            if (_invested && correlation < CorrelationThreshold)
+            if (_invested && _priceWindow.IsReady && correlation < CorrelationThreshold)
             {
                 Liquidate(_btcusd);
                 _invested = false;
