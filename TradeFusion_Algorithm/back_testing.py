@@ -1,46 +1,18 @@
-  # QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
-# Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
- 
-from AlgorithmImports import *
-
-#
-# Academic research suggests that stock market participants generally place their orders at the market open and close.
-# Intraday trading volume is J-Shaped, where the minimum trading volume of the day is during lunch-break. Stocks become
-# more volatile as order flow is reduced and tend to mean-revert during lunch-break.
-#
-# This alpha aims to capture the mean-reversion effect of ETFs during lunch-break by ranking 20 ETFs
-# on their return between the close of the previous day to 12:00 the day after and predicting mean-reversion
-# in price during lunch-break.
-#
-# Source:  Lunina, V. (June 2011). The Intraday Dynamics of Stock Returns and Trading Activity: Evidence from OMXS 30 (Master's Essay, Lund University).
-# Retrieved from http://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=1973850&fileOId=1973852
-#
-# This alpha is part of the Benchmark Alpha Series created by QuantConnect which are open sourced so the community and client funds can see an example of an alpha.
-#
 
 class MeanReversionLunchBreakAlpha(QCAlgorithm):
 
     def Initialize(self):
 
         self.SetStartDate(2018, 1, 1)
+        self.SetEndDate(2020, 2, 2)  # Specify the end date
 
         self.SetCash(100000)
 
         # Set zero transaction fees
         self.SetSecurityInitializer(lambda security: security.SetFeeModel(ConstantFeeModel(0)))
 
-        # Use Hourly Data For Simplicity
-        self.UniverseSettings.Resolution = Resolution.Hour
+        # Use Monthly Data For Simplicity
+        self.UniverseSettings.Resolution = Resolution.Month
         self.SetUniverseSelection(CoarseFundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
 
         # Use MeanReversionLunchBreakAlphaModel to establish insights
@@ -61,15 +33,14 @@ class MeanReversionLunchBreakAlpha(QCAlgorithm):
         filtered = [ x.Symbol for x in sortedByDollarVolume if not x.HasFundamentalData ]
         return filtered[:20]
 
-
 class MeanReversionLunchBreakAlphaModel(AlphaModel):
     '''Uses the price return between the close of previous day to 12:00 the day after to
     predict mean-reversion of stock price during lunch break and creates direction prediction
-    for insights accordingly.'''
+    for insights accordingly.''' 'we are trying to modify the previous parameters into a monthly basis'
 
     def __init__(self, *args, **kwargs):
         lookback = kwargs['lookback'] if 'lookback' in kwargs else 1
-        self.resolution = Resolution.Hour
+        self.resolution = Resolution.Month
         self.predictionInterval = Time.Multiply(Extensions.ToTimeSpan(self.resolution), lookback)
         self.symbolDataBySymbol = dict()
 
@@ -80,7 +51,9 @@ class MeanReversionLunchBreakAlphaModel(AlphaModel):
                 bar = data.Bars.GetValue(symbol)
                 symbolData.Update(bar.EndTime, bar.Close)
 
-        return [] if algorithm.Time.hour != 12 else \
+        # Check if it's the last day of the month
+        last_day_of_month = (algorithm.Time + timedelta(days=1)).month != algorithm.Time.month
+        return [] if not last_day_of_month else \
                [x.Insight for x in self.symbolDataBySymbol.values()]
 
     def OnSecuritiesChanged(self, algorithm, changes):

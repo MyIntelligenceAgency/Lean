@@ -15,8 +15,8 @@
   "algorithm-language": "Python",
 
   //Physical DLL location
-  // "algorithm-location": "QuantConnect.Algorithm.CSharp.dll",
-  "algorithm-location": "C:\\Users\\maxim\\source\\repos\\TradeFusion\\TradeFusion_Algorithm\\TradeFusion_Algorithm.pyproj",
+  //"algorithm-location": "QuantConnect.Algorithm.CSharp",
+  "algorithm-location": "C:\\Users\\maxim\\Source\\Repos\\TradeFusion\\TradeFusion_Algorithm\\back_testing.py",
 
   //Research notebook
   //"composer-dll-directory": ".",
