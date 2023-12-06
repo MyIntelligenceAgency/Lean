@@ -12,7 +12,13 @@ namespace QuantConnect
 {
     public class PowerCryptoAlgorithm : QCAlgorithm
     {
-  
+        //rci
+        ////private Symbol _btcusd;
+        private RollingWindow<decimal> _priceWindow;
+        private RollingWindow<decimal> _correlationWindow;
+        private const int WindowSize = 14; // Ajustez la taille de la fenêtre selon vos besoins
+        private const decimal CorrelationThreshold = 0.5m; // Ajustez le seuil de corrélation selon vos besoins
+                                                           // private bool _invested;
 
         //
         [Parameter("macd-fast")]
@@ -29,13 +35,6 @@ namespace QuantConnect
         private string _ChartName = "Trade Plot";
         private string _PriceSeriesName = "Price";
         private string _PortfoliovalueSeriesName = "PortFolioValue";
-
-        //rci
-
-        private RollingWindow<decimal> _priceWindow;
-        private RollingWindow<decimal> _correlationWindow;
-        private const int WindowSize = 14; // Ajustez la taille de la fenêtre selon vos besoins
-        private const decimal CorrelationThreshold = 0.5m; // Ajustez le seuil de corrélation selon vos besoins
 
         public override void Initialize()
         {
