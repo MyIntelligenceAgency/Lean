@@ -18,7 +18,7 @@ namespace QuantConnect
         private RollingWindow<decimal> _correlationWindow;
         private const int WindowSize = 14; // Ajustez la taille de la fenêtre selon vos besoins
         private const decimal CorrelationThreshold = 0.5m; // Ajustez le seuil de corrélation selon vos besoins
-                                                           // private bool _invested;
+ 
 
         //
         [Parameter("macd-fast")]
@@ -67,6 +67,8 @@ namespace QuantConnect
             _priceWindow = new RollingWindow<decimal>(WindowSize);
             
             _correlationWindow = new RollingWindow<decimal>(WindowSize);
+
+            
         }
 
         private void DoPlots()
@@ -81,40 +83,41 @@ namespace QuantConnect
 
             var holdings = Portfolio[_btcusd].Quantity;
 
-            if (holdings <= 0 && _macd > _macd.Signal * (1 + _tolerance)) // condition d'achat
+            // Condition d'achat : acheter seulement si non investi et MACD croise au-dessus du signal
+            if (holdings <= 0 && _macd > _macd.Signal && _priceWindow.IsReady)
             {
-                SetHoldings(_btcusd, 1.0);
+                // Vérifiez si la corrélation est également dans une plage acceptable
+                decimal _correlation = Correlation(_priceWindow, WindowSize);
 
-                Debug($"Purchased BTC @{data.Bars[_btcusd].Close}$/Btc; Portfolio: {Portfolio.Cash}$, {Portfolio[_btcusd].Quantity}BTCs, Total Value: {Portfolio.TotalPortfolioValue}$, Total Fees: {Portfolio.TotalFees}$");
-                _invested = true;
+                if (_correlation > CorrelationThreshold)
+                {
+                    SetHoldings(_btcusd, 1.0);
+                    Debug($"Purchased BTC @{data.Bars[_btcusd].Close}$/Btc; Portfolio: {Portfolio.Cash}$, {Portfolio[_btcusd].Quantity}BTCs, Total Value: {Portfolio.TotalPortfolioValue}$, Total Fees: {Portfolio.TotalFees}$");
+                    _invested = true;
+                }
+                else
+                {
+                    Debug($"Did not buy BTC due to low correlation: {_correlation}");
+                }
             }
-            else if (_invested && _macd < _macd.Signal) // condition de vente
+
+            // Condition de vente : vendre seulement si investi et MACD croise en dessous du signal
+            else if (_invested && _macd < _macd.Signal)
             {
                 Liquidate(_btcusd);
                 _invested = false;
                 Debug($"Sold BTC @{data.Bars[_btcusd].Close}$/Btc; Portfolio: {Portfolio.Cash}$, {Portfolio[_btcusd].Quantity}BTCs, Total Value: {Portfolio.TotalPortfolioValue}$, Total Fees: {Portfolio.TotalFees}$");
             }
+
             if (!data.ContainsKey(_btcusd)) return;
 
-            // Ajouter le prix actuel à la fenêtre des prix
             _priceWindow.Add(data[_btcusd].Close);
-
-            // Calculer la corrélation entre les prix actuels et les prix passés
             decimal correlation = Correlation(_priceWindow, WindowSize);
-
-            // Ajouter la corrélation à la fenêtre des corrélations
             _correlationWindow.Add(correlation);
 
-            // Ajoutez votre logique basée sur l'indicateur RCI ici
-            // Par exemple, si la corrélation est inférieure à un certain seuil, cela pourrait être une condition de vente
+            Debug($"Current Correlation: {correlation}");
 
-            // Exemple :
-            if (_invested && _priceWindow.IsReady && correlation < CorrelationThreshold)
-            {
-                Liquidate(_btcusd);
-                _invested = false;
-                Debug($"Sold BTC due to low RCI correlation: {correlation}");
-            }
+
         }
         private decimal Correlation(RollingWindow<decimal> x, int period)
         {
