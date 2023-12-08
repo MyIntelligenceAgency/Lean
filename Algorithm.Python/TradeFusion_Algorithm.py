@@ -1,39 +1,11 @@
-  # QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
-# Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
- 
 from AlgorithmImports import *
 
-#
-# Academic research suggests that stock market participants generally place their orders at the market open and close.
-# Intraday trading volume is J-Shaped, where the minimum trading volume of the day is during lunch-break. Stocks become
-# more volatile as order flow is reduced and tend to mean-revert during lunch-break.
-#
-# This alpha aims to capture the mean-reversion effect of ETFs during lunch-break by ranking 20 ETFs
-# on their return between the close of the previous day to 12:00 the day after and predicting mean-reversion
-# in price during lunch-break.
-#
-# Source:  Lunina, V. (June 2011). The Intraday Dynamics of Stock Returns and Trading Activity: Evidence from OMXS 30 (Master's Essay, Lund University).
-# Retrieved from http://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=1973850&fileOId=1973852
-#
-# This alpha is part of the Benchmark Alpha Series created by QuantConnect which are open sourced so the community and client funds can see an example of an alpha.
-#
-
-class MeanReversionLunchBreakAlpha(QCAlgorithm):
+class TradeFusion_Algorithm(QCAlgorithm):
 
     def Initialize(self):
 
         self.SetStartDate(2018, 1, 1)
-
+        self.SetEndDate(2020, 2, 2)  # Specify the end date
         self.SetCash(100000)
 
         # Set zero transaction fees
@@ -69,7 +41,7 @@ class MeanReversionLunchBreakAlphaModel(AlphaModel):
 
     def __init__(self, *args, **kwargs):
         lookback = kwargs['lookback'] if 'lookback' in kwargs else 1
-        self.resolution = Resolution.Hour
+        self.resolution = Resolution.Daily
         self.predictionInterval = Time.Multiply(Extensions.ToTimeSpan(self.resolution), lookback)
         self.symbolDataBySymbol = dict()
 

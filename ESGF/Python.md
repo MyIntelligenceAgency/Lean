@@ -32,6 +32,13 @@ pip install pandas==1.4.3
 pip install wrapt==1.14.1
 ```
 
+La commande suivante installe les packages Python nécessaires à l'obtention de l'intellisense dans vos environnements de développement
+
+```bash
+pip install --upgrade quantconnect-stubs
+```
+
+
 ## Mise à jour des variables d'environnement.
 
 La documentation officielle indique qu'il faut ajouter le chemin complet du fichier "Lean/Launcher/bin/Debug//venv/python38.dll" à la variable d'environnement PYTHONNET_PYDLL.
@@ -82,6 +89,8 @@ Cela aura pour conséquence de mettre l'application en pause avant le lancement 
 
 Le problème est néanmoins le suivant: Visual Studio ne peut pas attacher son debugger Python à un processus pour lequel il a déjà attaché un debugger c#. c'est le cas en lançant le launcher depuis Visual Studio.
 
+### Workaround Option 1
+
 Il est néanmoins possible de lancer le launcher en ligne de commande ou depuis l'explorateur de fichier et d'attacher le debugger Python à ce processus.
 
 Le problème est alors que l'on ne bénéficiera plus de la configuration de lancement VS que nous avons précédemment définie pour y adjoindre une variable d'environnement nécessaire à l'exécution du code Python (cf le fichier "\Launcher\Properties\launchSettings.json")
@@ -103,6 +112,11 @@ dotnet QuantConnect.Lean.Launcher.dll
 ```
 
 L'application devrait se lancer puis se mettre en pause et attendre que le debugger Python soit attaché.
+
+### Workaround Option 2
+
+L'autre possibilité, plus simple, est de détacher le debugger .Net de Visual Studio, avant de réattacher le debugger en n'oubliant pas de changer le type de debugger de .Net managé à Python
+
 
 ### Attachement du debugger Python
 

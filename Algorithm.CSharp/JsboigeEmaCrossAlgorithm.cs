@@ -24,6 +24,7 @@ using QuantConnect.Data;
 using QuantConnect.Orders.Fees;
 using QuantConnect.Securities;
 using QuantConnect.Orders;
+using System.Drawing;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -35,16 +36,16 @@ namespace QuantConnect.Algorithm.CSharp
     public class JsboigeEmaCrossAlgorithm : QCAlgorithm
     {
         //L'attribut Parameter permet de définir les paramètres dans le fichier de configuration, et d'utiliser une optimisation
-        public int FastPeriod = 30;
+        private int FastPeriod = 30;
 
-        public int SlowPeriod = 40;
-
-
-        public decimal UpCrossMargin = 1.001m;
-
-        public decimal DownCrossMargin = 0.999m;
+        private int SlowPeriod = 40;
 
 
+        private decimal UpCrossMargin = 1.001m;
+
+        private decimal DownCrossMargin = 0.999m;
+
+        private Resolution _resolution = Resolution.Daily;
 
         public ExponentialMovingAverage Fast;
         public ExponentialMovingAverage Slow;
@@ -54,6 +55,14 @@ namespace QuantConnect.Algorithm.CSharp
         //private string _ChartName = "Trade Plot";
         //private string _PriceSeriesName = "Price";
         //private string _PortfoliovalueSeriesName = "PortFolioValue";
+
+
+        private string _ChartName = "Trade Plot";
+        private string _PriceSeriesName = "Price";
+        private string _PortfoliovalueSeriesName = "PortFolioValue";
+        private string _FastSeriesName = "FastEMA";
+        private string _SlowSeriesName = "SlowEMA";
+
 
 
         public override void Initialize()
@@ -67,14 +76,35 @@ namespace QuantConnect.Algorithm.CSharp
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
 
             SetCash(10000); // capital
-            var btcSecurity = AddCrypto("BTCUSD", Resolution.Daily);
+            var btcSecurity = AddCrypto("BTCUSD", _resolution);
 
             _btcusd = btcSecurity.Symbol;
 
-            Fast = EMA(_btcusd, FastPeriod, Resolution.Daily);
-            Slow = EMA(_btcusd, SlowPeriod, Resolution.Daily);
+            Fast = this.EMA(_btcusd, FastPeriod, _resolution);
+            Slow = EMA(_btcusd, SlowPeriod, _resolution);
 
+            // Dealing with plots
+            var stockPlot = new Chart(_ChartName);
+            var assetPrice = new Series(_PriceSeriesName, SeriesType.Line, "$", Color.Blue);
+            var portFolioValue = new Series(_PortfoliovalueSeriesName, SeriesType.Line, "$", Color.Green);
+            var fastSeries = new Series(_FastSeriesName, SeriesType.Line, "$", Color.Red);
+            var slowSeries = new Series(_SlowSeriesName, SeriesType.Line, "$", Color.Yellow);
 
+            stockPlot.AddSeries(assetPrice);
+            stockPlot.AddSeries(portFolioValue);
+            stockPlot.AddSeries(fastSeries);
+            stockPlot.AddSeries(slowSeries);
+            AddChart(stockPlot);
+            Schedule.On(DateRules.EveryDay(), TimeRules.Every(TimeSpan.FromDays(1)), DoPlots);
+
+        }
+
+        private void DoPlots()
+        {
+            Plot(_ChartName, _PriceSeriesName, Securities[_btcusd].Price);
+            Plot(_ChartName, _PortfoliovalueSeriesName, Portfolio.TotalPortfolioValue);
+            Plot(_ChartName, _FastSeriesName, Fast);
+            Plot(_ChartName, _SlowSeriesName, Slow);
         }
 
 
@@ -140,18 +170,17 @@ namespace QuantConnect.Algorithm.CSharp
             //SetEndDate(2019, 02, 05); // fin backtest 3432
 
             //SetStartDate(2018, 01, 30); // début backtest 9971
-            //SetEndDate(2020, 07, 26); // fin backtest 9945  
+            //SetEndDate(2020, 07, 26); // fin backtest 9945
 
 
-            SetStartDate(2017, 12, 15); // début backtest 17478
-            SetEndDate(2022, 12, 12); // fin backtest 17209
+            //SetStartDate(2017, 12, 15); // début backtest 17478
+            //SetEndDate(2022, 12, 12); // fin backtest 17209
 
             //SetStartDate(2017, 11, 25); // début backtest 8718
             //SetEndDate(2020, 05, 1); // fin backtest 8832
-              
 
-            //SetStartDate(2021, 1, 1); // début backtest 29410
-            //SetEndDate(2023, 10, 20); // fin backtest 29688
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
         }
 
 

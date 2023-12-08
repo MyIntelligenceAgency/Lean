@@ -49,7 +49,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_hasRemoved)
             {
-                throw new Exception("Expect a single call to OnData where we removed the option and  iunderlying");
+                throw new Exception("Expect a single call to OnData where we removed the option and underlying");
             }
 
             _hasRemoved = true;
