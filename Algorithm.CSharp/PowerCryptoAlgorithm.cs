@@ -1,242 +1,143 @@
-/*
- * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
- * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using QuantConnect.Data;
+using QuantConnect.Algorithm;
 using QuantConnect.Brokerages;
+using QuantConnect.Data;
 using QuantConnect.Indicators;
-using QuantConnect.Orders;
-using QuantConnect.Interfaces;
+using QuantConnect.Data.Market;
+using System;
+using System.Drawing;
+using QuantConnect.Parameters;
+using System.Linq;
 
-namespace QuantConnect.Algorithm.CSharp
+namespace QuantConnect
 {
-    /// <summary>
-    /// The demonstration algorithm shows some of the most common order methods when working with Crypto assets.
-    /// </summary>
-    /// <meta name="tag" content="using data" />
-    /// <meta name="tag" content="using quantconnect" />
-    /// <meta name="tag" content="trading and orders" />
-    public class PowerCryptoAlgorithm : QCAlgorithm, IRegressionAlgorithmDefinition
+    public class PowerCryptoAlgorithm : QCAlgorithm
     {
-        private ExponentialMovingAverage _fast;
-        private ExponentialMovingAverage _slow;
+  
 
-        /// <summary>
-        /// Initialise the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized.
-        /// </summary>
+        //
+        [Parameter("macd-fast")]
+        public int FastPeriodMacd = 12;
+
+        [Parameter("macd-slow")]
+        public int SlowPeriodMacd = 26;
+
+        private MovingAverageConvergenceDivergence _macd;
+        private Symbol _btcusd;
+        private const decimal _tolerance = 0.0025m;
+        private bool _invested;
+
+        private string _ChartName = "Trade Plot";
+        private string _PriceSeriesName = "Price";
+        private string _PortfoliovalueSeriesName = "PortFolioValue";
+
+        //rci
+
+        private RollingWindow<decimal> _priceWindow;
+        private RollingWindow<decimal> _correlationWindow;
+        private const int WindowSize = 14; // Ajustez la taille de la fenêtre selon vos besoins
+        private const decimal CorrelationThreshold = 0.5m; // Ajustez le seuil de corrélation selon vos besoins
+
         public override void Initialize()
         {
-            SetStartDate(2018, 4, 4); // Set Start Date
-            SetEndDate(2018, 4, 4); // Set End Date
+            SetStartDate(2021, 1, 1); // début backtest
+            SetEndDate(2023, 3, 22); // fin backtest
 
-            // Although typically real brokerages as GDAX only support a single account currency,
-            // here we add both USD and EUR to demonstrate how to handle non-USD account currencies.
-            // Set Strategy Cash (USD)
-            SetCash(10000);
 
-            // Set Strategy Cash (EUR)
-            // EUR/USD conversion rate will be updated dynamically
-            SetCash("EUR", 10000);
 
-            // Add some coins as initial holdings
-            // When connected to a real brokerage, the amount specified in SetCash
-            // will be replaced with the amount in your actual account.
-            SetCash("BTC", 1m);
-            SetCash("ETH", 5m);
+            SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
 
-            SetBrokerageModel(BrokerageName.GDAX, AccountType.Cash);
+            SetCash(10000); // capital
 
-            // You can uncomment the following line when live trading with GDAX,
-            // to ensure limit orders will only be posted to the order book and never executed as a taker (incurring fees).
-            // Please note this statement has no effect in backtesting or paper trading.
-            // DefaultOrderProperties = new GDAXOrderProperties { PostOnly = true };
+            _btcusd = AddCrypto("BTCUSD", Resolution.Daily).Symbol;
 
-            // Find more symbols here: http://quantconnect.com/data
-            AddCrypto("BTCUSD");
-            AddCrypto("ETHUSD");
-            AddCrypto("BTCEUR");
-            var symbol = AddCrypto("LTCUSD").Symbol;
 
-            // create two moving averages
-            _fast = EMA(symbol, 30, Resolution.Minute);
-            _slow = EMA(symbol, 60, Resolution.Minute);
+            _macd = MACD(_btcusd, FastPeriodMacd, SlowPeriodMacd, 9, MovingAverageType.Exponential, Resolution.Daily, Field.Close);
+
+
+            // Dealing with plots
+            var stockPlot = new Chart(_ChartName);
+            var assetPrice = new Series(_PriceSeriesName, SeriesType.Line, "$", Color.Blue);
+            var portFolioValue = new Series(_PortfoliovalueSeriesName, SeriesType.Line, "$", Color.Green);
+            stockPlot.AddSeries(assetPrice);
+            stockPlot.AddSeries(portFolioValue);
+            AddChart(stockPlot);
+            Schedule.On(DateRules.EveryDay(), TimeRules.Every(TimeSpan.FromDays(1)), DoPlots);
+
+            // RCI
+            _btcusd = AddCrypto("BTCUSD", Resolution.Daily).Symbol;
+            _priceWindow = new RollingWindow<decimal>(WindowSize);
+            
+            _correlationWindow = new RollingWindow<decimal>(WindowSize);
         }
 
-        /// <summary>
-        /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
-        /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
+        private void DoPlots()
+        {
+            Plot(_ChartName, _PriceSeriesName, Securities[_btcusd].Price);
+            Plot(_ChartName, _PortfoliovalueSeriesName, Portfolio.TotalPortfolioValue);
+        }
+
         public override void OnData(Slice data)
         {
-            if (Portfolio.CashBook["EUR"].ConversionRate == 0
-                || Portfolio.CashBook["BTC"].ConversionRate == 0
-                || Portfolio.CashBook["ETH"].ConversionRate == 0
-                || Portfolio.CashBook["LTC"].ConversionRate == 0)
-            {
-                Log($"EUR conversion rate: {Portfolio.CashBook["EUR"].ConversionRate}");
-                Log($"BTC conversion rate: {Portfolio.CashBook["BTC"].ConversionRate}");
-                Log($"LTC conversion rate: {Portfolio.CashBook["LTC"].ConversionRate}");
-                Log($"ETH conversion rate: {Portfolio.CashBook["ETH"].ConversionRate}");
+            if (!_macd.IsReady) return;
 
-                throw new Exception("Conversion rate is 0");
-            }
-            if (Time.Hour == 1 && Time.Minute == 0)
-            {
-                // Sell all ETH holdings with a limit order at 1% above the current price
-                var limitPrice = Math.Round(Securities["ETHUSD"].Price * 1.01m, 2);
-                var quantity = Portfolio.CashBook["ETH"].Amount;
-                LimitOrder("ETHUSD", -quantity, limitPrice);
-            }
-            else if (Time.Hour == 2 && Time.Minute == 0)
-            {
-                // Submit a buy limit order for BTC at 5% below the current price
-                var usdTotal = Portfolio.CashBook["USD"].Amount;
-                var limitPrice = Math.Round(Securities["BTCUSD"].Price * 0.95m, 2);
-                // use only half of our total USD
-                var quantity = usdTotal * 0.5m / limitPrice;
-                LimitOrder("BTCUSD", quantity, limitPrice);
-            }
-            else if (Time.Hour == 2 && Time.Minute == 1)
-            {
-                // Get current USD available, subtracting amount reserved for buy open orders
-                var usdTotal = Portfolio.CashBook["USD"].Amount;
-                var usdReserved = Transactions.GetOpenOrders(x => x.Direction == OrderDirection.Buy && x.Type == OrderType.Limit)
-                    .Where(x => x.Symbol == "BTCUSD" || x.Symbol == "ETHUSD")
-                    .Sum(x => x.Quantity * ((LimitOrder) x).LimitPrice);
-                var usdAvailable = usdTotal - usdReserved;
+            var holdings = Portfolio[_btcusd].Quantity;
 
-                // Submit a marketable buy limit order for ETH at 1% above the current price
-                var limitPrice = Math.Round(Securities["ETHUSD"].Price * 1.01m, 2);
-
-                // use all of our available USD
-                var quantity = usdAvailable / limitPrice;
-
-                // this order will be rejected for insufficient funds
-                LimitOrder("ETHUSD", quantity, limitPrice);
-
-                // use only half of our available USD
-                quantity = usdAvailable * 0.5m / limitPrice;
-                LimitOrder("ETHUSD", quantity, limitPrice);
-            }
-            else if (Time.Hour == 11 && Time.Minute == 0)
+            if (holdings <= 0 && _macd > _macd.Signal * (1 + _tolerance)) // condition d'achat
             {
-                // Liquidate our BTC holdings (including the initial holding)
-                SetHoldings("BTCUSD", 0m);
-            }
-            else if (Time.Hour == 12 && Time.Minute == 0)
-            {
-                // Submit a market buy order for 1 BTC using EUR
-                Buy("BTCEUR", 1m);
+                SetHoldings(_btcusd, 1.0);
 
-                // Submit a sell limit order at 10% above market price
-                var limitPrice = Math.Round(Securities["BTCEUR"].Price * 1.1m, 2);
-                LimitOrder("BTCEUR", -1, limitPrice);
+                Debug($"Purchased BTC @{data.Bars[_btcusd].Close}$/Btc; Portfolio: {Portfolio.Cash}$, {Portfolio[_btcusd].Quantity}BTCs, Total Value: {Portfolio.TotalPortfolioValue}$, Total Fees: {Portfolio.TotalFees}$");
+                _invested = true;
             }
-            else if (Time.Hour == 13 && Time.Minute == 0)
+            else if (_invested && _macd < _macd.Signal) // condition de vente
             {
-                // Cancel the limit order if not filled
-                Transactions.CancelOpenOrders("BTCEUR");
+                Liquidate(_btcusd);
+                _invested = false;
+                Debug($"Sold BTC @{data.Bars[_btcusd].Close}$/Btc; Portfolio: {Portfolio.Cash}$, {Portfolio[_btcusd].Quantity}BTCs, Total Value: {Portfolio.TotalPortfolioValue}$, Total Fees: {Portfolio.TotalFees}$");
             }
-            else if (Time.Hour > 13)
-            {
-                // To include any initial holdings, we read the LTC amount from the cashbook
-                // instead of using Portfolio["LTCUSD"].Quantity
+            if (!data.ContainsKey(_btcusd)) return;
 
-                if (_fast > _slow)
+            // Ajouter le prix actuel à la fenêtre des prix
+            _priceWindow.Add(data[_btcusd].Close);
+
+            // Calculer la corrélation entre les prix actuels et les prix passés
+            decimal correlation = Correlation(_priceWindow, WindowSize);
+
+            // Ajouter la corrélation à la fenêtre des corrélations
+            _correlationWindow.Add(correlation);
+
+            // Ajoutez votre logique basée sur l'indicateur RCI ici
+            // Par exemple, si la corrélation est inférieure à un certain seuil, cela pourrait être une condition de vente
+
+            // Exemple :
+            if (_invested && _priceWindow.IsReady && correlation < CorrelationThreshold)
+            {
+                Liquidate(_btcusd);
+                _invested = false;
+                Debug($"Sold BTC due to low RCI correlation: {correlation}");
+            }
+        }
+        private decimal Correlation(RollingWindow<decimal> x, int period)
+        {
+            // Calculez la corrélation entre les prix actuels et les prix passés
+            // Vous pouvez utiliser une formule de corrélation appropriée ici, par exemple, la corrélation de Pearson
+            // Notez que ceci est une implémentation simple et peut nécessiter des ajustements en fonction de vos besoins.
+
+            if (x.IsReady)
+            {
+                var meanX = x.Average();
+                var meanY = x.Skip(1).Take(period).Average(); // décalage d'une position pour calculer la corrélation avec les prix passés
+                var cov = x.Zip(x.Skip(1).Take(period), (xi, yi) => (xi - meanX) * (yi - meanY)).Sum();
+                var stdDevX = (decimal)Math.Sqrt(x.Sum(xi => (double)((xi - meanX) * (xi - meanX))));
+                var stdDevY = (decimal)Math.Sqrt(x.Skip(1).Take(period).Sum(yi => (double)((yi - meanY) * (yi - meanY))));
+
+                if (stdDevX > 0 && stdDevY > 0)
                 {
-                    if (Portfolio.CashBook["LTC"].Amount == 0)
-                    {
-                        Buy("LTCUSD", 10);
-                    }
-                }
-                else
-                {
-                    if (Portfolio.CashBook["LTC"].Amount > 0)
-                    {
-                        // The following two statements currently behave differently if we have initial holdings:
-                        // https://github.com/QuantConnect/Lean/issues/1860
-
-                        Liquidate("LTCUSD");
-                        // SetHoldings("LTCUSD", 0);
-                    }
+                    return cov / (stdDevX * stdDevY);
                 }
             }
+
+            return 0m;
         }
-
-        public override void OnOrderEvent(OrderEvent orderEvent)
-        {
-            Debug(Time + " " + orderEvent);
-        }
-
-        public override void OnEndOfAlgorithm()
-        {
-            Log($"{Time} - TotalPortfolioValue: {Portfolio.TotalPortfolioValue}");
-            Log($"{Time} - CashBook: {Portfolio.CashBook}");
-        }
-
-        /// <summary>
-        /// This is used by the regression test system to indicate if the open source Lean repository has the required data to run this algorithm.
-        /// </summary>
-        public bool CanRunLocally { get; } = true;
-
-        /// <summary>
-        /// This is used by the regression test system to indicate which languages this algorithm is written in.
-        /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
-
-        /// <summary>
-        /// Data Points count of all timeslices of algorithm
-        /// </summary>
-        public long DataPoints => 12965;
-
-        /// <summary>
-        /// Data Points count of the algorithm history
-        /// </summary>
-        public int AlgorithmHistoryDataPoints => 240;
-
-        /// <summary>
-        /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
-        /// </summary>
-        public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
-        {
-            {"Total Trades", "10"},
-            {"Average Win", "0%"},
-            {"Average Loss", "0%"},
-            {"Compounding Annual Return", "0%"},
-            {"Drawdown", "0%"},
-            {"Expectancy", "0"},
-            {"Net Profit", "0%"},
-            {"Sharpe Ratio", "0"},
-            {"Probabilistic Sharpe Ratio", "0%"},
-            {"Loss Rate", "0%"},
-            {"Win Rate", "0%"},
-            {"Profit-Loss Ratio", "0"},
-            {"Alpha", "0"},
-            {"Beta", "0"},
-            {"Annual Standard Deviation", "0"},
-            {"Annual Variance", "0"},
-            {"Information Ratio", "0"},
-            {"Tracking Error", "0"},
-            {"Treynor Ratio", "0"},
-            {"Total Fees", "$85.34"},
-            {"Estimated Strategy Capacity", "$0"},
-            {"Lowest Capacity Asset", "BTCEUR XJ"},
-            {"Portfolio Turnover", "118.08%"},
-            {"OrderListHash", "1bf1a6d9dd921982b72a6178f9e50e68"}
-        };
     }
 }
