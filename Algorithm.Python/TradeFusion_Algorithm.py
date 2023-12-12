@@ -7,13 +7,19 @@ class TradeFusion_Algorithm(QCAlgorithm):
         self.SetStartDate(2018, 1, 1)
         self.SetEndDate(2020, 2, 2)  # Specify the end date
         self.SetCash(100000)
-
+        
+        #self._symbol = self.AddEquity("SPY").Symbol
+        #self._btcEur = self.AddCrypto("BTCEUR").Symbol
+        
+        self.etfs = ['VNQ', 'REET', 'TAO', 'FREL', 'SRET', 'HIPS']
+        self.symbols = [ Symbol.Create(etf, SecurityType.Equity, Market.USA) for etf in etfs ]
+        
         # Set zero transaction fees
-        self.SetSecurityInitializer(lambda security: security.SetFeeModel(ConstantFeeModel(0)))
+        self.SetSecurityInitializer(lambda security: security.SetFeeModel(InteractiveBrokersFeeModel(10)))
 
         # Use Hourly Data For Simplicity
         self.UniverseSettings.Resolution = Resolution.Hour
-        self.SetUniverseSelection(CoarseFundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
+        self.SetUniverseSelection(FundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
 
         # Use MeanReversionLunchBreakAlphaModel to establish insights
         self.SetAlpha(MeanReversionLunchBreakAlphaModel())
@@ -31,7 +37,7 @@ class TradeFusion_Algorithm(QCAlgorithm):
     def CoarseSelectionFunction(self, coarse):
         sortedByDollarVolume = sorted(coarse, key=lambda x: x.DollarVolume, reverse=True)
         filtered = [ x.Symbol for x in sortedByDollarVolume if not x.HasFundamentalData ]
-        return filtered[:20]
+        return filtered[:50]
 
 
 class MeanReversionLunchBreakAlphaModel(AlphaModel):
@@ -47,13 +53,15 @@ class MeanReversionLunchBreakAlphaModel(AlphaModel):
 
     def Update(self, algorithm, data):
 
+
         for symbol, symbolData in self.symbolDataBySymbol.items():
             if data.Bars.ContainsKey(symbol):
                 bar = data.Bars.GetValue(symbol)
                 symbolData.Update(bar.EndTime, bar.Close)
 
         return [] if algorithm.Time.hour != 12 else \
-               [x.Insight for x in self.symbolDataBySymbol.values()]
+               [x.Insight for x in self.symbolDataBySymbol.values() \
+                if x.Update(algorithm, data)]
 
     def OnSecuritiesChanged(self, algorithm, changes):
         for security in changes.RemovedSecurities:
