@@ -40,6 +40,13 @@ namespace QuantConnect
         [Parameter("macd-slow")]
         public int SlowPeriodMacd = 26;
 
+        [Parameter("dt-max-vars")]
+        public int DecisionTreeMaxVariables = 0;
+
+        [Parameter("dt-max-height")]
+        public int DecisionTreeMaxHeight = 5;
+
+
         private MovingAverageConvergenceDivergence _macd;
         private Symbol _btcusd;
         private const decimal _tolerance = 0.0025m;
@@ -58,6 +65,7 @@ namespace QuantConnect
         // Niveaux de support et de résistance
         private decimal _supportLevel = 50000m; // Niveau de support
         private decimal _resistanceLevel = 65000m; // Niveau de résistance
+
 
 
         public override void Initialize()
@@ -127,7 +135,8 @@ namespace QuantConnect
                 // Créez et entraînez le modèle Arbre de Décision avec C45Learning
                 var teacher = new C45Learning
                 {
-                    MaxHeight = 5 // Set the maximum height of the decision tree
+                    MaxVariables = this.DecisionTreeMaxVariables, // Définissez le nombre maximum de variables à utiliser pour chaque arbre
+                    MaxHeight = this.DecisionTreeMaxHeight// Set the maximum height of the decision tree
                 };
                 // Entraînez le modèle avec vos données d'entraînement
                 _decisionTree = teacher.Learn(features, labels);
