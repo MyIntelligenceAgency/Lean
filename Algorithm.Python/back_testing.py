@@ -1,25 +1,19 @@
-from AlgorithmImports import *
 
-class TradeFusion_Algorithm(QCAlgorithm):
+class MeanReversionLunchBreakAlpha(QCAlgorithm):
 
     def Initialize(self):
 
         self.SetStartDate(2018, 1, 1)
         self.SetEndDate(2020, 2, 2)  # Specify the end date
-        self.SetCash(100000)
-        
-        #self._symbol = self.AddEquity("SPY").Symbol
-        #self._btcEur = self.AddCrypto("BTCEUR").Symbol
-        
-        self.etfs = ['VNQ', 'REET', 'TAO', 'FREL', 'SRET', 'HIPS']
-        self.symbols = [ Symbol.Create(etf, SecurityType.Equity, Market.USA) for etf in etfs ]
-        
-        # Set zero transaction fees
-        self.SetSecurityInitializer(lambda security: security.SetFeeModel(InteractiveBrokersFeeModel(10)))
 
-        # Use Hourly Data For Simplicity
-        self.UniverseSettings.Resolution = Resolution.Hour
-        self.SetUniverseSelection(FundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
+        self.SetCash(100000)
+
+        # Set zero transaction fees
+        self.SetSecurityInitializer(lambda security: security.SetFeeModel(ConstantFeeModel(0)))
+
+        # Use Monthly Data For Simplicity
+        self.UniverseSettings.Resolution = Resolution.Month
+        self.SetUniverseSelection(CoarseFundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
 
         # Use MeanReversionLunchBreakAlphaModel to establish insights
         self.SetAlpha(MeanReversionLunchBreakAlphaModel())
@@ -37,31 +31,30 @@ class TradeFusion_Algorithm(QCAlgorithm):
     def CoarseSelectionFunction(self, coarse):
         sortedByDollarVolume = sorted(coarse, key=lambda x: x.DollarVolume, reverse=True)
         filtered = [ x.Symbol for x in sortedByDollarVolume if not x.HasFundamentalData ]
-        return filtered[:50]
-
+        return filtered[:20]
 
 class MeanReversionLunchBreakAlphaModel(AlphaModel):
     '''Uses the price return between the close of previous day to 12:00 the day after to
     predict mean-reversion of stock price during lunch break and creates direction prediction
-    for insights accordingly.'''
+    for insights accordingly.''' 'we are trying to modify the previous parameters into a monthly basis'
 
     def __init__(self, *args, **kwargs):
         lookback = kwargs['lookback'] if 'lookback' in kwargs else 1
-        self.resolution = Resolution.Daily
+        self.resolution = Resolution.Month
         self.predictionInterval = Time.Multiply(Extensions.ToTimeSpan(self.resolution), lookback)
         self.symbolDataBySymbol = dict()
 
     def Update(self, algorithm, data):
-
 
         for symbol, symbolData in self.symbolDataBySymbol.items():
             if data.Bars.ContainsKey(symbol):
                 bar = data.Bars.GetValue(symbol)
                 symbolData.Update(bar.EndTime, bar.Close)
 
-        return [] if algorithm.Time.hour != 12 else \
-               [x.Insight for x in self.symbolDataBySymbol.values() \
-                if x.Update(algorithm, data)]
+        # Check if it's the last day of the month
+        last_day_of_month = (algorithm.Time + timedelta(days=1)).month != algorithm.Time.month
+        return [] if not last_day_of_month else \
+               [x.Insight for x in self.symbolDataBySymbol.values()]
 
     def OnSecuritiesChanged(self, algorithm, changes):
         for security in changes.RemovedSecurities:
