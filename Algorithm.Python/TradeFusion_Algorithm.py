@@ -12,14 +12,16 @@ class TradeFusion_Algorithm(QCAlgorithm):
         #self._btcEur = self.AddCrypto("BTCEUR").Symbol
         
         self.etfs = ['VNQ', 'REET', 'TAO', 'FREL', 'SRET', 'HIPS']
-        self.symbols = [ Symbol.Create(etf, SecurityType.Equity, Market.USA) for etf in etfs ]
+        # self.symbols = [ Symbol.Create(etf, SecurityType.Equity, Market.USA) for etf in self.etfs ]
+        self.symbols = [self.AddEquity(ticker, Resolution.Daily).Symbol for ticker in self.etfs]
         
         # Set zero transaction fees
         self.SetSecurityInitializer(lambda security: security.SetFeeModel(InteractiveBrokersFeeModel(10)))
 
         # Use Hourly Data For Simplicity
-        self.UniverseSettings.Resolution = Resolution.Hour
-        self.SetUniverseSelection(FundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
+        self.UniverseSettings.Resolution = Resolution.Daily
+        # self.SetUniverseSelection(FundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
+        self.SetUniverseSelection(ManualUniverseSelectionModel(self.symbols))
 
         # Use MeanReversionLunchBreakAlphaModel to establish insights
         self.SetAlpha(MeanReversionLunchBreakAlphaModel())
@@ -34,10 +36,10 @@ class TradeFusion_Algorithm(QCAlgorithm):
         self.SetRiskManagement(NullRiskManagementModel())
 
     # Sort the data by daily dollar volume and take the top '20' ETFs
-    def CoarseSelectionFunction(self, coarse):
-        sortedByDollarVolume = sorted(coarse, key=lambda x: x.DollarVolume, reverse=True)
-        filtered = [ x.Symbol for x in sortedByDollarVolume if not x.HasFundamentalData ]
-        return filtered[:50]
+    # def CoarseSelectionFunction(self, coarse):
+    #     sortedByDollarVolume = sorted(coarse, key=lambda x: x.DollarVolume, reverse=True)
+    #     filtered = [ x.Symbol for x in sortedByDollarVolume if not x.HasFundamentalData ]
+    #     return filtered[:50]
 
 
 class MeanReversionLunchBreakAlphaModel(AlphaModel):
