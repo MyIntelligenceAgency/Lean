@@ -102,6 +102,7 @@ namespace QuantConnect.Algorithm.CSharp
                 LimitOrder("ETHUSD", -quantity, limitPrice);
             }
             else if (Time.Hour == 2 && Time.Minute == 0)
+            if (ichimoku.ChikouSpan.Current.Value > Securities["BTCUSD"].Price[26] && !Portfolio["BTCUSD"].Invested)
             {
                 // Submit a buy limit order for BTC at 5% below the current price
                 var usdTotal = Portfolio.CashBook["USD"].Amount;
@@ -137,10 +138,6 @@ namespace QuantConnect.Algorithm.CSharp
                 // Liquidate our BTC holdings (including the initial holding)
                 SetHoldings("BTCUSD", 0m);
             }
-            else if (Time.Hour == 12 && Time.Minute == 0)
-            {
-                // Submit a market buy order for 1 BTC using EUR
-                Buy("BTCEUR", 1m);
 
                 // Submit a sell limit order at 10% above market price
                 var limitPrice = Math.Round(Securities["BTCEUR"].Price * 1.1m, 2);
@@ -163,12 +160,6 @@ namespace QuantConnect.Algorithm.CSharp
                         Buy("LTCUSD", 10);
                     }
                 }
-                else
-                {
-                    if (Portfolio.CashBook["LTC"].Amount > 0)
-                    {
-                        // The following two statements currently behave differently if we have initial holdings:
-                        // https://github.com/QuantConnect/Lean/issues/1860
 
                         Liquidate("LTCUSD");
                         // SetHoldings("LTCUSD", 0);
