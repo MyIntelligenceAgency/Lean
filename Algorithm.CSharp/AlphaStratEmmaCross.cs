@@ -13,8 +13,9 @@ using System.Drawing;
 
 namespace QuantConnect.Algorithm.CSharp
 {
-    // Intègre 3 Moyennes mobiles, un RSI, un Trailing stop.
-    public class AlphastratBasic : QCAlgorithm
+
+    // Intègre 3 Moyennes mobiles, un RSI, un Trailing stop et une allocation alternée entre 0.5 et 0.75 du portefeuille.
+    public class AlphaStratEmmaCross : QCAlgorithm
     {
         private int FastPeriod = 50;
         private int SlowPeriod = 200;
@@ -25,6 +26,7 @@ namespace QuantConnect.Algorithm.CSharp
         private decimal DownCrossMargin = 0.999m;
         private int OverboughtThreshold = 70; // RSI overbought threshold
         private int OversoldThreshold = 30; // RSI oversold threshold
+        private decimal TrailingStopPercentage = 0.02m; // Trailing stop as a percentage
 
         private Resolution _resolution = Resolution.Daily;
 
@@ -42,6 +44,8 @@ namespace QuantConnect.Algorithm.CSharp
         private string _SlowSeriesName = "SlowEMA";
         private string _ThirdSeriesName = "ThirdEMA";
         private string _RsiSeriesName = "RSI"; // Add RSI series name
+
+        private bool useHalfAllocation = true; // Variable to toggle allocation
 
         public override void Initialize()
         {
@@ -94,15 +98,35 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (this.IsWarmingUp || !Fast.IsReady || !Slow.IsReady || !Third.IsReady || !Rsi.IsReady) return;
 
+            // Toggle between 0.5 and 0.75 allocation based on useHalfAllocation flag
+            decimal allocation = useHalfAllocation ? 0.5m : 0.75m;
+
             // Trading logic using EMA crossovers
             if (!Portfolio.Invested && Fast > Slow * UpCrossMargin && Fast > Third && Rsi < OversoldThreshold)
             {
-                SetHoldings(_btcusd, 1);
+                SetHoldings(_btcusd, allocation);
             }
             else if (Portfolio.Invested && (Fast < Slow * DownCrossMargin || Fast < Third || Rsi > OverboughtThreshold))
             {
                 Liquidate(_btcusd);
             }
+
+            // Trailing stop logic
+            if (Portfolio.Invested)
+            {
+                decimal highestPortfolioValue = Portfolio.TotalPortfolioValue;
+                decimal trailingStopPrice = highestPortfolioValue * (1 - TrailingStopPercentage);
+
+                if (Portfolio.TotalPortfolioValue < trailingStopPrice)
+                {
+                    Liquidate(_btcusd);
+                    Log($"Trailing stop triggered. Liquidating position at {Securities[_btcusd].Price}");
+                }
+                Plot(_ChartName, _PortfoliovalueSeriesName, Portfolio.TotalPortfolioValue);
+            }
+
+            // Toggle between 0.5 and 0.75 allocation for the next iteration
+            useHalfAllocation = !useHalfAllocation;
         }
 
         public override void OnOrderEvent(OrderEvent orderEvent)
