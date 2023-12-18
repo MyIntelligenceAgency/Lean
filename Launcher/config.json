@@ -9,7 +9,7 @@
   "environment": "backtesting", // "live-paper", "backtesting", "live-interactive", "live-interactive-iqfeed"
 
   // algorithm class selector
-  "algorithm-type-name": "JsboigeEmaCrossAlphaModelFrameworkAlgorithm",
+  "algorithm-type-name": "TotallyspiesAlgo",
 
   // Algorithm language selector - options CSharp, Python
   "algorithm-language": "CSharp",
@@ -645,7 +645,7 @@
 
     "live-rbi": {
       "live-mode": true,
-      
+
       // real brokerage implementations require the BrokerageTransactionHandler
       "live-mode-brokerage": "RBIBrokerage",
       "data-queue-handler": [ "QuantConnect.Lean.Engine.DataFeeds.Queues.LiveDataQueue" ],
