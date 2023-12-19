@@ -26,6 +26,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+
+
 namespace QuantConnect.Algorithm.CSharp.Alphas
 {
     /// <summary>
@@ -40,15 +42,18 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
     ///</summary>
     public class MeanReversionLunchBreakAlpha : QCAlgorithm
     {
-        public override void Initialize()
+        /*public override void Initialize()
         {
             SetStartDate(2018, 1, 1);
+            SetEndDate(2020,1, 1);
             SetCash(100000);
+            
 
             // Set zero transaction fees
             SetSecurityInitializer(security => security.FeeModel = new ConstantFeeModel(0));
 
-            // Use Hourly Data For Simplicity
+            // Use Hourly Data For Simplicity 
+            // We modified it to use Daily Data
             UniverseSettings.Resolution = Resolution.Hour;
             SetUniverseSelection(new CoarseFundamentalUniverseSelectionModel(CoarseSelectionFunction));
 
@@ -63,18 +68,70 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
 
             // Set Null Risk Management Model
             SetRiskManagement(new NullRiskManagementModel());
+        }*/
+
+        public override void Initialize()
+        {
+            SetStartDate(2018, 1, 1);
+            // SetEndDate(2020, 1, 1);
+            SetCash(2000000);
+
+            AddEquity("SPY");
+            AddEquity("AAPL");
+            AddEquity("GOOG");
+            AddEquity("CAC40");
+
+            // Ajouter du Bitcoin
+            //AddCrypto("BTCUSD");  // BTCUSD est le symbole du Bitcoin (il peut y avoir des symboles différents selon la source)
+            //AddData<Bitcoin>("BTC");
+            // Répartition égale entre les actifs
+            var spySymbol = QuantConnect.Symbol.Create("SPY", SecurityType.Equity, Market.USA);
+            var aaplSymbol = QuantConnect.Symbol.Create("AAPL", SecurityType.Equity, Market.USA);
+            var googSymbol = QuantConnect.Symbol.Create("GOOG", SecurityType.Equity, Market.USA);
+            var cac40Symbol = QuantConnect.Symbol.Create("CAC40", SecurityType.Equity, Market.USA);
+            //var btcSymbol = QuantConnect.Symbol.Create("BTCUSD", SecurityType.Crypto, Market.USA);
+
+            SetHoldings(spySymbol, 1.0 / 4);  // 2 millions * 1/5
+            SetHoldings(aaplSymbol, 1.0 / 4);  // 2 millions * 1/5
+            SetHoldings(googSymbol, 1.0 / 4);  // 2 millions * 1/5
+            SetHoldings(cac40Symbol, 1.0 / 4);  // 2 millions * 1/5
+           // SetHoldings(btcSymbol, 1.0 / 5);  // 2 millions * 1/5
+
+            // Set zero transaction fees
+            SetSecurityInitializer(security => security.FeeModel = new ConstantFeeModel(0));
+
+            // Utilisez les données horaires pour la simplicité
+            UniverseSettings.Resolution = Resolution.Daily;
+
+            // Utilisez MeanReversionLunchBreakAlphaModel pour établir des prévisions
+            SetAlpha(new MeanReversionLunchBreakAlphaModel());
+
+            // Pesez également les actifs dans le portefeuille, basé sur les prévisions
+            SetPortfolioConstruction(new EqualWeightingPortfolioConstructionModel());
+
+            // Modèle d'exécution immédiate
+            SetExecution(new ImmediateExecutionModel());
+
+            // Modèle de gestion des risques nul
+            SetRiskManagement(new NullRiskManagementModel());
         }
+
+
+
 
         /// <summary>
         /// Sort the data by daily dollar volume and take the top '20' ETFs
         /// </summary>
-        private IEnumerable<Symbol> CoarseSelectionFunction(IEnumerable<CoarseFundamental> coarse)
-        {
-            return (from cf in coarse
-                    where !cf.HasFundamentalData
-                    orderby cf.DollarVolume descending
-                    select cf.Symbol).Take(20);
-        }
+        /*   private IEnumerable<Symbol> CoarseSelectionFunction(IEnumerable<CoarseFundamental> coarse)
+           {
+               return (from cf in coarse
+                       where !cf.HasFundamentalData
+                       orderby cf.DollarVolume descending
+                       select cf.Symbol).Take(20);
+           }
+   */
+
+
 
         /// <summary>
         /// Uses the price return between the close of previous day to 12:00 the day after to
@@ -93,6 +150,21 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
                 _symbolDataBySymbol = new Dictionary<Symbol, SymbolData>();
             }
 
+            /*     public override IEnumerable<Insight> Update(QCAlgorithm algorithm, Slice data)
+                 {
+                     foreach (var kvp in _symbolDataBySymbol)
+                     {
+                         if (data.Bars.ContainsKey(kvp.Key))
+                         {
+                             var bar = data.Bars.GetValue(kvp.Key);
+                             kvp.Value.Update(bar.EndTime, bar.Close);
+                         }
+                     }
+
+                     return algorithm.Time.Hour == 12
+                         ? _symbolDataBySymbol.Select(kvp => kvp.Value.Insight)
+                         : Enumerable.Empty<Insight>();
+                 }*/
             public override IEnumerable<Insight> Update(QCAlgorithm algorithm, Slice data)
             {
                 foreach (var kvp in _symbolDataBySymbol)
@@ -100,6 +172,10 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
                     if (data.Bars.ContainsKey(kvp.Key))
                     {
                         var bar = data.Bars.GetValue(kvp.Key);
+
+                        // Affiche le prix de l'action dans la console de débogage
+                        algorithm.Debug($"Prix de {kvp.Key}: {bar.Close}");
+
                         kvp.Value.Update(bar.EndTime, bar.Close);
                     }
                 }
