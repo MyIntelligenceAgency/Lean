@@ -16,7 +16,7 @@ namespace QuantConnect.Algorithm.CSharp
         public override void Initialize()
         {
             // Définir la période de démarrage et de fin
-            SetStartDate(2000, 04, 04);
+            SetStartDate(2015, 04, 04);
             SetEndDate(2021, 12, 04);
 
             // Modèle de courtage et devise du compte
@@ -26,13 +26,13 @@ namespace QuantConnect.Algorithm.CSharp
             SetAccountCurrency("USD");
 
             // Ajouter le symbole crypto
-            _btcEur = AddCrypto("BTCUSD").Symbol;
+            _btcEur = AddCrypto("BTCUSD", Resolution.Daily).Symbol;
 
             // Ajouter les niveaux de retracement de Fibonacci
             _fibonacciLevels = new List<decimal> { 0, 23.6m, 38.2m, 50, 61.8m, 100 };
 
             // Ajouter l'indicateur RSI
-            _rsi = RSI(_btcEur, 14, MovingAverageType.Exponential);
+            _rsi = RSI(_btcEur, 14, MovingAverageType.Exponential, Resolution.Daily);
 
             // Définir l'argent de la stratégie
             SetCash(100000);
@@ -52,8 +52,8 @@ namespace QuantConnect.Algorithm.CSharp
                     fibonacciRetracements.Add((level / 100) * currentPrice);
                 }
 
-                // Mettre à jour la valeur de l'indicateur RSI
-                _rsi.Update(data[_btcEur]);
+                //// Mettre à jour la valeur de l'indicateur RSI
+                //_rsi.Update(data.Bars[_btcEur]);
 
                 // Conditions d'achat
                 if (!Portfolio.Invested)
