@@ -46,7 +46,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetEndDate(2018, 4, 4);
             SetCash("USD", 10000);
             SetCash("BTC", 50m);
-            SetBrokerageModel(BrokerageName.GDAX, AccountType.Cash);
+            SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
             AddCrypto("BTCUSD");
             var symbol = AddCrypto("BTCUSD").Symbol;
             ichimoku = new IchimokuKinkoHyo("Ichimoku", 9, 26, 26, 52, 26, 26);
