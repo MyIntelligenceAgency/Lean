@@ -8,15 +8,16 @@
 
   "environment": "backtesting", // "live-paper", "backtesting", "live-interactive", "live-interactive-iqfeed"
 
+
   // algorithm class selector
-  "algorithm-type-name": "BasicTemplateFrameworkAlgorithm",
+  "algorithm-type-name": "MoneyLaunderingIncV3",
 
   // Algorithm language selector - options CSharp, Python
   "algorithm-language": "CSharp",
 
   //Physical DLL location
   "algorithm-location": "QuantConnect.Algorithm.CSharp.dll",
-  //"algorithm-location": "../../../Algorithm.Python/BasicTemplateFrameworkAlgorithm.py",
+  //"algorithm-location": "../../../Algorithm.CSharp/ForgetQuentinAlgorithm.cs",
 
   //Research notebook
   //"composer-dll-directory": ".",

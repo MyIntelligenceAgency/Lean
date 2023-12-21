@@ -1,6 +1,6 @@
 {
-  "InputFile": "G:\\Dev\\Lean\\Data\\crypto\\bitstamp\\bitstampUSD.csv.gz",
-  "OutputFile": "..\\..\\..\\..\\Data\\crypto\\bitstamp\\second\\btcusd\\trade.zip",
+  "InputFile": "..\\..\\..\\..\\Data\\crypto\\coinbase\\EUR\\coinbaseEUR.csv.gz",
+  "OutputFile": "..\\..\\..\\..\\Data\\crypto\\coinbase\\EUR\\coinbaseEUR.csv",
   "StartDate": "2018-01-01T00:00:00",
   "EndDate": "2018-12-31T00:00:00",
   "SkipRatio": 0,

@@ -15,10 +15,10 @@ namespace MyIA.Trading.Converter
     public class TradeConverter
     {
 
-        public string InputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\bitstampUSD.csv.gz";
+        public string InputFile { get; set; } = @"..\..\..\..\Data\crypto\coinbase\EUR\coinbaseEUR.csv.gz";
 
         //Pour Daily
-        public string OutputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\daily\btceur_trade.zip";
+        public string OutputFile { get; set; } = @"..\..\..\..\Data\crypto\coinbase\EUR\coinbaseEUR.csv";
 
         //Pour Minutes
         //public string OutputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\minute\btcusd\trade.zip";
