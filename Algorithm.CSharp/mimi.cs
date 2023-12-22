@@ -1,130 +1,96 @@
 using System;
-using System.Collections.Generic;
-using QuantConnect.Brokerages;
 using QuantConnect.Data;
 using QuantConnect.Indicators;
+using QuantConnect.Orders;
+using QuantConnect.Brokerages;
 using QuantConnect.Interfaces;
-
+// Pas d'espace de noms 'QuantConnect.Charting' nécessaire ici.
 namespace QuantConnect.Algorithm.CSharp
 {
-    public class mimi : QCAlgorithm, IRegressionAlgorithmDefinition
+    public class mimi : QCAlgorithm
     {
-        private Symbol _btcEur;
-        private List<decimal> _fibonacciLevels;
-        private RelativeStrengthIndex _rsi;
-
+        private Symbol _btcusdSymbol;
+        private ExponentialMovingAverage _fastEMA;
+        private ExponentialMovingAverage _slowEMA;
+        private decimal _lastPurchasePrice;
+        private const decimal StopLossPercentage = 0.75m; // 75% stop loss
+                                                          // Ajoutez les membres pour le graphique et les séries
+        private string _ChartName = "Trade Plot";
+        private string _PriceSeriesName = "Price";
+        private string _PortfolioValueSeriesName = "Portfolio Value";
         public override void Initialize()
         {
-            // Définir la période de démarrage et de fin
-            SetStartDate(2015, 04, 04);
-            SetEndDate(2021, 12, 04);
-
-            // Modèle de courtage et devise du compte
+            SetStartDate(2018, 1, 1); // Set Start Date
+            SetEndDate(2020, 12, 31); // Set End Date
+            SetCash(10000); // Set Strategy Cash
+            SetCash("BTC", 1m); // Set initial BTC holdings
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
-
-            // Avant d'ajouter une sécurité, appeler SetAccountCurrency
-            SetAccountCurrency("USD");
-
-            // Ajouter le symbole crypto
-            _btcEur = AddCrypto("BTCUSD", Resolution.Daily).Symbol;
-
-            // Ajouter les niveaux de retracement de Fibonacci
-            _fibonacciLevels = new List<decimal> { 0, 23.6m, 38.2m, 50, 61.8m, 100 };
-
-            // Ajouter l'indicateur RSI
-            _rsi = RSI(_btcEur, 14, MovingAverageType.Exponential, Resolution.Daily);
-
-            // Définir l'argent de la stratégie
-            SetCash(100000);
+            _btcusdSymbol = AddCrypto("BTCUSD").Symbol;
+            // Initialize EMAs
+            _fastEMA = EMA(_btcusdSymbol, 30, Resolution.Minute);
+            _slowEMA = EMA(_btcusdSymbol, 70, Resolution.Minute);
+            _lastPurchasePrice = 0m;
+            // Créez le graphique
+            var tradePlot = new Chart(_ChartName);
+            tradePlot.AddSeries(new Series(_PriceSeriesName, SeriesType.Line));
+            tradePlot.AddSeries(new Series(_PortfolioValueSeriesName, SeriesType.Line));
+            AddChart(tradePlot);
         }
-
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
-            // Vérifier si les données pour le symbole sont disponibles
-            if (data.ContainsKey(_btcEur))
+            if (!slice.ContainsKey(_btcusdSymbol)) return;
+            if (Portfolio.CashBook["BTC"].ConversionRate == 0)
             {
-                var currentPrice = data[_btcEur].Close;
-
-                // Calculer les retracements de Fibonacci
-                var fibonacciRetracements = new List<decimal>();
-                foreach (var level in _fibonacciLevels)
+                Log($"BTC conversion rate: {Portfolio.CashBook["BTC"].ConversionRate}");
+                throw new Exception("Conversion rate is 0");
+            }
+            // EMA Crossover Strategy for Buying
+            if (_fastEMA > _slowEMA && !Portfolio.Invested)
+            {
+                var buyQuantity = CalculateFibonacciBuyQuantity();
+                if (buyQuantity > 0)
                 {
-                    fibonacciRetracements.Add((level / 100) * currentPrice);
-                }
-
-                //// Mettre à jour la valeur de l'indicateur RSI
-                //_rsi.Update(data.Bars[_btcEur]);
-
-                // Conditions d'achat
-                if (!Portfolio.Invested)
-                {
-                    // Ajouter ici la condition basée sur l'indicateur RSI pour l'achat
-                    if (_rsi < 30)  // Exemple : acheter si RSI est inférieur à 30
-                    {
-                        // Ajouter ici la condition basée sur la stop-loss pour l'achat
-                        var stopLossPercentage = 5;
-                        var stopLossPrice = currentPrice * (1 - stopLossPercentage / 100);
-
-                        // Acheter si la stop-loss condition est vérifiée
-                        if (currentPrice < stopLossPrice)
-                        {
-                            // Calculer la quantité à acheter (50% du capital)
-                            var quantityToBuy = Portfolio.Cash * 0.5m / currentPrice;
-
-                            // Définir l'ordre d'achat avec un stop-loss
-                            SetHoldings(_btcEur, quantityToBuy, stopLossPrice);
-                            Debug($"Achat de {_btcEur.Value} au prix de {currentPrice} avec un retracement de {stopLossPrice} (stop-loss)");
-                        }
-                    }
-                }
-                // Conditions de vente
-                else
-                {
-                    // Ajouter ici la condition basée sur l'indicateur RSI pour la vente
-                    if (_rsi > 70)  // Exemple : vendre si RSI est supérieur à 70
-                    {
-                        Liquidate(_btcEur);
-                        Debug($"Vente de {_btcEur.Value} au prix de {currentPrice} en raison du RSI élevé");
-                    }
+                    SetHoldings(_btcusdSymbol, 0.10); // Invest only 10% of total portfolio value
+                    _lastPurchasePrice = Securities[_btcusdSymbol].Price;
                 }
             }
+            // EMA Crossover Strategy for Selling
+            else if (_fastEMA < _slowEMA && Portfolio.Invested && Portfolio[_btcusdSymbol].Quantity > 0.0001m)
+            {
+                var sellQuantity = CalculateFibonacciSellQuantity();
+                MarketOrder(_btcusdSymbol, -sellQuantity); // Sell a quantity based on Fibonacci
+            }
+            // Stop Loss Logic
+            if (Portfolio[_btcusdSymbol].Invested && Securities[_btcusdSymbol].Price < _lastPurchasePrice * StopLossPercentage)
+            {
+                Liquidate(_btcusdSymbol); // Sell BTC
+            }
+            // Mise à jour des séries de graphiques
+            Plot(_ChartName, _PriceSeriesName, Securities[_btcusdSymbol].Price);
+            Plot(_ChartName, _PortfolioValueSeriesName, Portfolio.TotalPortfolioValue);
         }
-
-        // Statistiques attendues pour les tests de régression
-        public bool CanRunLocally { get; } = true;
-
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
-
-        public long DataPoints => 4319;
-
-        public int AlgorithmHistoryDataPoints => 120;
-
-        public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
+        private decimal CalculateFibonacciBuyQuantity()
         {
-            {"Total Trades", "0"},
-            {"Average Win", "0%"},
-            {"Average Loss", "0%"},
-            {"Compounding Annual Return", "0%"},
-            {"Drawdown", "0%"},
-            {"Expectancy", "0"},
-            {"Net Profit", "0%"},
-            {"Sharpe Ratio", "0"},
-            {"Probabilistic Sharpe Ratio", "0%"},
-            {"Loss Rate", "0%"},
-            {"Win Rate", "0%"},
-            {"Profit-Loss Ratio", "0"},
-            {"Alpha", "0"},
-            {"Beta", "0"},
-            {"Annual Standard Deviation", "0"},
-            {"Annual Variance", "0"},
-            {"Information Ratio", "0"},
-            {"Tracking Error", "0"},
-            {"Treynor Ratio", "0"},
-            {"Total Fees", "€0.00"},
-            {"Estimated Strategy Capacity", "0.00"},
-            {"Lowest Capacity Asset", ""},
-            {"Portfolio Turnover", "0.00%"},
-            {"OrderListHash", ""}
-        };
+            var fibonacciLevelForBuying = 0.618m; // Niveau de Fibonacci ajusté pour l'achat
+            var usdAvailable = Portfolio.TotalPortfolioValue * 0.10m; // 10% du total du portefeuille
+            var currentPrice = Securities[_btcusdSymbol].Price;
+            var maxBtcQuantity = usdAvailable / currentPrice;
+            return maxBtcQuantity;
+        }
+        private decimal CalculateFibonacciSellQuantity()
+        {
+            var fibonacciLevelForSelling = 0.5m; // Niveau de Fibonacci ajusté pour la vente
+            var quantity = Portfolio[_btcusdSymbol].Quantity * fibonacciLevelForSelling;
+            return quantity;
+        }
+        public override void OnOrderEvent(OrderEvent orderEvent)
+        {
+            Debug($"{Time} {orderEvent}");
+        }
+        public override void OnEndOfAlgorithm()
+        {
+            Log($"{Time} - TotalPortfolioValue: {Portfolio.TotalPortfolioValue}");
+            Log($"{Time} - CashBook: {Portfolio.CashBook}");
+        }
     }
 }

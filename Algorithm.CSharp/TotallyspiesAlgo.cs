@@ -42,8 +42,8 @@ namespace QuantConnect.Algorithm.CSharp
 
         public override void Initialize()
         {
-            SetStartDate(2016, 4, 4);
-            SetEndDate(2018, 4, 4);
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
             SetCash("USD", 10000);
             SetCash("BTC", 50m);
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);

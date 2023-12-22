@@ -155,8 +155,8 @@ namespace QuantConnect.Algorithm.CSharp
 
         private void InitPeriod()
         {
-            SetStartDate(2010, 1, 1);
-            SetEndDate(2019, 1, 1);
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
         }
     }
 }

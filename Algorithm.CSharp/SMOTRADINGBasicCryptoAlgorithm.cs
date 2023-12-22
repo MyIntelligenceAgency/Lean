@@ -62,8 +62,8 @@ namespace QuantConnect
 
         public override void Initialize()
         {
-            SetStartDate(2018, 1, 1);
-            SetEndDate(2022, 3, 22);
+            SetStartDate(2021, 1, 1); // début backtest 29410
+            SetEndDate(2023, 10, 20); // fin backtest 29688
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
             SetCash(10000);
 
