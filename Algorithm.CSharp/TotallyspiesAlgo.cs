@@ -45,7 +45,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetStartDate(2021, 1, 1); // début backtest 29410
             SetEndDate(2023, 10, 20); // fin backtest 29688
             SetCash("USD", 10000);
-            SetCash("BTC", 50m);
+            //SetCash("BTC", 50m);
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
             AddCrypto("BTCUSD");
             var symbol = AddCrypto("BTCUSD").Symbol;

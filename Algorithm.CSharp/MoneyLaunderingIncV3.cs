@@ -12,6 +12,7 @@ using QuantConnect.Orders;
 using QuantConnect.Algorithm.Framework.Alphas;
 using System.Drawing;
 using System.Security.Cryptography;
+using QuantConnect.Algorithm.Framework.Risk;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -37,8 +38,35 @@ namespace QuantConnect.Algorithm.CSharp
         public MovingAverageConvergenceDivergence macd1;
         public AverageDirectionalIndex adx1;
 
-        private Symbol _btcusd;
-  
+
+        [Parameter("macd-fast")]
+        public int MacdFast = 12;
+
+        [Parameter("macd-slow")]
+        public int MacdSlow = 26;
+
+
+        [Parameter("macd-signal")]
+        public int MacdSignal = 9;
+
+        [Parameter("adx-period")]
+        public int AdxPeriod = 25;
+
+        [Parameter("adx-high")]
+        public int AdxHigh = 20;
+
+        [Parameter("adx-low")]
+        public int AdxLow = 15;
+
+
+        private Symbol _symbol;
+
+        private string _ticker = "BTCUSD";
+        //private string _ticker = "AAPL";
+        //private string _ticker = "FB";
+
+
+
         private string _ChartName = "Trade Plot";
         private string _PriceSeriesName = "Price";
         private string _PortfoliovalueSeriesName = "PortFolioValue";
@@ -46,27 +74,34 @@ namespace QuantConnect.Algorithm.CSharp
         private string _SlowSeriesName = "SlowEMA";
         private string _MACD = "MACD";
         private string _ADX = "ADX";
-        
+
+
 
         public override void Initialize()
         {
+            
 
             this.InitPeriod();
 
             this.SetWarmUp(TimeSpan.FromDays(365));
 
+           
+
+            SetCash(5000); // capital
+
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
+            var security = AddCrypto(_ticker, Resolution.Daily);
 
-            SetCash(10000); // capital
-            var btcSecurity = AddCrypto("BTCUSD", Resolution.Daily);
+            //var security = AddEquity(_ticker, Resolution.Daily);
+            
 
-            _btcusd = btcSecurity.Symbol;
+            _symbol = security.Symbol;
 
-            Fast = EMA(_btcusd, FastPeriod, Resolution.Daily);
-            Slow = EMA(_btcusd, SlowPeriod, Resolution.Daily);
-            _rsi = RSI(_btcusd, 21, MovingAverageType.Simple, Resolution.Daily);
-            macd1 = MACD(_btcusd, 12 , 26, 9, MovingAverageType.Exponential, Resolution.Daily, Field.Close);
-            adx1 = ADX(_btcusd, 25, Resolution.Daily);
+            Fast = this.EMA(_symbol, FastPeriod, Resolution.Daily);
+            Slow = EMA(_symbol, SlowPeriod, Resolution.Daily);
+            _rsi = RSI(_symbol, 21, MovingAverageType.Simple, Resolution.Daily);
+            macd1 = MACD(_symbol, MacdFast , MacdSlow, MacdSignal, MovingAverageType.Exponential, Resolution.Daily, Field.Close);
+            adx1 = ADX(_symbol, AdxPeriod, Resolution.Daily);
 
 
             var stockPlot = new Chart(_ChartName);
@@ -87,13 +122,12 @@ namespace QuantConnect.Algorithm.CSharp
             AddChart(stockPlot);
             Schedule.On(DateRules.EveryDay(), TimeRules.Every(TimeSpan.FromDays(1)), DoPlots);
             
-
         }
         
         private void DoPlots()
         {
-            Plot(_ChartName, _PriceSeriesName, Securities[_btcusd].Price);
-            Plot(_ChartName, _PortfoliovalueSeriesName, Portfolio.TotalPortfolioValue);
+            Plot(_ChartName, _PriceSeriesName, Securities[_symbol].Price);
+            //Plot(_ChartName, _PortfoliovalueSeriesName, Portfolio.TotalPortfolioValue);
             Plot(_ChartName, _FastSeriesName, Fast);
             Plot(_ChartName, _SlowSeriesName, Slow);
             Plot(_ChartName, _MACD, macd1);
@@ -106,25 +140,25 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (this.IsWarmingUp || !Fast.IsReady || !Slow.IsReady || !macd1.IsReady) return;
 
-            var holdings = Portfolio[_btcusd].Quantity;
-            var currentPrice = data[_btcusd].Close;
+            var holdings = Portfolio[_symbol].Quantity;
+            var currentPrice = data[_symbol].Close;
             var macdHistogram = macd1 - macd1.Signal;
             var isMacdBullish = macdHistogram > 0;
             var isMacdBearish = macdHistogram < 0;
 
-            if (adx1 >= 20 && isMacdBullish)
+            if (adx1 >= AdxHigh && isMacdBullish)
             {
                 if (!Portfolio.Invested)
                 {
-                    SetHoldings(_btcusd, 1);
+                    SetHoldings(_symbol, 1);
 
                 }
             }
-            else if (adx1 < 15 && isMacdBearish)
+            else if (adx1 < AdxLow && isMacdBearish)
             {
                 if (Portfolio.Invested)
                 {
-                    Liquidate(_btcusd);
+                    Liquidate(_symbol);
                 }
             }
         }
@@ -147,7 +181,7 @@ namespace QuantConnect.Algorithm.CSharp
                 }
 
                 var endMessage =
-                    $"{orderEvent.UtcTime.ToShortDateString()}, Price:  @{this.CurrentSlice.Bars[_btcusd].Close:N3}$/Btc; Portfolio: {Portfolio.CashBook[Portfolio.CashBook.AccountCurrency].Amount:N3}$, {Portfolio[_btcusd].Quantity}BTCs, Total Value: {Portfolio.TotalPortfolioValue:N3}$, Total Fees: {Portfolio.TotalFees:N3}$";
+                    $"{orderEvent.UtcTime.ToShortDateString()}, Price:  @{this.CurrentSlice.Bars[_symbol].Close:N3}$/Btc; Portfolio: {Portfolio.CashBook[Portfolio.CashBook.AccountCurrency].Amount:N3}$, {Portfolio[_symbol].Quantity}BTCs, Total Value: {Portfolio.TotalPortfolioValue:N3}$, Total Fees: {Portfolio.TotalFees:N3}$";
                 if (orderEvent.AbsoluteFillQuantity * orderEvent.FillPrice > 100)
                 {
                     Log($"{message} {endMessage}");
@@ -182,11 +216,17 @@ namespace QuantConnect.Algorithm.CSharp
             //SetStartDate(2017, 11, 25); // début backtest 8718
             //SetEndDate(2020, 05, 1); // fin backtest 8832
 
-            SetStartDate(2021, 1, 1); // début backtest 29410
-            SetEndDate(2023, 10, 20); // fin backtest 29688
+            //SetStartDate(2022, 5, 1); // début backtest 29410
+            //SetEndDate(2024, 02, 11); // fin backtest 29688
 
-            //SetStartDate(2020, 01, 01);
-            //SetEndDate(2022, 12, 31); 
+            SetStartDate(2011, 04, 07); // début backtest 164
+            SetEndDate(2024, 01, 29);
+
+
+            //SetStartDate(2021, 02, 01); // début backtest 164
+            //SetEndDate(2024, 01, 29);
+
+
         }
 
 

@@ -94,5 +94,8 @@ namespace QuantConnect.Algorithm.CSharp
                 Sell(_btcusd, sellQuantityStrategy4);
             }
         }
+
+        
+
     }
 }

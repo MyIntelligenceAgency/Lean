@@ -18,7 +18,7 @@ namespace MyIA.Trading.Converter
         public string InputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\bitstampUSD.csv.gz";
 
         //Pour Daily
-        public string OutputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\daily\btceur_trade.zip";
+        public string OutputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\daily\btcusd_trade.zip";
 
         //Pour Minutes
         //public string OutputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\minute\btcusd\trade.zip";
@@ -26,9 +26,9 @@ namespace MyIA.Trading.Converter
         //Pour Secondes
         //public string OutputFile { get; set; } = @"..\..\..\..\Data\crypto\bitstamp\seconde\btcusd\trade.zip";
 
-        public DateTime StartDate { get; set; } = new DateTime(2016, 1, 1);
+        public DateTime StartDate { get; set; } = new DateTime(2010, 1, 1);
 
-        public DateTime EndDate { get; set; } = new DateTime(2016, 12, 31);
+        public DateTime EndDate { get; set; } = new DateTime(2030, 12, 31);
 
         public double SkipRatio { get; set; } = 0;
 

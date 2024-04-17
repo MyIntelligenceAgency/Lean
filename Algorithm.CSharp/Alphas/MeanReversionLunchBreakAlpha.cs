@@ -1,18 +1,3 @@
-/*
- * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
- * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
 using QuantConnect.Algorithm.Framework.Alphas;
 using QuantConnect.Algorithm.Framework.Execution;
 using QuantConnect.Algorithm.Framework.Portfolio;
@@ -25,51 +10,21 @@ using QuantConnect.Orders.Fees;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-
-
 namespace QuantConnect.Algorithm.CSharp.Alphas
 {
-    /// <summary>
+    /// 
+
     /// This alpha aims to capture the mean-reversion effect of ETFs during lunch-break by ranking 20 ETFs
     /// on their return between the close of the previous day to 12:00 the day after and predicting mean-reversion
     /// in price during lunch-break.
     ///
-    /// Source:  Lunina, V. (June 2011). The Intraday Dynamics of Stock Returns and Trading Activity: Evidence from OMXS 30 (Master's Essay, Lund University).
+    /// Source: Lunina, V. (June 2011). The Intraday Dynamics of Stock Returns and Trading Activity: Evidence from OMXS 30 (Master's Essay, Lund University).
     /// Retrieved from http://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=1973850&fileOId=1973852
     ///
     /// This alpha is part of the Benchmark Alpha Series created by QuantConnect which are open sourced so the community and client funds can see an example of an alpha.
-    ///</summary>
+    ///
     public class MeanReversionLunchBreakAlpha : QCAlgorithm
     {
-        /*public override void Initialize()
-        {
-            SetStartDate(2018, 1, 1);
-            SetEndDate(2020,1, 1);
-            SetCash(100000);
-            
-
-            // Set zero transaction fees
-            SetSecurityInitializer(security => security.FeeModel = new ConstantFeeModel(0));
-
-            // Use Hourly Data For Simplicity 
-            // We modified it to use Daily Data
-            UniverseSettings.Resolution = Resolution.Hour;
-            SetUniverseSelection(new CoarseFundamentalUniverseSelectionModel(CoarseSelectionFunction));
-
-            // Use MeanReversionLunchBreakAlphaModel to establish insights
-            SetAlpha(new MeanReversionLunchBreakAlphaModel());
-
-            // Equally weigh securities in portfolio, based on insights
-            SetPortfolioConstruction(new EqualWeightingPortfolioConstructionModel());
-
-            // Set Immediate Execution Model
-            SetExecution(new ImmediateExecutionModel());
-
-            // Set Null Risk Management Model
-            SetRiskManagement(new NullRiskManagementModel());
-        }*/
-
         public override void Initialize()
         {
             SetStartDate(2018, 1, 1);
@@ -79,7 +34,7 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
             AddEquity("SPY");
             AddEquity("AAPL");
             AddEquity("GOOG");
-            AddEquity("CAC40");
+            //AddEquity("CAC40");
 
             // Ajouter du Bitcoin
             //AddCrypto("BTCUSD");  // BTCUSD est le symbole du Bitcoin (il peut y avoir des symboles différents selon la source)
@@ -88,14 +43,14 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
             var spySymbol = QuantConnect.Symbol.Create("SPY", SecurityType.Equity, Market.USA);
             var aaplSymbol = QuantConnect.Symbol.Create("AAPL", SecurityType.Equity, Market.USA);
             var googSymbol = QuantConnect.Symbol.Create("GOOG", SecurityType.Equity, Market.USA);
-            var cac40Symbol = QuantConnect.Symbol.Create("CAC40", SecurityType.Equity, Market.USA);
+            //var cac40Symbol = QuantConnect.Symbol.Create("CAC40", SecurityType.Equity, Market.USA);
             //var btcSymbol = QuantConnect.Symbol.Create("BTCUSD", SecurityType.Crypto, Market.USA);
 
-            SetHoldings(spySymbol, 1.0 / 4);  // 2 millions * 1/5
-            SetHoldings(aaplSymbol, 1.0 / 4);  // 2 millions * 1/5
-            SetHoldings(googSymbol, 1.0 / 4);  // 2 millions * 1/5
-            SetHoldings(cac40Symbol, 1.0 / 4);  // 2 millions * 1/5
-           // SetHoldings(btcSymbol, 1.0 / 5);  // 2 millions * 1/5
+            SetHoldings(spySymbol, 1.0 / 3);  // 2 millions * 1/5
+            SetHoldings(aaplSymbol, 1.0 / 3);  // 2 millions * 1/5
+            SetHoldings(googSymbol, 1.0 / 3);  // 2 millions * 1/5
+            //SetHoldings(cac40Symbol, 1.0 / 4);  // 2 millions * 1/5
+                                                // SetHoldings(btcSymbol, 1.0 / 5);  // 2 millions * 1/5
 
             // Set zero transaction fees
             SetSecurityInitializer(security => security.FeeModel = new ConstantFeeModel(0));
@@ -114,22 +69,14 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
 
             // Modèle de gestion des risques nul
             SetRiskManagement(new NullRiskManagementModel());
+            SetWarmup(TimeSpan.FromDays(30)); // or adjust the number of days as needed
+
         }
 
 
 
 
-        /// <summary>
-        /// Sort the data by daily dollar volume and take the top '20' ETFs
-        /// </summary>
-        /*   private IEnumerable<Symbol> CoarseSelectionFunction(IEnumerable<CoarseFundamental> coarse)
-           {
-               return (from cf in coarse
-                       where !cf.HasFundamentalData
-                       orderby cf.DollarVolume descending
-                       select cf.Symbol).Take(20);
-           }
-   */
+
 
 
 
@@ -169,12 +116,12 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
             {
                 foreach (var kvp in _symbolDataBySymbol)
                 {
-                    if (data.Bars.ContainsKey(kvp.Key))
+                    if (data.ContainsKey(kvp.Key) && data[kvp.Key] != null && data[kvp.Key].Bars.Count > 0)
                     {
                         var bar = data.Bars.GetValue(kvp.Key);
 
-                        // Affiche le prix de l'action dans la console de débogage
-                        algorithm.Debug($"Prix de {kvp.Key}: {bar.Close}");
+                        // Display the price of the security in the debug console
+                        algorithm.Debug($"Price of {kvp.Key}: {bar.Close}");
 
                         kvp.Value.Update(bar.EndTime, bar.Close);
                     }
@@ -184,6 +131,8 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
                     ? _symbolDataBySymbol.Select(kvp => kvp.Value.Insight)
                     : Enumerable.Empty<Insight>();
             }
+
+
 
             public override void OnSecuritiesChanged(QCAlgorithm algorithm, SecurityChanges changes)
             {
@@ -235,7 +184,8 @@ namespace QuantConnect.Algorithm.CSharp.Alphas
                     {
                         // Emit "down" insight for the securities that increased in value and
                         // emit "up" insight for securities that have decreased in value
-                        var direction = _priceChange > 0 ? InsightDirection.Down : InsightDirection.Up;
+                        var direction = _priceChange.Current.Value > 0 ? InsightDirection.Down : InsightDirection.Up;
+
                         var magnitude = Convert.ToDouble(Math.Abs(_meanOfPriceChange));
                         return Insight.Price(_symbol, _period, direction, magnitude);
                     }
