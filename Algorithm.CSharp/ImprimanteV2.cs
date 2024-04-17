@@ -11,109 +11,107 @@ using QuantConnect.Orders;
 using QuantConnect.Algorithm.Framework.Alphas;
 using System.Drawing;
 
+
 namespace QuantConnect.Algorithm.CSharp
 {
-    public class Imprimante : QCAlgorithm
+    public class CryptoSmartTrade : QCAlgorithm
     {
+
+        public int StochPeriod = 14;
         public int KPeriod = 3;
         public int DPeriod = 3;
-        public decimal UpCrossMargin = 1.001m;
-        public decimal DownCrossMargin = 0.999m;
+
 
         private Symbol _btcusd;
+
 
         private string _chartName = "Trade Plot";
         private string _priceSeriesName = "Price";
         private string _portfolioValueSeriesName = "PortFolioValue";
-        private string _MACD = "MACD";
+        private string _ADX = "ADX";
         private string _bollingerUpperSeriesName = "UpperBollinger";
         private string _bollingerLowerSeriesName = "LowerBollinger";
-        private string _ichimokuTenkanSeriesName = "IchimokuTenkan";
-        private string _ichimokuKijunSeriesName = "IchimokuKijun";
-        private string _ichimokuSenkouASeriesName = "IchimokuSenkouA";
-        private string _ichimokuSenkouBSeriesName = "IchimokuSenkouB";
 
-        public BollingerBands _bollingerBands;
-        public MovingAverageConvergenceDivergence macd1;
-        public IchimokuKinkoHyo _ichimoku;
 
+
+
+
+        public AverageDirectionalIndex adx;
+        private BollingerBands _bollingerBands;
+        private Stochastic _stoch;
         public override void Initialize()
         {
-            InitPeriod();
+            this.InitPeriod();
 
-            SetWarmUp(TimeSpan.FromDays(365));
+
+            this.SetWarmUp(TimeSpan.FromDays(365));
+
 
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
+
 
             SetCash(10000); // capital
             var btcSecurity = AddCrypto("BTCUSD", Resolution.Daily);
             _btcusd = btcSecurity.Symbol;
 
+
             _bollingerBands = BB(_btcusd, 20, 2, MovingAverageType.Simple, Resolution.Daily);
-            macd1 = MACD(_btcusd, 12, 26, 9, MovingAverageType.Exponential, Resolution.Daily, Field.Close);
-            _ichimoku = ICHIMOKU(_btcusd, 9, 26, 26, 52, 26, 26);
+            adx = ADX(_btcusd, 25, Resolution.Daily);
+            _stoch = STO(_btcusd, StochPeriod, KPeriod, DPeriod, Resolution.Daily);
+
 
             var stockPlot = new Chart(_chartName);
             var assetPrice = new Series(_priceSeriesName, SeriesType.Line, "$", Color.Blue);
             var portFolioValue = new Series(_portfolioValueSeriesName, SeriesType.Line, "$", Color.Green);
             var upperBollingerSeries = new Series(_bollingerUpperSeriesName, SeriesType.Line, "$", Color.Gray);
             var lowerBollingerSeries = new Series(_bollingerLowerSeriesName, SeriesType.Line, "$", Color.Gray);
-            var MACDPlot = new Series(_MACD, SeriesType.Line, "$", Color.Purple);
-            var ichimokuTenkanSeries = new Series(_ichimokuTenkanSeriesName, SeriesType.Line, "$", Color.Orange);
-            var ichimokuKijunSeries = new Series(_ichimokuKijunSeriesName, SeriesType.Line, "$", Color.Red);
-            var ichimokuSenkouASeries = new Series(_ichimokuSenkouASeriesName, SeriesType.Line, "$", Color.Cyan);
-            var ichimokuSenkouBSeries = new Series(_ichimokuSenkouBSeriesName, SeriesType.Line, "$", Color.Magenta);
+            var ADXPlot = new Series(_ADX, SeriesType.Line, "$", Color.Pink);
+
+
+
+
 
             stockPlot.AddSeries(assetPrice);
             stockPlot.AddSeries(portFolioValue);
             stockPlot.AddSeries(upperBollingerSeries);
             stockPlot.AddSeries(lowerBollingerSeries);
-            stockPlot.AddSeries(MACDPlot);
-            stockPlot.AddSeries(ichimokuTenkanSeries);
-            stockPlot.AddSeries(ichimokuKijunSeries);
-            stockPlot.AddSeries(ichimokuSenkouASeries);
-            stockPlot.AddSeries(ichimokuSenkouBSeries);
+            stockPlot.AddSeries(ADXPlot);
             AddChart(stockPlot);
+
 
             Schedule.On(DateRules.EveryDay(), TimeRules.Every(TimeSpan.FromDays(1)), DoPlots);
         }
+
 
         private void DoPlots()
         {
             Plot(_chartName, _priceSeriesName, Securities[_btcusd].Price);
             Plot(_chartName, _portfolioValueSeriesName, Portfolio.TotalPortfolioValue);
             Plot(_chartName, _bollingerUpperSeriesName, _bollingerBands.UpperBand);
-            Plot(_chartName, _MACD, macd1);
+            Plot(_chartName, _ADX, adx);
             Plot(_chartName, _bollingerLowerSeriesName, _bollingerBands.LowerBand);
-            Plot(_chartName, _ichimokuTenkanSeriesName, _ichimoku.Tenkan);
-            Plot(_chartName, _ichimokuKijunSeriesName, _ichimoku.Kijun);
-            Plot(_chartName, _ichimokuSenkouASeriesName, _ichimoku.SenkouA);
-            Plot(_chartName, _ichimokuSenkouBSeriesName, _ichimoku.SenkouB);
+
         }
+
 
         public override void OnData(Slice data)
         {
-            if (this.IsWarmingUp || !_bollingerBands.IsReady || !macd1.IsReady || !_ichimoku.IsReady)
+            if (this.IsWarmingUp || !_bollingerBands.IsReady || !_stoch.IsReady)
                 return;
+
 
             var holdings = Portfolio[_btcusd].Quantity;
             var currentPrice = data[_btcusd].Close;
 
-            var tenkan = _ichimoku.Tenkan.Current.Value;
-            var kijun = _ichimoku.Kijun.Current.Value;
-            var senkouA = _ichimoku.SenkouA.Current.Value;
-            var senkouB = _ichimoku.SenkouB.Current.Value;
 
-
-            if (macd1 > 0 && currentPrice > _bollingerBands.UpperBand && tenkan > kijun)
-
+            if (adx >= 20 && currentPrice > _bollingerBands.UpperBand && _stoch.StochK > 80)
             {
                 if (!Portfolio.Invested)
                 {
                     SetHoldings(_btcusd, 1);
                 }
             }
-            else if (macd1 < 0 && currentPrice < _bollingerBands.LowerBand && tenkan < kijun)
+            else if (adx < 15 && currentPrice < _bollingerBands.LowerBand && _stoch.StochK < 20)
             {
                 if (Portfolio.Invested)
                 {
@@ -122,10 +120,41 @@ namespace QuantConnect.Algorithm.CSharp
             }
         }
 
+
         private void InitPeriod()
         {
-            SetStartDate(2021, 1, 1); // Start Date
+            SetStartDate(2021, 1, 1); // Start date
             SetEndDate(2023, 10, 20); // End date
+
+
+            //SetStartDate(2013, 04, 07); // début backtest 164
+            //SetEndDate(2015, 01, 14); // fin backtest 172
+
+
+
+
+            //SetStartDate(2014, 02, 08); // début backtest 680
+            //SetEndDate(2016, 11, 07); // fin backtest 703
+
+
+
+
+            //SetStartDate(2017, 08, 08); // début backtest 3412
+            //SetEndDate(2019, 02, 05); // fin backtest 3432
+
+
+            //SetStartDate(2018, 01, 30); // début backtest 9971
+            //SetEndDate(2020, 07, 26); // fin backtest 9945
+
+
+
+
+            //SetStartDate(2017, 12, 15); // début backtest 17478
+            //SetEndDate(2022, 12, 12); // fin backtest 17209
+
+
+            //SetStartDate(2017, 11, 25); // début backtest 8718
+            //SetEndDate(2020, 05, 1); // fin backtest 8832
         }
     }
 }
