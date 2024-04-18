@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <<<<<<<< HEAD:Algorithm.Python/TradeFusion_Algorithm.py
 from AlgorithmImports import *
 
@@ -7,17 +6,11 @@ class TradeFusion_Algorithm(QCAlgorithm):
 
 class MeanReversionLunchBreakAlpha(QCAlgorithm):
 >>>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237:Algorithm.Python/back_testing.py
-=======
-from AlgorithmImports import *
-
-class TradeFusion_Algorithm(QCAlgorithm):
->>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237
 
     def Initialize(self):
 
         self.SetStartDate(2018, 1, 1)
         self.SetEndDate(2020, 2, 2)  # Specify the end date
-<<<<<<< HEAD
 
         self.SetCash(100000)
 
@@ -27,24 +20,6 @@ class TradeFusion_Algorithm(QCAlgorithm):
         # Use Monthly Data For Simplicity
         self.UniverseSettings.Resolution = Resolution.Month
         self.SetUniverseSelection(CoarseFundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
-=======
-        self.SetCash(100000)
-        
-        #self._symbol = self.AddEquity("SPY").Symbol
-        #self._btcEur = self.AddCrypto("BTCEUR").Symbol
-        
-        self.etfs = ['VNQ', 'REET', 'TAO', 'FREL', 'SRET', 'HIPS']
-        # self.symbols = [ Symbol.Create(etf, SecurityType.Equity, Market.USA) for etf in self.etfs ]
-        self.symbols = [self.AddEquity(ticker, Resolution.Daily).Symbol for ticker in self.etfs]
-        
-        # Set zero transaction fees
-        self.SetSecurityInitializer(lambda security: security.SetFeeModel(InteractiveBrokersFeeModel(10)))
-
-        # Use Hourly Data For Simplicity
-        self.UniverseSettings.Resolution = Resolution.Daily
-        # self.SetUniverseSelection(FundamentalUniverseSelectionModel(self.CoarseSelectionFunction))
-        self.SetUniverseSelection(ManualUniverseSelectionModel(self.symbols))
->>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237
 
         # Use MeanReversionLunchBreakAlphaModel to establish insights
         self.SetAlpha(MeanReversionLunchBreakAlphaModel())
@@ -59,59 +34,33 @@ class TradeFusion_Algorithm(QCAlgorithm):
         self.SetRiskManagement(NullRiskManagementModel())
 
     # Sort the data by daily dollar volume and take the top '20' ETFs
-<<<<<<< HEAD
     def CoarseSelectionFunction(self, coarse):
         sortedByDollarVolume = sorted(coarse, key=lambda x: x.DollarVolume, reverse=True)
         filtered = [ x.Symbol for x in sortedByDollarVolume if not x.HasFundamentalData ]
         return filtered[:20]
-=======
-    # def CoarseSelectionFunction(self, coarse):
-    #     sortedByDollarVolume = sorted(coarse, key=lambda x: x.DollarVolume, reverse=True)
-    #     filtered = [ x.Symbol for x in sortedByDollarVolume if not x.HasFundamentalData ]
-    #     return filtered[:50]
-
->>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237
 
 class MeanReversionLunchBreakAlphaModel(AlphaModel):
     '''Uses the price return between the close of previous day to 12:00 the day after to
     predict mean-reversion of stock price during lunch break and creates direction prediction
-<<<<<<< HEAD
     for insights accordingly.''' 'we are trying to modify the previous parameters into a monthly basis'
 
     def __init__(self, *args, **kwargs):
         lookback = kwargs['lookback'] if 'lookback' in kwargs else 1
         self.resolution = Resolution.Month
-=======
-    for insights accordingly.'''
-
-    def __init__(self, *args, **kwargs):
-        lookback = kwargs['lookback'] if 'lookback' in kwargs else 1
-        self.resolution = Resolution.Daily
->>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237
         self.predictionInterval = Time.Multiply(Extensions.ToTimeSpan(self.resolution), lookback)
         self.symbolDataBySymbol = dict()
 
     def Update(self, algorithm, data):
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237
         for symbol, symbolData in self.symbolDataBySymbol.items():
             if data.Bars.ContainsKey(symbol):
                 bar = data.Bars.GetValue(symbol)
                 symbolData.Update(bar.EndTime, bar.Close)
 
-<<<<<<< HEAD
         # Check if it's the last day of the month
         last_day_of_month = (algorithm.Time + timedelta(days=1)).month != algorithm.Time.month
         return [] if not last_day_of_month else \
                [x.Insight for x in self.symbolDataBySymbol.values()]
-=======
-        return [] if algorithm.Time.hour != 12 else \
-               [x.Insight for x in self.symbolDataBySymbol.values() \
-                if x.Update(algorithm, data)]
->>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237
 
     def OnSecuritiesChanged(self, algorithm, changes):
         for security in changes.RemovedSecurities:
