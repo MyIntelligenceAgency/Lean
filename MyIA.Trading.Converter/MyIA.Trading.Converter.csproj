@@ -55,5 +55,8 @@
 	  <None Update="C:\Users\Administrateur.000\.nuget\packages\sevenzipextractor\1.0.15\build\x86\7z.dll">
 	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
 	  </None>
+	  <None Update="ConverterConfig.daily.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 </Project>

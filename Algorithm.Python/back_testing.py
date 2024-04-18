@@ -1,5 +1,11 @@
+<<<<<<<< HEAD:Algorithm.Python/TradeFusion_Algorithm.py
+from AlgorithmImports import *
+
+class TradeFusion_Algorithm(QCAlgorithm):
+========
 
 class MeanReversionLunchBreakAlpha(QCAlgorithm):
+>>>>>>>> 32581ab51c23b93e7d8c011d76ab82e218d9c237:Algorithm.Python/back_testing.py
 
     def Initialize(self):
 

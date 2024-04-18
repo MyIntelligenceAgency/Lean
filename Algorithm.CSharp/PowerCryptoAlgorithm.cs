@@ -72,7 +72,8 @@ namespace QuantConnect
         {
             SetStartDate(2021, 1, 1); // début backtest
             SetEndDate(2023, 3, 22); // fin backtest
-
+            //SetStartDate(2010, 1, 1); // début backtest 29410
+            //SetEndDate(2022, 1, 1); // fin backtest 29688
 
 
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
