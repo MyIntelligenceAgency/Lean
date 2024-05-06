@@ -20,6 +20,21 @@ namespace QuantConnect.Algorithm.CSharp
 {
     public class PouleMouilleeAlgorithm : QCAlgorithm
     {
+
+        [Parameter("macd-fast")]
+        public int MacdFast = 12;
+
+        [Parameter("macd-slow")]
+        public int MacdSlow = 28;
+
+
+        [Parameter("macd-signal")]
+        public int MacdSignal = 9;
+
+        [Parameter("rsi-period")]
+        public int RsiPeriod = 13;
+
+
         private MovingAverageConvergenceDivergence _macd;
         private RelativeStrengthIndex _rsi;
         private Symbol _btcusd;
@@ -30,14 +45,14 @@ namespace QuantConnect.Algorithm.CSharp
             InitPeriod();
 
             // Capital initial
-            SetCash(10000);
+            SetCash(5000);
             //SetCash("BTC", 0m);
 
             SetBrokerageModel(BrokerageName.Bitstamp, AccountType.Cash);
 
             _btcusd = AddCrypto("BTCUSD", Resolution.Daily).Symbol;
-            _macd = MACD(_btcusd, 12, 26, 9, MovingAverageType.Exponential, Resolution.Daily, Field.Close);
-            _rsi = RSI(_btcusd, 14, MovingAverageType.Exponential, Resolution.Daily);
+            _macd = MACD(_btcusd, MacdFast, MacdSlow, MacdSignal, MovingAverageType.Exponential, Resolution.Daily, Field.Close);
+            _rsi = RSI(_btcusd, RsiPeriod, MovingAverageType.Exponential, Resolution.Daily);
         }
 
         public override void OnData(Slice data)
