@@ -73,10 +73,10 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            if (!data.Bars.ContainsKey(symbol)) return;
+            if (!slice.Bars.ContainsKey(symbol)) return;
 
             // each month make an action
             if (Time.Month != LastMonth)
@@ -89,11 +89,11 @@ namespace QuantConnect.Algorithm.CSharp
                 LastMonth = Time.Month;
                 Log("ORDER TYPE:: " + orderType);
                 var isLong = Quantity > 0;
-                var stopPrice = isLong ? (1 + StopPercentage)*data.Bars[symbol].High : (1 - StopPercentage)*data.Bars[symbol].Low;
+                var stopPrice = isLong ? (1 + StopPercentage)*slice.Bars[symbol].High : (1 - StopPercentage)*slice.Bars[symbol].Low;
                 var limitPrice = isLong ? (1 - LimitPercentage)*stopPrice : (1 + LimitPercentage)*stopPrice;
                 if (orderType == OrderType.Limit)
                 {
-                    limitPrice = !isLong ? (1 + LimitPercentage) * data.Bars[symbol].High : (1 - LimitPercentage) * data.Bars[symbol].Low;
+                    limitPrice = !isLong ? (1 + LimitPercentage) * slice.Bars[symbol].High : (1 - LimitPercentage) * slice.Bars[symbol].Low;
                 }
                 var request = new SubmitOrderRequest(orderType, SecType, symbol, Quantity, stopPrice, limitPrice, 0, 0.01m, true, UtcTime,
                     ((int)orderType).ToString(CultureInfo.InvariantCulture));
@@ -151,19 +151,19 @@ namespace QuantConnect.Algorithm.CSharp
             var ticket = Transactions.GetOrderTicket(orderEvent.OrderId);
             if (order.Status == OrderStatus.Canceled && order.CanceledTime != orderEvent.UtcTime)
             {
-                throw new Exception("Expected canceled order CanceledTime to equal canceled order event time.");
+                throw new RegressionTestException("Expected canceled order CanceledTime to equal canceled order event time.");
             }
 
             // fills update LastFillTime
             if ((order.Status == OrderStatus.Filled || order.Status == OrderStatus.PartiallyFilled) && order.LastFillTime != orderEvent.UtcTime)
             {
-                throw new Exception("Expected filled order LastFillTime to equal fill order event time.");
+                throw new RegressionTestException("Expected filled order LastFillTime to equal fill order event time.");
             }
 
             // check the ticket to see if the update was successfully processed
             if (ticket.UpdateRequests.Any(ur => ur.Response?.IsSuccess == true) && order.CreatedTime != UtcTime && order.LastUpdateTime == null)
             {
-                throw new Exception("Expected updated order LastUpdateTime to equal submitted update order event time");
+                throw new RegressionTestException("Expected updated order LastUpdateTime to equal submitted update order event time");
             }
 
             if (orderEvent.Status == OrderStatus.Filled)
@@ -191,7 +191,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -204,18 +204,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "19"},
+            {"Total Orders", "25"},
             {"Average Win", "0%"},
             {"Average Loss", "-1.91%"},
             {"Compounding Annual Return", "-12.291%"},
             {"Drawdown", "24.600%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "76929.28"},
             {"Net Profit", "-23.071%"},
             {"Sharpe Ratio", "-1.142"},
+            {"Sortino Ratio", "-1.387"},
             {"Probabilistic Sharpe Ratio", "0.023%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -231,7 +239,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$1100000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.46%"},
-            {"OrderListHash", "18fb3ea596676a3efcdce5e13ff5c73c"}
+            {"OrderListHash", "de729deb1ce5a1e581e78e73a566d232"}
         };
     }
 }

@@ -34,21 +34,37 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using QuantConnect.Storage;
-using QuantConnect.Algorithm.Framework.Alphas.Analysis;
 using QuantConnect.Statistics;
+using QuantConnect.Data.Market;
+using QuantConnect.Algorithm.Framework.Alphas.Analysis;
 
 namespace QuantConnect.AlgorithmFactory.Python.Wrappers
 {
     /// <summary>
     /// Creates and wraps the algorithm written in python.
     /// </summary>
-    public class AlgorithmPythonWrapper : IAlgorithm
+    public class AlgorithmPythonWrapper : BasePythonWrapper<IAlgorithm>, IAlgorithm
     {
-        private readonly dynamic _algorithm;
+        private readonly PyObject _algorithm;
         private readonly dynamic _onData;
-        private readonly dynamic _onOrderEvent;
         private readonly dynamic _onMarginCall;
         private readonly IAlgorithm _baseAlgorithm;
+
+        // QCAlgorithm methods that might be implemented in the python algorithm:
+        // We keep them to avoid the BasePythonWrapper caching and eventual lookup overhead since these methods are called quite frequently
+        private dynamic _onBrokerageDisconnect;
+        private dynamic _onBrokerageMessage;
+        private dynamic _onBrokerageReconnect;
+        private dynamic _onSplits;
+        private dynamic _onDividends;
+        private dynamic _onDelistings;
+        private dynamic _onSymbolChangedEvents;
+        private dynamic _onEndOfDay;
+        private dynamic _onMarginCallWarning;
+        private dynamic _onOrderEvent;
+        private dynamic _onAssignmentOrderEvent;
+        private dynamic _onSecuritiesChanged;
+        private dynamic _onFrameworkSecuritiesChanged;
 
         /// <summary>
         /// True if the underlying python algorithm implements "OnEndOfDay"
@@ -66,6 +82,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         /// <param name="moduleName">Name of the module that can be found in the PYTHONPATH</param>
         public AlgorithmPythonWrapper(string moduleName)
+            : base(false)
         {
             try
             {
@@ -91,23 +108,22 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
                             Logging.Log.Trace("AlgorithmPythonWrapper(): Creating IAlgorithm instance.");
 
                             _algorithm = attr.Invoke();
+                            SetPythonInstance(_algorithm);
+                            var dynAlgorithm = _algorithm as dynamic;
 
                             // Set pandas
-                            _algorithm.SetPandasConverter();
+                            dynAlgorithm.SetPandasConverter();
 
                             // IAlgorithm reference for LEAN internal C# calls (without going from C# to Python and back)
-                            _baseAlgorithm = _algorithm.AsManagedObject(type);
+                            _baseAlgorithm = dynAlgorithm.AsManagedObject(type);
 
                             // determines whether OnData method was defined or inherits from QCAlgorithm
                             // If it is not, OnData from the base class will not be called
-                            var pyAlgorithm = _algorithm as PyObject;
-                            _onData = pyAlgorithm.GetPythonMethod("OnData");
+                            _onData = _algorithm.GetPythonMethod("OnData");
 
-                            _onMarginCall = pyAlgorithm.GetPythonMethod("OnMarginCall");
+                            _onMarginCall = _algorithm.GetPythonMethod("OnMarginCall");
 
-                            _onOrderEvent = pyAlgorithm.GetAttr("OnOrderEvent");
-
-                            PyObject endOfDayMethod = pyAlgorithm.GetPythonMethod("OnEndOfDay");
+                            PyObject endOfDayMethod = _algorithm.GetPythonMethod("OnEndOfDay");
                             if (endOfDayMethod != null)
                             {
                                 // Since we have a EOD method implemented
@@ -127,6 +143,21 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
                                 // python will only use the last implemented, meaning only one will
                                 // be used and seen.
                             }
+
+                            // Initialize the python methods
+                            _onBrokerageDisconnect = _algorithm.GetMethod("OnBrokerageDisconnect");
+                            _onBrokerageMessage = _algorithm.GetMethod("OnBrokerageMessage");
+                            _onBrokerageReconnect = _algorithm.GetMethod("OnBrokerageReconnect");
+                            _onSplits = _algorithm.GetMethod("OnSplits");
+                            _onDividends = _algorithm.GetMethod("OnDividends");
+                            _onDelistings = _algorithm.GetMethod("OnDelistings");
+                            _onSymbolChangedEvents = _algorithm.GetMethod("OnSymbolChangedEvents");
+                            _onEndOfDay = _algorithm.GetMethod("OnEndOfDay");
+                            _onMarginCallWarning = _algorithm.GetMethod("OnMarginCallWarning");
+                            _onOrderEvent = _algorithm.GetMethod("OnOrderEvent");
+                            _onAssignmentOrderEvent = _algorithm.GetMethod("OnAssignmentOrderEvent");
+                            _onSecuritiesChanged = _algorithm.GetMethod("OnSecuritiesChanged");
+                            _onFrameworkSecuritiesChanged = _algorithm.GetMethod("OnFrameworkSecuritiesChanged");
                         }
                         attr.Dispose();
                     }
@@ -261,6 +292,53 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
             set
             {
                 _baseAlgorithm.Name = value;
+            }
+        }
+
+        /// <summary>
+        /// A list of tags associated with the algorithm or the backtest, useful for categorization
+        /// </summary>
+        public HashSet<string> Tags
+        {
+            get
+            {
+                return _baseAlgorithm.Tags;
+            }
+            set
+            {
+                _baseAlgorithm.Tags = value;
+            }
+        }
+
+        /// <summary>
+        /// Event fired algorithm's name is changed
+        /// </summary>
+        public event AlgorithmEvent<string> NameUpdated
+        {
+            add
+            {
+                _baseAlgorithm.NameUpdated += value;
+            }
+
+            remove
+            {
+                _baseAlgorithm.NameUpdated -= value;
+            }
+        }
+
+        /// <summary>
+        /// Event fired when the tag collection is updated
+        /// </summary>
+        public event AlgorithmEvent<HashSet<string>> TagsUpdated
+        {
+            add
+            {
+                _baseAlgorithm.TagsUpdated += value;
+            }
+
+            remove
+            {
+                _baseAlgorithm.TagsUpdated -= value;
             }
         }
 
@@ -574,7 +652,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         /// <param name="clearChartData"></param>
         /// <returns>List of Chart Updates</returns>
-        public List<Chart> GetChartUpdates(bool clearChartData = false) => _baseAlgorithm.GetChartUpdates(clearChartData);
+        public IEnumerable<Chart> GetChartUpdates(bool clearChartData = false) => _baseAlgorithm.GetChartUpdates(clearChartData);
 
         /// <summary>
         /// Gets whether or not this algorithm has been locked and fully initialized
@@ -627,19 +705,17 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         public void Initialize()
         {
-            using (Py.GIL())
-            {
-                _algorithm.Initialize();
-            }
+            InvokeMethod(nameof(Initialize));
         }
 
         /// <summary>
-        /// Liquidate your portfolio holdings:
+        /// Liquidate your portfolio holdings
         /// </summary>
-        /// <param name="symbolToLiquidate">Specific asset to liquidate, defaults to all.</param>
-        /// <param name="tag">Custom tag to know who is calling this.</param>
-        /// <returns>list of order ids</returns>
-        public List<int> Liquidate(Symbol symbolToLiquidate = null, string tag = "Liquidated") => _baseAlgorithm.Liquidate(symbolToLiquidate, tag);
+        /// <param name="symbol">Specific asset to liquidate, defaults to all</param>
+        /// <param name="asynchronous">Flag to indicate if the symbols should be liquidated asynchronously</param>
+        /// <param name="tag">Custom tag to know who is calling this</param>
+        /// <param name="orderProperties">Order properties to use</param>
+        public List<OrderTicket> Liquidate(Symbol symbol = null, bool asynchronous = false, string tag = "Liquidated", IOrderProperties orderProperties = null) => _baseAlgorithm.Liquidate(symbol, asynchronous, tag, orderProperties);
 
         /// <summary>
         /// Save entry to the Log
@@ -652,10 +728,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         public void OnBrokerageDisconnect()
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnBrokerageDisconnect();
-            }
+            _onBrokerageDisconnect();
         }
 
         /// <summary>
@@ -663,10 +736,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         public void OnBrokerageMessage(BrokerageMessageEvent messageEvent)
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnBrokerageMessage(messageEvent);
-            }
+            _onBrokerageMessage(messageEvent);
         }
 
         /// <summary>
@@ -674,10 +744,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         public void OnBrokerageReconnect()
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnBrokerageReconnect();
-            }
+            _onBrokerageReconnect();
         }
 
         /// <summary>
@@ -690,7 +757,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
             {
                 using (Py.GIL())
                 {
-                    _onData(new PythonSlice(slice));
+                    _onData(slice);
                 }
             }
         }
@@ -705,14 +772,47 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
+        /// Event handler to be called when there's been a split event
+        /// </summary>
+        /// <param name="splits">The current time slice splits</param>
+        public void OnSplits(Splits splits)
+        {
+            _onSplits(splits);
+        }
+
+        /// <summary>
+        /// Event handler to be called when there's been a dividend event
+        /// </summary>
+        /// <param name="dividends">The current time slice dividends</param>
+        public void OnDividends(Dividends dividends)
+        {
+            _onDividends(dividends);
+        }
+
+        /// <summary>
+        /// Event handler to be called when there's been a delistings event
+        /// </summary>
+        /// <param name="delistings">The current time slice delistings</param>
+        public void OnDelistings(Delistings delistings)
+        {
+            _onDelistings(delistings);
+        }
+
+        /// <summary>
+        /// Event handler to be called when there's been a symbol changed event
+        /// </summary>
+        /// <param name="symbolsChanged">The current time slice symbol changed events</param>
+        public void OnSymbolChangedEvents(SymbolChangedEvents symbolsChanged)
+        {
+            _onSymbolChangedEvents(symbolsChanged);
+        }
+
+        /// <summary>
         /// Call this event at the end of the algorithm running.
         /// </summary>
         public void OnEndOfAlgorithm()
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnEndOfAlgorithm();
-            }
+            InvokeMethod(nameof(OnEndOfAlgorithm));
         }
 
         /// <summary>
@@ -726,16 +826,13 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         {
             try
             {
-                using (Py.GIL())
-                {
-                    _algorithm.OnEndOfDay();
-                }
+                _onEndOfDay();
             }
             // If OnEndOfDay is not defined in the script, but OnEndOfDay(Symbol) is, a python exception occurs
             // Only throws if there is an error in its implementation body
             catch (PythonException exception)
             {
-                if (!exception.Message.StartsWith("OnEndOfDay()"))
+                if (!exception.Message.Contains("OnEndOfDay() missing 1 required positional argument"))
                 {
                     _baseAlgorithm.SetRunTimeError(exception);
                 }
@@ -754,16 +851,13 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         {
             try
             {
-                using (Py.GIL())
-                {
-                    _algorithm.OnEndOfDay(symbol);
-                }
+                _onEndOfDay(symbol);
             }
             // If OnEndOfDay(Symbol) is not defined in the script, but OnEndOfDay is, a python exception occurs
             // Only throws if there is an error in its implementation body
             catch (PythonException exception)
             {
-                if (!exception.Message.StartsWith("OnEndOfDay()"))
+                if (!exception.Message.Contains("OnEndOfDay() takes 1 positional argument but 2 were given"))
                 {
                     _baseAlgorithm.SetRunTimeError(exception);
                 }
@@ -778,20 +872,20 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         {
             using (Py.GIL())
             {
-                var result = _algorithm.OnMarginCall(requests);
+                var method = GetMethod(nameof(OnMarginCall));
+                var result = method.Invoke<PyObject>(requests);
 
                 if (_onMarginCall != null)
                 {
-                    var pyRequests = result as PyObject;
                     // If the method does not return or returns a non-iterable PyObject, throw an exception
-                    if (pyRequests == null || !pyRequests.IsIterable())
+                    if (result == null || !result.IsIterable())
                     {
                         throw new Exception("OnMarginCall must return a non-empty list of SubmitOrderRequest");
                     }
 
                     requests.Clear();
 
-                    using var iterator = pyRequests.GetIterator();
+                    using var iterator = result.GetIterator();
                     foreach (PyObject pyRequest in iterator)
                     {
                         SubmitOrderRequest request;
@@ -815,10 +909,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         public void OnMarginCallWarning()
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnMarginCallWarning();
-            }
+            _onMarginCallWarning();
         }
 
         /// <summary>
@@ -828,10 +919,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// <param name="newEvent">Event information</param>
         public void OnOrderEvent(OrderEvent newEvent)
         {
-            using (Py.GIL())
-            {
-                _onOrderEvent(newEvent);
-            }
+            _onOrderEvent(newEvent);
         }
 
         /// <summary>
@@ -852,10 +940,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// <remarks>This method can be called asynchronously and so should only be used by seasoned C# experts. Ensure you use proper locks on thread-unsafe objects</remarks>
         public void OnAssignmentOrderEvent(OrderEvent assignmentEvent)
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnAssignmentOrderEvent(assignmentEvent);
-            }
+            _onAssignmentOrderEvent(assignmentEvent);
         }
 
         /// <summary>
@@ -864,10 +949,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// <param name="changes">Security additions/removals for this time step</param>
         public void OnSecuritiesChanged(SecurityChanges changes)
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnSecuritiesChanged(changes);
-            }
+            _onSecuritiesChanged(changes);
         }
 
         /// <summary>
@@ -876,10 +958,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// <param name="changes">Security additions/removals for this time step</param>
         public void OnFrameworkSecuritiesChanged(SecurityChanges changes)
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnFrameworkSecuritiesChanged(changes);
-            }
+            _onFrameworkSecuritiesChanged(changes);
         }
 
         /// <summary>
@@ -896,10 +975,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// </summary>
         public void OnWarmupFinished()
         {
-            using (Py.GIL())
-            {
-                _algorithm.OnWarmupFinished();
-            }
+            InvokeMethod(nameof(OnWarmupFinished));
         }
 
         /// <summary>
@@ -1082,7 +1158,10 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// Sets the current slice
         /// </summary>
         /// <param name="slice">The Slice object</param>
-        public void SetCurrentSlice(Slice slice) => _baseAlgorithm.SetCurrentSlice(slice);
+        public void SetCurrentSlice(Slice slice)
+        {
+            _baseAlgorithm.SetCurrentSlice(new PythonSlice(slice));
+        }
 
         /// <summary>
         /// Provide the API for the algorithm.
@@ -1137,5 +1216,32 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         /// <param name="symbol">The symbol to get the ticker for</param>
         /// <returns>The mapped ticker for a symbol</returns>
         public string Ticker(Symbol symbol) => _baseAlgorithm.Ticker(symbol);
+
+        /// <summary>
+        /// Sets name to the currently running backtest
+        /// </summary>
+        /// <param name="name">The name for the backtest</param>
+        public void SetName(string name)
+        {
+            _baseAlgorithm.SetName(name);
+        }
+
+        /// <summary>
+        /// Adds a tag to the algorithm
+        /// </summary>
+        /// <param name="tag">The tag to add</param>
+        public void AddTag(string tag)
+        {
+            _baseAlgorithm.AddTag(tag);
+        }
+
+        /// <summary>
+        /// Sets the tags for the algorithm
+        /// </summary>
+        /// <param name="tags">The tags</param>
+        public void SetTags(HashSet<string> tags)
+        {
+            _baseAlgorithm.SetTags(tags);
+        }
     }
 }

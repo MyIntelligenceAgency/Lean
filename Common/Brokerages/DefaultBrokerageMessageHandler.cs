@@ -39,12 +39,21 @@ namespace QuantConnect.Brokerages
 
         private volatile bool _connected;
 
-        private readonly IApi _api;
         private readonly IAlgorithm _algorithm;
         private readonly TimeSpan _openThreshold;
-        private readonly AlgorithmNodePacket _job;
         private readonly TimeSpan _initialDelay;
         private CancellationTokenSource _cancellationTokenSource;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DefaultBrokerageMessageHandler"/> class
+        /// </summary>
+        /// <param name="algorithm">The running algorithm</param>
+        /// <param name="initialDelay"></param>
+        /// <param name="openThreshold">Defines how long before market open to re-check for brokerage reconnect message</param>
+        public DefaultBrokerageMessageHandler(IAlgorithm algorithm, TimeSpan? initialDelay = null, TimeSpan? openThreshold = null)
+            : this(algorithm, null, null, initialDelay, openThreshold)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultBrokerageMessageHandler"/> class
@@ -56,8 +65,6 @@ namespace QuantConnect.Brokerages
         /// <param name="openThreshold">Defines how long before market open to re-check for brokerage reconnect message</param>
         public DefaultBrokerageMessageHandler(IAlgorithm algorithm, AlgorithmNodePacket job, IApi api, TimeSpan? initialDelay = null, TimeSpan? openThreshold = null)
         {
-            _api = api;
-            _job = job;
             _algorithm = algorithm;
             _connected = true;
             _openThreshold = openThreshold ?? DefaultOpenThreshold;
@@ -68,7 +75,7 @@ namespace QuantConnect.Brokerages
         /// Handles the message
         /// </summary>
         /// <param name="message">The message to be handled</param>
-        public void Handle(BrokerageMessageEvent message)
+        public void HandleMessage(BrokerageMessageEvent message)
         {
             // based on message type dispatch to result handler
             switch (message.Type)
@@ -157,6 +164,16 @@ namespace QuantConnect.Brokerages
                     }
                     break;
             }
+        }
+
+        /// <summary>
+        /// Handles a new order placed manually in the brokerage side
+        /// </summary>
+        /// <param name="eventArgs">The new order event</param>
+        /// <returns>Whether the order should be added to the transaction handler</returns>
+        public bool HandleOrder(NewBrokerageOrderNotificationEventArgs eventArgs)
+        {
+            return false;
         }
 
         private void StartCheckReconnected(TimeSpan delay, BrokerageMessageEvent message)

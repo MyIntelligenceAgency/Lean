@@ -49,15 +49,15 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            if (lastDataTime == data.Time)
+            if (lastDataTime == slice.Time)
             {
-                throw new Exception("Duplicate time for current data and last data slice");
+                throw new RegressionTestException("Duplicate time for current data and last data slice");
             }
 
-            lastDataTime = data.Time;
+            lastDataTime = slice.Time;
 
             if (_added)
             {
@@ -66,7 +66,7 @@ namespace QuantConnect.Algorithm.CSharp
                     .Single();
                 if (eurUsdSubscription.IsInternalFeed)
                 {
-                    throw new Exception("Unexpected internal 'EURUSD' Subscription");
+                    throw new RegressionTestException("Unexpected internal 'EURUSD' Subscription");
                 }
             }
             if (!_added)
@@ -76,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
                     .Single();
                 if (!eurUsdSubscription.IsInternalFeed)
                 {
-                    throw new Exception("Unexpected not internal 'EURUSD' Subscription");
+                    throw new RegressionTestException("Unexpected not internal 'EURUSD' Subscription");
                 }
                 AddForex("EURUSD", Resolution.Hour);
                 _dataPointsPerSymbol.Add(_eurusd, 0);
@@ -84,7 +84,7 @@ namespace QuantConnect.Algorithm.CSharp
                 _added = true;
             }
 
-            foreach (var kvp in data)
+            foreach (var kvp in slice)
             {
                 var symbol = kvp.Key;
                 _dataPointsPerSymbol[symbol]++;
@@ -118,7 +118,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (actualDataPoints != expectedDataPointsPerSymbol[symbol.Value])
                 {
-                    throw new Exception($"Data point count mismatch for symbol {symbol.Value}: expected: {expectedDataPointsPerSymbol[symbol.Value]}, actual: {actualDataPoints}");
+                    throw new RegressionTestException($"Data point count mismatch for symbol {symbol.Value}: expected: {expectedDataPointsPerSymbol[symbol.Value]}, actual: {actualDataPoints}");
                 }
             }
         }
@@ -131,7 +131,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -144,18 +144,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 120;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000.00"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

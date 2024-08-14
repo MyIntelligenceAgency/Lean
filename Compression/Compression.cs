@@ -20,6 +20,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Tar;
@@ -64,12 +65,12 @@ namespace QuantConnect
                 using (var stream = new ZipOutputStream(File.Create(zipPath)))
                 {
                     stream.SetLevel(0);
-                    foreach (var filename in filenamesAndData.Keys)
+                    foreach (var kvp in filenamesAndData)
                     {
+                        var filename = kvp.Key;
                         //Create the space in the zip file:
                         var entry = new ZipEntry(filename);
-                        var data = filenamesAndData[filename];
-                        var bytes = Encoding.Default.GetBytes(data);
+                        var bytes = Encoding.Default.GetBytes(kvp.Value);
                         stream.PutNextEntry(entry);
                         stream.Write(bytes, 0, bytes.Length);
                         stream.CloseEntry();
@@ -238,38 +239,47 @@ namespace QuantConnect
         /// <returns>Uncompressed dictionary string-sting of files in the zip</returns>
         public static Dictionary<string, string> UnzipData(byte[] zipData, Encoding encoding = null)
         {
+            using var stream = new MemoryStream(zipData);
+            return UnzipDataAsync(stream, encoding).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Uncompress zip data byte array into a dictionary string array of filename-contents.
+        /// </summary>
+        /// <param name="stream">Stream data of zip compressed information</param>
+        /// <param name="encoding">Specifies the encoding used to read the bytes. If not specified, defaults to ASCII</param>
+        /// <returns>Uncompressed dictionary string-sting of files in the zip</returns>
+        public static async Task<Dictionary<string, string>> UnzipDataAsync(Stream stream, Encoding encoding = null)
+        {
             // Initialize:
             var data = new Dictionary<string, string>();
 
             try
             {
-                using (var ms = new MemoryStream(zipData))
+                //Read out the zipped data into a string, save in array:
+                using (var zipStream = new ZipInputStream(stream))
                 {
-                    //Read out the zipped data into a string, save in array:
-                    using (var zipStream = new ZipInputStream(ms))
+                    while (true)
                     {
-                        while (true)
+                        //Get the next file
+                        var entry = zipStream.GetNextEntry();
+
+                        if (entry != null)
                         {
-                            //Get the next file
-                            var entry = zipStream.GetNextEntry();
+                            // Read the file into buffer:
+                            var buffer = new byte[entry.Size];
+                            await zipStream.ReadAsync(buffer, 0, (int)entry.Size).ConfigureAwait(false);
 
-                            if (entry != null)
-                            {
-                                //Read the file into buffer:
-                                var buffer = new byte[entry.Size];
-                                zipStream.Read(buffer, 0, (int)entry.Size);
-
-                                //Save into array:
-                                var str = (encoding ?? Encoding.ASCII).GetString(buffer);
-                                data.Add(entry.Name, str);
-                            }
-                            else
-                            {
-                                break;
-                            }
+                            //Save into array:
+                            var str = (encoding ?? Encoding.ASCII).GetString(buffer);
+                            data[entry.Name] = str;
                         }
-                    } // End Zip Stream.
-                } // End Using Memory Stream
+                        else
+                        {
+                            break;
+                        }
+                    }
+                } // End Zip Stream.
 
             }
             catch (Exception err)
@@ -471,7 +481,7 @@ namespace QuantConnect
                         foreach (var file in archive.Entries)
                         {
                             // skip directories
-                            if (file.Name == "") continue;
+                            if (string.IsNullOrEmpty(file.Name)) continue;
                             var filepath = Path.Combine(directory, file.FullName);
                             if (IsLinux) filepath = filepath.Replace(@"\", "/");
                             var outputFile = new FileInfo(filepath);

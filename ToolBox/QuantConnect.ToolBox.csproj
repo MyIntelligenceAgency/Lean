@@ -13,6 +13,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Description>QuantConnect LEAN Engine: ToolBox Project - A collection of data downloaders and converters</Description>
+    <NoWarn>CA1062</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugType>full</DebugType>
@@ -39,17 +40,6 @@
     <Compile Include="..\Common\Properties\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="QuantConnect.pythonnet" Version="2.0.25" />
-    <PackageReference Include="CoinAPI.WebSocket.V1" Version="1.6.7" />
-    <PackageReference Include="Common.Logging" Version="3.4.1" />
-    <PackageReference Include="Common.Logging.Core" Version="3.4.1" />
-    <PackageReference Include="IQFeed.CSharpApiClient" Version="2.5.1" />
-    <PackageReference Include="LaunchDarkly.EventSource" Version="3.3.2" />
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.6.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="NodaTime" Version="3.0.5" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
@@ -57,40 +47,11 @@
     <None Include="AlgoSeekFuturesConverter\AlgoSeek.US.Futures.PriceMultipliers.1.1.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="IQFeed\IQFeed-symbol-map.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Content Include="CoarseUniverseGenerator\blacklisted-tickers.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Visualizer\QuantConnect.Visualizer.py">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Visualizer\__init__.py">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
-    <None Include="instruments_oanda.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Brokerages\QuantConnect.Brokerages.csproj" />
-    <ProjectReference Include="..\Common\QuantConnect.csproj" />
-    <ProjectReference Include="..\Compression\QuantConnect.Compression.csproj" />
-    <ProjectReference Include="..\Configuration\QuantConnect.Configuration.csproj" />
     <ProjectReference Include="..\Engine\QuantConnect.Lean.Engine.csproj" />
-    <ProjectReference Include="..\Logging\QuantConnect.Logging.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="instruments_dukascopy.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="instruments_fxcm.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 </Project>

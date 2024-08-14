@@ -24,6 +24,11 @@ namespace QuantConnect.Interfaces
     public interface IAlgorithmSettings
     {
         /// <summary>
+        /// Gets whether or not WarmUpIndicator is allowed to warm up indicators
+        /// </summary>
+        bool AutomaticIndicatorWarmUp { get; set; }
+
+        /// <summary>
         /// True if should rebalance portfolio on security changes. True by default
         /// </summary>
         bool? RebalancePortfolioOnSecurityChanges { get; set; }
@@ -74,6 +79,11 @@ namespace QuantConnect.Interfaces
         bool LiquidateEnabled { get; set; }
 
         /// <summary>
+        /// True if daily strict end times are enabled
+        /// </summary>
+        bool DailyPreciseEndTime { get; set; }
+
+        /// <summary>
         /// Gets/sets the maximum number of concurrent market data subscriptions available
         /// </summary>
         /// <remarks>
@@ -93,5 +103,30 @@ namespace QuantConnect.Interfaces
         /// </summary>
         /// <remarks>This allows improving the warmup speed by setting it to a lower resolution than the one added in the algorithm</remarks>
         Resolution? WarmupResolution { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of trading days per year for this Algorithm's portfolio statistics.
+        /// </summary>
+        /// <remarks>
+        /// This property affects the calculation of various portfolio statistics, including:
+        /// - <see cref="Statistics.PortfolioStatistics.AnnualVariance"/>
+        /// - <seealso cref="Statistics.PortfolioStatistics.AnnualStandardDeviation"/>
+        /// - <seealso cref="Statistics.PortfolioStatistics.SharpeRatio"/>
+        /// - <seealso cref="Statistics.PortfolioStatistics.SortinoRatio"/>
+        /// - <seealso cref="Statistics.PortfolioStatistics.TrackingError"/>
+        /// - <seealso cref="Statistics.PortfolioStatistics.InformationRatio"/>.
+        ///
+        /// The default values are:
+        /// - Cryptocurrency Exchanges: 365 days
+        /// - Traditional Stock Exchanges: 252 days
+        ///
+        /// Users can also set a custom value for this property.
+        /// </remarks>
+        int? TradingDaysPerYear { get; set; }
+
+        /// <summary>
+        /// Gets the time span used to refresh the market hours and symbol properties databases
+        /// </summary>
+        TimeSpan DatabasesRefreshPeriod { get; set; }
     }
 }

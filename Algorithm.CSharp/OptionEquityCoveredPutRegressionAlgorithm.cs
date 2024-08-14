@@ -62,14 +62,14 @@ namespace QuantConnect.Algorithm.CSharp
                     var expectedMarginUsage = inTheMoneyAmount + Math.Abs(underlyingMarginRequirements.Value);
                     if (expectedMarginUsage != Portfolio.TotalMarginUsed)
                     {
-                        throw new Exception("Unexpect margin used!");
+                        throw new RegressionTestException("Unexpect margin used!");
                     }
 
                     // we payed the ask and value using the assets price
                     var priceSpreadDifference = GetPriceSpreadDifference(atmContract.Symbol, atmContract.Symbol.Underlying);
                     if (initialMargin != (freeMarginPostTrade + expectedMarginUsage + _paidFees - priceSpreadDifference))
                     {
-                        throw new Exception("Unexpect margin remaining!");
+                        throw new RegressionTestException("Unexpect margin remaining!");
                     }
                 }
             }
@@ -78,7 +78,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public override long DataPoints => 475788;
+        public override long DataPoints => 471135;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -86,18 +86,26 @@ namespace QuantConnect.Algorithm.CSharp
         public override int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public override Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "200000"},
+            {"End Equity", "199628.5"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -113,7 +121,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$550000.00"},
             {"Lowest Capacity Asset", "GOOCV VP83T1ZUHROL"},
             {"Portfolio Turnover", "399.81%"},
-            {"OrderListHash", "c71b35cb6d5dad5d9b308a2e1e47b0a5"}
+            {"OrderListHash", "326721b5b46d1094a5a758c60ba67da0"}
         };
     }
 }

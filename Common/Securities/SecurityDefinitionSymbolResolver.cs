@@ -47,13 +47,11 @@ namespace QuantConnect.Securities
         /// <param name="securitiesDefinitionKey">Location to read the securities definition data from</param>
         private SecurityDefinitionSymbolResolver(IDataProvider dataProvider = null, string securitiesDefinitionKey = null)
         {
-            _securitiesDefinitionKey = securitiesDefinitionKey ?? Path.Combine(Globals.DataFolder, "symbol-properties", "security-database.csv");
+            _securitiesDefinitionKey = securitiesDefinitionKey ?? Path.Combine(Globals.GetDataFolderPath("symbol-properties"), "security-database.csv");
 
-            _dataProvider = dataProvider ??
-                Composer.Instance.GetExportedValueByTypeName<IDataProvider>(
-                    Config.Get("data-provider", "QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider"));
+            _dataProvider = dataProvider ?? Composer.Instance.GetPart<IDataProvider>();
 
-            _mapFileProvider = Composer.Instance.GetExportedValueByTypeName<IMapFileProvider>(Config.Get("map-file-provider", "LocalDiskMapFileProvider"));
+            _mapFileProvider = Composer.Instance.GetPart<IMapFileProvider>();
             _mapFileProvider.Initialize(_dataProvider);
         }
 

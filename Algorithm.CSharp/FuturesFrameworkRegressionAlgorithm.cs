@@ -79,7 +79,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (continuous.Price == Securities[(continuous as Future).Mapped].Price)
             {
                 // prices should never match because we are using the default backwards adjusted mode, they would match if we used raw mode
-                throw new Exception($"Unexpected continuous future price {continuous.Price}");
+                throw new RegressionTestException($"Unexpected continuous future price {continuous.Price}");
             }
         }
 
@@ -108,13 +108,13 @@ namespace QuantConnect.Algorithm.CSharp
                 // trade & quote for canonical + contract chain (universe data)
                 if (subscriptions.Count(x => x.Symbol.IsCanonical()) != canonicals.Count * 3)
                 {
-                    throw new Exception($"Unexpected canonical subscription count {subscriptions.Count(x => x.Symbol.IsCanonical())}");
+                    throw new RegressionTestException($"Unexpected canonical subscription count {subscriptions.Count(x => x.Symbol.IsCanonical())}");
                 }
 
                 // trade and quote for non canonicals
                 if (subscriptions.Count(x => !x.Symbol.IsCanonical()) != nonCanonicals.Count * 2)
                 {
-                    throw new Exception($"Unexpected non canonical subscription count {subscriptions.Count(x => !x.Symbol.IsCanonical())}");
+                    throw new RegressionTestException($"Unexpected non canonical subscription count {subscriptions.Count(x => !x.Symbol.IsCanonical())}");
                 }
             }
 
@@ -123,14 +123,14 @@ namespace QuantConnect.Algorithm.CSharp
             // an open interest subscription for each + trade and quote for the currently mapped continuous future
             if (internalSubscriptions.Count != (nonCanonicals.Count + canonicals.Count + canonicals.Count * 2))
             {
-                throw new Exception($"Unexpected internal subscription count {internalSubscriptions.Count}");
+                throw new RegressionTestException($"Unexpected internal subscription count {internalSubscriptions.Count}");
             }
 
             // we expect a single continuous universe at the time
             var universeSubscriptions = SubscriptionManager.Subscriptions.Count(x => x.Symbol.ID.Symbol.Contains("QC-UNIVERSE-CONTINUOUS"));
             if (universeSubscriptions != 1)
             {
-                throw new Exception($"Unexpected universe subscription count {universeSubscriptions}");
+                throw new RegressionTestException($"Unexpected universe subscription count {universeSubscriptions}");
             }
 
             // we expect a single canonical at the time
@@ -138,7 +138,7 @@ namespace QuantConnect.Algorithm.CSharp
                 .Select(x => x.Symbol.Canonical).ToHashSet();
             if (canonicalSubscriptions.Count != 1)
             {
-                throw new Exception($"Unexpected universe subscription count {universeSubscriptions}");
+                throw new RegressionTestException($"Unexpected universe subscription count {universeSubscriptions}");
             }
         }
 
@@ -148,27 +148,27 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (!canonical.Value)
                 {
-                    throw new Exception($"Canonical {canonical} was not added!");
+                    throw new RegressionTestException($"Canonical {canonical} was not added!");
                 }
             }
             foreach (var canonical in _removedCanonical)
             {
                 if (canonical.Key.ID.Symbol == "ES" && !canonical.Value || canonical.Key.ID.Symbol == "GC" && canonical.Value)
                 {
-                    throw new Exception($"Canonical {canonical} was not removed!");
+                    throw new RegressionTestException($"Canonical {canonical} was not removed!");
                 }
             }
             foreach (var canonical in _canonicalData)
             {
                 if (canonical.Value == null || !canonical.Value.IsReady)
                 {
-                    throw new Exception($"Canonical {canonical} emitted no data!");
+                    throw new RegressionTestException($"Canonical {canonical} emitted no data!");
                 }
             }
 
             if (SubscriptionManager.Subscriptions.Any(x => x.Symbol.ID.Symbol == "ES"))
             {
-                throw new Exception($"There should be no ES subscription!");
+                throw new RegressionTestException($"There should be no ES subscription!");
             }
         }
 
@@ -180,12 +180,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public virtual Language[] Languages { get; } = { Language.CSharp };
+        public virtual List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public virtual long DataPoints => 126804;
+        public virtual long DataPoints => 126811;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -193,18 +193,26 @@ namespace QuantConnect.Algorithm.CSharp
         public virtual int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "10"},
+            {"Total Orders", "10"},
             {"Average Win", "0%"},
             {"Average Loss", "-4.59%"},
             {"Compounding Annual Return", "-100.000%"},
             {"Drawdown", "33.200%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "79014"},
             {"Net Profit", "-20.986%"},
             {"Sharpe Ratio", "-0.537"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "18.566%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -220,7 +228,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$410000.00"},
             {"Lowest Capacity Asset", "ES VRJST036ZY0X"},
             {"Portfolio Turnover", "766.37%"},
-            {"OrderListHash", "544b2d6c178c78daf42b553093d4833d"}
+            {"OrderListHash", "cdaa87b62e159eaa3b0da65b305e89bd"}
         };
     }
 }

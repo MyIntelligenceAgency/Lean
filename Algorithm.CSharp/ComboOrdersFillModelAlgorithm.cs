@@ -66,17 +66,17 @@ namespace QuantConnect.Algorithm.CSharp
                 var orderType = Transactions.GetOrderById(orderEvent.OrderId).Type;
                 if (orderType == OrderType.ComboMarket && orderEvent.AbsoluteFillQuantity != 50)
                 {
-                    throw new Exception($"The absolute quantity filled for all combo market orders should be 50, but for order {orderEvent.OrderId} was {orderEvent.AbsoluteFillQuantity}");
+                    throw new RegressionTestException($"The absolute quantity filled for all combo market orders should be 50, but for order {orderEvent.OrderId} was {orderEvent.AbsoluteFillQuantity}");
                 }
 
                 if (orderType == OrderType.ComboLimit && orderEvent.AbsoluteFillQuantity != 20)
                 {
-                    throw new Exception($"The absolute quantity filled for all combo limit orders should be 20, but for order {orderEvent.OrderId} was {orderEvent.AbsoluteFillQuantity}");
+                    throw new RegressionTestException($"The absolute quantity filled for all combo limit orders should be 20, but for order {orderEvent.OrderId} was {orderEvent.AbsoluteFillQuantity}");
                 }
 
                 if (orderType == OrderType.ComboLegLimit && orderEvent.AbsoluteFillQuantity != 10)
                 {
-                    throw new Exception($"The absolute quantity filled for all combo leg limit orders should be 20, but for order {orderEvent.OrderId} was {orderEvent.AbsoluteFillQuantity}");
+                    throw new RegressionTestException($"The absolute quantity filled for all combo leg limit orders should be 20, but for order {orderEvent.OrderId} was {orderEvent.AbsoluteFillQuantity}");
                 }
 
                 _orderTypes[orderType] = 1;
@@ -87,22 +87,22 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_orderTypes.Keys.Count != 3)
             {
-                throw new Exception($"Just 3 different types of order were submitted in this algorithm, but the amount of order types was {_orderTypes.Count}");
+                throw new RegressionTestException($"Just 3 different types of order were submitted in this algorithm, but the amount of order types was {_orderTypes.Count}");
             }
 
             if (!_orderTypes.Keys.Contains(OrderType.ComboMarket))
             {
-                throw new Exception($"One Combo Market Order should have been submitted but it was not");
+                throw new RegressionTestException($"One Combo Market Order should have been submitted but it was not");
             }
 
             if (!_orderTypes.Keys.Contains(OrderType.ComboLimit))
             {
-                throw new Exception($"One Combo Limit Order should have been submitted but it was not");
+                throw new RegressionTestException($"One Combo Limit Order should have been submitted but it was not");
             }
 
             if (!_orderTypes.Keys.Contains(OrderType.ComboLegLimit))
             {
-                throw new Exception($"One Combo Leg Limit Order should have been submitted but it was not");
+                throw new RegressionTestException($"One Combo Leg Limit Order should have been submitted but it was not");
             }
         }
 
@@ -114,7 +114,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -127,18 +127,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "6"},
+            {"Total Orders", "6"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "162.471%"},
             {"Drawdown", "1.800%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "104781.43"},
             {"Net Profit", "4.781%"},
             {"Sharpe Ratio", "8.272"},
+            {"Sortino Ratio", "6.986"},
             {"Probabilistic Sharpe Ratio", "87.028%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -154,7 +162,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$250000.00"},
             {"Lowest Capacity Asset", "IBM R735QTJ8XC9X"},
             {"Portfolio Turnover", "9.81%"},
-            {"OrderListHash", "411685f7f8454b5ee59a3fe42ddec90a"}
+            {"OrderListHash", "397d4e81b8c7fa9258e18c4bcf4154e1"}
         };
     }
 

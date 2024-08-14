@@ -35,14 +35,14 @@ namespace QuantConnect.Algorithm.CSharp
             var firstCustomSecurity = AddData<ExampleCustomData>(market1.Symbol, Resolution.Hour, TimeZones.Utc, false);
             if (firstCustomSecurity.Exchange.TimeZone != TimeZones.Utc)
             {
-                throw new Exception($"The time zone of security {firstCustomSecurity} should be {TimeZones.Utc}, but it was {firstCustomSecurity.Exchange.TimeZone}");
+                throw new RegressionTestException($"The time zone of security {firstCustomSecurity} should be {TimeZones.Utc}, but it was {firstCustomSecurity.Exchange.TimeZone}");
             }
 
             var market2 = AddForex("EURUSD", Resolution.Hour, Market.Oanda);
             var secondCustomSecurity = AddData<ExampleCustomData>(market2.Symbol, Resolution.Hour, TimeZones.Utc, false);
             if (secondCustomSecurity.Exchange.TimeZone != TimeZones.Utc)
             {
-                throw new Exception($"The time zone of security {secondCustomSecurity} should be {TimeZones.Utc}, but it was {secondCustomSecurity.Exchange.TimeZone}");
+                throw new RegressionTestException($"The time zone of security {secondCustomSecurity} should be {TimeZones.Utc}, but it was {secondCustomSecurity.Exchange.TimeZone}");
             }
             _noDataPointsReceived = true;
         }
@@ -53,7 +53,7 @@ namespace QuantConnect.Algorithm.CSharp
             _noDataPointsReceived = false;
             if (slice.Count != ActiveSecurities.Count)
             {
-                throw new Exception($"{ActiveSecurities.Count.ToString().ToCamelCase()} data points were expected, but only {slice.Count} were received");
+                throw new RegressionTestException($"{ActiveSecurities.Count.ToString().ToCamelCase()} data points were expected, but only {slice.Count} were received");
             }
         }
 
@@ -61,7 +61,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_noDataPointsReceived)
             {
-                throw new Exception($"No points were received");
+                throw new RegressionTestException($"No points were received");
             }
         }
 
@@ -73,7 +73,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -86,18 +86,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 60;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000.00"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -119,11 +127,11 @@ namespace QuantConnect.Algorithm.CSharp
 
     public class ExampleCustomData : BaseData
     {
-        private int _hours = 0;
-        public decimal Open;
-        public decimal High;
-        public decimal Low;
-        public decimal Close;
+        private int _hours { get; set; }
+        public decimal Open { get; set; }
+        public decimal High { get; set; }
+        public decimal Low { get; set; }
+        public decimal Close { get; set; }
 
         public override SubscriptionDataSource GetSource(SubscriptionDataConfig config, DateTime date, bool isLiveMode)
         {

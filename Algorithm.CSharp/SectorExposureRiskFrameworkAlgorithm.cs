@@ -75,7 +75,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -88,18 +88,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "11"},
+            {"Total Orders", "12"},
             {"Average Win", "0.12%"},
             {"Average Loss", "-0.07%"},
             {"Compounding Annual Return", "-40.669%"},
             {"Drawdown", "2.600%"},
             {"Expectancy", "0.865"},
+            {"Start Equity", "100000"},
+            {"End Equity", "98017.57"},
             {"Net Profit", "-1.982%"},
             {"Sharpe Ratio", "-4.214"},
+            {"Sortino Ratio", "-3.88"},
             {"Probabilistic Sharpe Ratio", "3.637%"},
             {"Loss Rate", "33%"},
             {"Win Rate", "67%"},
@@ -115,7 +123,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$29000000.00"},
             {"Lowest Capacity Asset", "AIG R735QTJ8XC9X"},
             {"Portfolio Turnover", "10.03%"},
-            {"OrderListHash", "98f45f04cd283dfa75cebd258ca86d67"}
+            {"OrderListHash", "97d714e2290f3deac303f071a9b1d3aa"}
         };
     }
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
  * 
@@ -14,7 +14,6 @@
  *
 */
 
-using Newtonsoft.Json;
 using QuantConnect.Orders;
 
 namespace QuantConnect.Packets
@@ -28,14 +27,12 @@ namespace QuantConnect.Packets
         /// <summary>
         /// Order event object
         /// </summary>
-        [JsonProperty(PropertyName = "oOrderEvent")]
-        public OrderEvent Event;
+        public OrderEvent Event { get; set; }
 
         /// <summary>
         /// Algorithm id for this order event
         /// </summary>
-        [JsonProperty(PropertyName = "sAlgorithmID")]
-        public string AlgorithmId;
+        public string AlgorithmId { get; set; }
 
         /// <summary>
         /// Default constructor for JSON

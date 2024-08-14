@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
  *
@@ -91,17 +91,22 @@ namespace QuantConnect.Data.Consolidators
     /// <summary>
     /// Calendar Info for storing information related to the start and period of a consolidator
     /// </summary>
-    public struct CalendarInfo
+    public readonly struct CalendarInfo
     {
         /// <summary>
         /// Calendar Start
         /// </summary>
-        public readonly DateTime Start;
+        public DateTime Start { get; init; }
 
         /// <summary>
         /// Consolidation Period
         /// </summary>
-        public readonly TimeSpan Period;
+        public TimeSpan Period { get; init; }
+
+        /// <summary>
+        /// Calendar End
+        /// </summary>
+        public readonly DateTime End => Start + Period;
 
         /// <summary>
         /// Constructor for CalendarInfo; used for consolidation calendar
@@ -112,6 +117,57 @@ namespace QuantConnect.Data.Consolidators
         {
             Start = start;
             Period = period;
+        }
+
+        /// <summary>
+        /// Returns a string containing the Calendar start and the consolidation period
+        /// </summary>
+        public override string ToString()
+        {
+            return $"{Start} {Period}";
+        }
+
+        /// <summary>
+        /// Indicates whether the given object is equal to this object, this is, the Calendar start
+        /// and consolidation period is the same for both
+        /// </summary>
+        public override bool Equals(object obj)
+        {
+            if (obj is not CalendarInfo other)
+            {
+                return false;
+            }
+            return Start == other.Start && Period == other.Period;
+        }
+
+        /// <summary>
+        /// Returns the hash code for this object as an integer
+        /// </summary>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = Start.GetHashCode();
+                return (hashCode * 397) ^ Period.GetHashCode();
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether the given object is equal to this object, this is, the Calendar start
+        /// and consolidation period is the same for both
+        /// </summary>
+        public static bool operator ==(CalendarInfo left, CalendarInfo right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Indicates whether the given object is equal to this object, this is, the Calendar start
+        /// and consolidation period is the same for both
+        /// </summary>
+        public static bool operator !=(CalendarInfo left, CalendarInfo right)
+        {
+            return !(left == right);
         }
     }
 }

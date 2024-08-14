@@ -38,9 +38,9 @@ namespace QuantConnect.Algorithm.CSharp
             _ibm = AddEquity("IBM", Resolution.Tick).Symbol;
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
-            if (!data.Ticks.ContainsKey(_ibm))
+            if (!slice.Ticks.ContainsKey(_ibm))
             {
                 return;
             }
@@ -51,7 +51,7 @@ namespace QuantConnect.Algorithm.CSharp
                 return;
             }
 
-            foreach (var tick in data.Ticks[_ibm])
+            foreach (var tick in slice.Ticks[_ibm])
             {
                 if (tick.BidPrice != 0 && !_bought && ((tick.Value - tick.BidPrice) <= 0.05m))
                 {
@@ -76,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -89,18 +89,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.12%"},
             {"Compounding Annual Return", "-9.135%"},
             {"Drawdown", "0.100%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99877.60"},
             {"Net Profit", "-0.122%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -116,7 +124,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "IBM R735QTJ8XC9X"},
             {"Portfolio Turnover", "39.89%"},
-            {"OrderListHash", "612ad22ca109c2ebc7c01c5b8ce26ba9"}
+            {"OrderListHash", "32f56b0f4e9300ef1a34464e8083c7e7"}
         };
     }
 }

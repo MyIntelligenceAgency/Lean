@@ -34,6 +34,9 @@ namespace QuantConnect
         /// </summary>
         public static class CancelOrderRequest
         {
+            /// <summary>
+            /// Parses the given CancelOrderRequest into a string message containing basic information about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.CancelOrderRequest request)
             {
@@ -47,6 +50,9 @@ namespace QuantConnect
         /// </summary>
         public static class GroupOrderExtensions
         {
+            /// <summary>
+            /// Returns a string message saying there is insufficient buying power to complete the given orders
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string InsufficientBuyingPowerForOrders(Dictionary<Orders.Order, Securities.Security> securities,
                 HasSufficientBuyingPowerForOrderResult hasSufficientBuyingPowerResult)
@@ -63,17 +69,26 @@ namespace QuantConnect
         /// </summary>
         public static class LimitIfTouchedOrder
         {
+            /// <summary>
+            /// Returns an empty string tag
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string Tag(Orders.LimitIfTouchedOrder order)
             {
-                return Invariant($"Trigger Price: {order.TriggerPrice:C} Limit Price: {order.LimitPrice:C}");
+                // No additional information to display
+                return string.Empty;
             }
 
+            /// <summary>
+            /// Parses the given LimitIfTouched order to a string message containing basic information
+            /// about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.LimitIfTouchedOrder order)
             {
-                return Invariant($@"{Messages.Order.ToString(order)} at trigger {order.TriggerPrice.SmartRounding()} limit {
-                    order.LimitPrice.SmartRounding()}");
+                var currencySymbol = QuantConnect.Currencies.GetCurrencySymbol(order.PriceCurrency);
+                return Invariant($@"{Order.ToString(order)} at trigger {currencySymbol}{order.TriggerPrice.SmartRounding()
+                    } limit {currencySymbol}{order.LimitPrice.SmartRounding()}");
             }
         }
 
@@ -82,16 +97,24 @@ namespace QuantConnect
         /// </summary>
         public static class LimitOrder
         {
+            /// <summary>
+            /// Returns an empty string tag
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string Tag(Orders.LimitOrder order)
             {
-                return Invariant($"Limit Price: {order.LimitPrice:C}");
+                // No additional information to display
+                return string.Empty;
             }
 
+            /// <summary>
+            /// Parses a Limit order to a string message with basic information about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.LimitOrder order)
             {
-                return Invariant($"{Messages.Order.ToString(order)} at limit {order.LimitPrice.SmartRounding()}");
+                var currencySymbol = QuantConnect.Currencies.GetCurrencySymbol(order.PriceCurrency);
+                return Invariant($"{Order.ToString(order)} at limit {currencySymbol}{order.LimitPrice.SmartRounding()}");
             }
         }
 
@@ -100,6 +123,9 @@ namespace QuantConnect
         /// </summary>
         public static class Order
         {
+            /// <summary>
+            /// Parses the given order into a string message with basic information about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.Order order)
             {
@@ -114,37 +140,42 @@ namespace QuantConnect
         /// </summary>
         public static class OrderEvent
         {
+            /// <summary>
+            /// Parses the given order event into a string message containing basic information about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.OrderEvent orderEvent)
             {
                 var message = Invariant($@"Time: {orderEvent.UtcTime} OrderID: {orderEvent.OrderId} EventID: {
                     orderEvent.Id} Symbol: {orderEvent.Symbol.Value} Status: {orderEvent.Status} Quantity: {orderEvent.Quantity}");
+                var currencySymbol = QuantConnect.Currencies.GetCurrencySymbol(orderEvent.FillPriceCurrency);
+
                 if (orderEvent.FillQuantity != 0)
                 {
-                    message += Invariant($@" FillQuantity: {orderEvent.FillQuantity} FillPrice: {
-                        orderEvent.FillPrice.SmartRounding()} {orderEvent.FillPriceCurrency}");
+                    message += Invariant($@" FillQuantity: {orderEvent.FillQuantity
+                        } FillPrice: {currencySymbol}{orderEvent.FillPrice.SmartRounding()}");
                 }
 
                 if (orderEvent.LimitPrice.HasValue)
                 {
-                    message += Invariant($" LimitPrice: {orderEvent.LimitPrice.Value.SmartRounding()}");
+                    message += Invariant($" LimitPrice: {currencySymbol}{orderEvent.LimitPrice.Value.SmartRounding()}");
                 }
 
                 if (orderEvent.StopPrice.HasValue)
                 {
-                    message += Invariant($" StopPrice: {orderEvent.StopPrice.Value.SmartRounding()}");
+                    message += Invariant($" StopPrice: {currencySymbol}{orderEvent.StopPrice.Value.SmartRounding()}");
                 }
 
                 if (orderEvent.TrailingAmount.HasValue)
                 {
                     var trailingAmountString = TrailingStopOrder.TrailingAmount(orderEvent.TrailingAmount.Value,
-                        orderEvent.TrailingAsPercentage ?? false, orderEvent.FillPriceCurrency);
+                        orderEvent.TrailingAsPercentage ?? false, currencySymbol);
                     message += $" TrailingAmount: {trailingAmountString}";
                 }
 
                 if (orderEvent.TriggerPrice.HasValue)
                 {
-                    message += Invariant($" TriggerPrice: {orderEvent.TriggerPrice.Value.SmartRounding()}");
+                    message += Invariant($" TriggerPrice: {currencySymbol}{orderEvent.TriggerPrice.Value.SmartRounding()}");
                 }
 
                 // attach the order fee so it ends up in logs properly.
@@ -167,41 +198,46 @@ namespace QuantConnect
                 return message;
             }
 
+            /// <summary>
+            /// Parses the given order event into a string message which summarizes the basic information about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ShortToString(Orders.OrderEvent orderEvent)
             {
                 var message = Invariant($"{orderEvent.UtcTime} OID:{orderEvent.OrderId} {orderEvent.Symbol.Value} {orderEvent.Status} Q:{orderEvent.Quantity}");
+                var currencySymbol = QuantConnect.Currencies.GetCurrencySymbol(orderEvent.FillPriceCurrency);
+
                 if (orderEvent.FillQuantity != 0)
                 {
-                    message += Invariant($" FQ:{orderEvent.FillQuantity} FP:{orderEvent.FillPrice.SmartRounding()} {orderEvent.FillPriceCurrency}");
+                    message += Invariant($" FQ:{orderEvent.FillQuantity} FP:{currencySymbol}{orderEvent.FillPrice.SmartRounding()}");
                 }
 
                 if (orderEvent.LimitPrice.HasValue)
                 {
-                    message += Invariant($" LP:{orderEvent.LimitPrice.Value.SmartRounding()}");
+                    message += Invariant($" LP:{currencySymbol}{orderEvent.LimitPrice.Value.SmartRounding()}");
                 }
 
                 if (orderEvent.StopPrice.HasValue)
                 {
-                    message += Invariant($" SP:{orderEvent.StopPrice.Value.SmartRounding()}");
+                    message += Invariant($" SP:{currencySymbol}{orderEvent.StopPrice.Value.SmartRounding()}");
                 }
 
                 if (orderEvent.TrailingAmount.HasValue)
                 {
                     var trailingAmountString = TrailingStopOrder.TrailingAmount(orderEvent.TrailingAmount.Value,
-                        orderEvent.TrailingAsPercentage ?? false, orderEvent.FillPriceCurrency);
+                        orderEvent.TrailingAsPercentage ?? false, currencySymbol);
                     message += $" TA: {trailingAmountString}";
                 }
 
                 if (orderEvent.TriggerPrice.HasValue)
                 {
-                    message += Invariant($" TP:{orderEvent.TriggerPrice.Value.SmartRounding()}");
+                    message += Invariant($" TP:{currencySymbol}{orderEvent.TriggerPrice.Value.SmartRounding()}");
                 }
 
                 // attach the order fee so it ends up in logs properly.
                 if (orderEvent.OrderFee.Value.Amount != 0m)
                 {
-                    message += Invariant($" OF:{orderEvent.OrderFee}");
+                    message += Invariant($" OF:{currencySymbol}{orderEvent.OrderFee}");
                 }
 
                 // add message from brokerage
@@ -224,6 +260,9 @@ namespace QuantConnect
         /// </summary>
         public static class OrderRequest
         {
+            /// <summary>
+            /// Parses the given order request into a string message containing basic information about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.OrderRequest request)
             {
@@ -236,10 +275,19 @@ namespace QuantConnect
         /// </summary>
         public static class OrderResponse
         {
+            /// <summary>
+            /// String message saying: An unexpected error occurred
+            /// </summary>
             public static string DefaultErrorMessage = "An unexpected error occurred.";
 
+            /// <summary>
+            /// String message saying: The request has not yet been processed
+            /// </summary>
             public static string UnprocessedOrderResponseErrorMessage = "The request has not yet been processed.";
 
+            /// <summary>
+            /// Parses the given order response into a string message containing basic information about it 
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.OrderResponse response)
             {
@@ -256,12 +304,20 @@ namespace QuantConnect
                 return "Success";
             }
 
+            /// <summary>
+            /// Returns a string message saying it was impossible to udpate the order with the id
+            /// from the given request because it already had the status of the given order
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string InvalidStatus(Orders.OrderRequest request, Orders.Order order)
             {
                 return Invariant($"Unable to update order with id {request.OrderId} because it already has {order.Status} status.");
             }
 
+            /// <summary>
+            /// Returns a string message saying it was impossible to update or cancel the order with the
+            /// id from the given request because the submit confirmation had not been received yet
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string InvalidNewStatus(Orders.OrderRequest request, Orders.Order order)
             {
@@ -269,24 +325,43 @@ namespace QuantConnect
                     request.OrderId} and status {order.Status} because the submit confirmation has not been received yet.");
             }
 
+            /// <summary>
+            /// Returns a string message saying it was impossible to locate the order with the id from the
+            /// given request
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string UnableToFindOrder(Orders.OrderRequest request)
             {
                 return Invariant($"Unable to locate order with id {request.OrderId}.");
             }
 
+            /// <summary>
+            /// Returns a string message saying it was impossible to process the given order request
+            /// that has zero quantity
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ZeroQuantity(Orders.OrderRequest request)
             {
                 return Invariant($"Unable to {request.OrderRequestType.ToLower()} order with id {request.OrderId} that has zero quantity.");
             }
 
+            /// <summary>
+            /// Returns a string message saying the user has not requested data for the symbol of the given
+            /// request. It also advises the user on how to add this data
+            /// </summary>
+            /// <param name="request"></param>
+            /// <returns></returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string MissingSecurity(Orders.SubmitOrderRequest request)
             {
                 return Invariant($"You haven't requested {request.Symbol} data. Add this with AddSecurity() in the Initialize() Method.");
             }
 
+            /// <summary>
+            /// Returns a string message saying the given order request operation is not allowed
+            /// in Initialize or during warm up. It also advises the user on where it is allowed
+            /// to make it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string WarmingUp(Orders.OrderRequest request)
             {
@@ -300,18 +375,29 @@ namespace QuantConnect
         /// </summary>
         public static class OrderTicket
         {
+            /// <summary>
+            /// Returns a string message saying it was impossible to get the given field on the order type from the given
+            /// ticket
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string GetFieldError(Orders.OrderTicket ticket, OrderField field)
             {
                 return Invariant($"Unable to get field {field} on order of type {ticket.SubmitRequest.OrderType}");
             }
 
+            /// <summary>
+            /// Returns a string message saying the order associated with the given ticket has already received a
+            /// cancellation request
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string CancelRequestAlreadySubmitted(Orders.OrderTicket ticket)
             {
                 return Invariant($"Order {ticket.OrderId} has already received a cancellation request.");
             }
 
+            /// <summary>
+            /// Parses the given order ticket into a string message containing basic information about it
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.OrderTicket ticket, Orders.Order order, int requestCount, int responseCount)
             {
@@ -330,17 +416,25 @@ namespace QuantConnect
         /// </summary>
         public static class StopLimitOrder
         {
+            /// <summary>
+            /// Returns an empty string as a tag
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string Tag(Orders.StopLimitOrder order)
             {
-                return Invariant($"Stop Price: {order.StopPrice:C} Limit Price: {order.LimitPrice:C}");
+                // No additional information to display
+                return string.Empty;
             }
 
+            /// <summary>
+            /// Parses the given StopLimitOrder object into a string message
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.StopLimitOrder order)
             {
-                return Invariant($@"{Messages.Order.ToString(order)} at stop {order.StopPrice.SmartRounding()} limit {
-                    order.LimitPrice.SmartRounding()}");
+                var currencySymbol = QuantConnect.Currencies.GetCurrencySymbol(order.PriceCurrency);
+                return Invariant($@"{Order.ToString(order)} at stop {currencySymbol}{order.StopPrice.SmartRounding()
+                    } limit {currencySymbol}{order.LimitPrice.SmartRounding()}");
             }
         }
 
@@ -349,16 +443,24 @@ namespace QuantConnect
         /// </summary>
         public static class StopMarketOrder
         {
+            /// <summary>
+            /// Returns an empty string as a tag
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string Tag(Orders.StopMarketOrder order)
             {
-                return Invariant($"Stop Price: {order.StopPrice:C}");
+                // No additional information to display
+                return string.Empty;
             }
 
+            /// <summary>
+            /// Parses a given StopMarketOrder object into a string message
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.StopMarketOrder order)
             {
-                return Invariant($"{Messages.Order.ToString(order)} at stop {order.StopPrice.SmartRounding()}");
+                var currencySymbol = QuantConnect.Currencies.GetCurrencySymbol(order.PriceCurrency);
+                return Invariant($"{Order.ToString(order)} at stop {currencySymbol}{order.StopPrice.SmartRounding()}");
             }
         }
 
@@ -367,29 +469,48 @@ namespace QuantConnect
         /// </summary>
         public static class TrailingStopOrder
         {
+            /// <summary>
+            /// Returns a tag message for the given TrailingStopOrder
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string Tag(Orders.TrailingStopOrder order)
             {
-                return Invariant($"Stop Price: {order.PriceCurrency}{order.StopPrice} Trailing Amount: {TrailingAmount(order)}");
+                return Invariant($"Trailing Amount: {TrailingAmount(order)}");
             }
 
+            /// <summary>
+            /// Parses a TrailingStopOrder into a string
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.TrailingStopOrder order)
             {
-                return Invariant($@"{Messages.Order.ToString(order)} at stop {order.StopPrice.SmartRounding()}. Trailing amount: {
-                    TrailingAmount(order)}");
+                var currencySymbol = QuantConnect.Currencies.GetCurrencySymbol(order.PriceCurrency);
+                return Invariant($@"{Order.ToString(order)} at stop {currencySymbol}{order.StopPrice.SmartRounding()}. Trailing amount: {
+                    TrailingAmountImpl(order, currencySymbol)}");
             }
 
+            /// <summary>
+            /// Returns a TrailingAmount string representation for the given TrailingStopOrder
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string TrailingAmount(Orders.TrailingStopOrder order)
             {
-                return TrailingAmount(order.TrailingAmount, order.TrailingAsPercentage, order.PriceCurrency);
+                return TrailingAmountImpl(order, QuantConnect.Currencies.GetCurrencySymbol(order.PriceCurrency));
             }
 
+            /// <summary>
+            /// Returns a message for the given TrailingAmount and PriceCurrency values taking into account if the trailing is as percentage
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string TrailingAmount(decimal trailingAmount, bool trailingAsPercentage, string priceCurrency)
             {
                 return trailingAsPercentage ? Invariant($"{trailingAmount * 100}%") : Invariant($"{priceCurrency}{trailingAmount}");
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static string TrailingAmountImpl(Orders.TrailingStopOrder order, string currencySymbol)
+            {
+                return TrailingAmount(order.TrailingAmount, order.TrailingAsPercentage, currencySymbol);
             }
         }
 
@@ -398,6 +519,9 @@ namespace QuantConnect
         /// </summary>
         public static class SubmitOrderRequest
         {
+            /// <summary>
+            /// Parses a given SubmitOrderRequest object to a string message
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.SubmitOrderRequest request)
             {
@@ -412,6 +536,9 @@ namespace QuantConnect
         /// </summary>
         public static class UpdateOrderRequest
         {
+            /// <summary>
+            /// Parses an UpdateOrderRequest to a string
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Orders.UpdateOrderRequest request)
             {

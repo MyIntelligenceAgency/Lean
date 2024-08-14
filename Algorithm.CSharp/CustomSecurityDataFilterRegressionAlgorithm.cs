@@ -47,7 +47,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetHoldings("SPY", 0.2);
             if (_dataPoints > 5)
             {
-                throw new Exception($"There should not be more than 5 data points, but there were {_dataPoints}");
+                throw new RegressionTestException($"There should not be more than 5 data points, but there were {_dataPoints}");
             }
         }
 
@@ -75,7 +75,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public virtual Language[] Languages { get; } = { Language.CSharp, Language.Python};
+        public virtual List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -88,18 +88,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "2500000"},
+            {"End Equity", "2500131.71"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -115,7 +123,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$130000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "19.95%"},
-            {"OrderListHash", "ac4ea0b47faa5acfed78269de421c035"}
+            {"OrderListHash", "3bf23b02f24b7eb6177929ec31fdb63b"}
         };
     }
 }

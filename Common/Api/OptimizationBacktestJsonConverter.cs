@@ -100,9 +100,13 @@ namespace QuantConnect.Api
                 writer.WriteStartArray();
                 foreach (var keyValuePair in optimizationBacktest.Statistics.OrderBy(pair => pair.Key))
                 {
-                    if(keyValuePair.Key == PerformanceMetrics.PortfolioTurnover)
+                    switch (keyValuePair.Key)
                     {
-                        continue;
+                        case PerformanceMetrics.PortfolioTurnover:
+                        case PerformanceMetrics.SortinoRatio:
+                        case PerformanceMetrics.StartEquity:
+                        case PerformanceMetrics.EndEquity:
+                            continue;
                     }
                     var statistic = keyValuePair.Value.Replace("%", string.Empty);
                     if (Currencies.TryParse(statistic, out var result))
@@ -151,42 +155,52 @@ namespace QuantConnect.Api
             var exitCode = jObject["exitCode"].Value<int>();
 
             var outOfSampleDays = jObject["outOfSampleDays"]?.Value<int>() ?? default;
-            var startDate = jObject["startDate"]?.Value<DateTime>() ?? default;
-            var endDate = jObject["endDate"]?.Value<DateTime>() ?? default;
+            var startDate = jObject["startDate"]?.Value<DateTime?>() ?? default;
+            var endDate = jObject["endDate"]?.Value<DateTime?>() ?? default;
             var outOfSampleMaxEndDate = jObject["outOfSampleMaxEndDate"]?.Value<DateTime>();
 
             var jStatistics = jObject["statistics"];
-            var statistics = new Dictionary<string, string>
+            Dictionary<string, string> statistics = default;
+            if (jStatistics != null)
             {
-                { PerformanceMetrics.Alpha, jStatistics[0].Value<string>() },
-                { PerformanceMetrics.AnnualStandardDeviation, jStatistics[1].Value<string>() },
-                { PerformanceMetrics.AnnualVariance, jStatistics[2].Value<string>() },
-                { PerformanceMetrics.AverageLoss, jStatistics[3].Value<string>() },
-                { PerformanceMetrics.AverageWin, jStatistics[4].Value<string>() },
-                { PerformanceMetrics.Beta, jStatistics[5].Value<string>() },
-                { PerformanceMetrics.CompoundingAnnualReturn, jStatistics[6].Value<string>() },
-                { PerformanceMetrics.Drawdown, jStatistics[7].Value<string>() },
-                { PerformanceMetrics.EstimatedStrategyCapacity, jStatistics[8].Value<string>() },
-                { PerformanceMetrics.Expectancy, jStatistics[9].Value<string>() },
-                { PerformanceMetrics.InformationRatio, jStatistics[10].Value<string>() },
-                { PerformanceMetrics.LossRate, jStatistics[11].Value<string>() },
-                { PerformanceMetrics.NetProfit, jStatistics[12].Value<string>() },
-                { PerformanceMetrics.ProbabilisticSharpeRatio, jStatistics[13].Value<string>() },
-                { PerformanceMetrics.ProfitLossRatio, jStatistics[14].Value<string>() },
-                { PerformanceMetrics.SharpeRatio, jStatistics[15].Value<string>() },
-                { PerformanceMetrics.TotalFees, jStatistics[16].Value<string>() },
-                { PerformanceMetrics.TotalTrades, jStatistics[17].Value<string>() },
-                { PerformanceMetrics.TrackingError, jStatistics[18].Value<string>() },
-                { PerformanceMetrics.TreynorRatio, jStatistics[19].Value<string>() },
-                { PerformanceMetrics.WinRate, jStatistics[20].Value<string>() },
-            };
+                statistics = new Dictionary<string, string>
+                {
+                    { PerformanceMetrics.Alpha, jStatistics[0].Value<string>() },
+                    { PerformanceMetrics.AnnualStandardDeviation, jStatistics[1].Value<string>() },
+                    { PerformanceMetrics.AnnualVariance, jStatistics[2].Value<string>() },
+                    { PerformanceMetrics.AverageLoss, jStatistics[3].Value<string>() },
+                    { PerformanceMetrics.AverageWin, jStatistics[4].Value<string>() },
+                    { PerformanceMetrics.Beta, jStatistics[5].Value<string>() },
+                    { PerformanceMetrics.CompoundingAnnualReturn, jStatistics[6].Value<string>() },
+                    { PerformanceMetrics.Drawdown, jStatistics[7].Value<string>() },
+                    { PerformanceMetrics.EstimatedStrategyCapacity, jStatistics[8].Value<string>() },
+                    { PerformanceMetrics.Expectancy, jStatistics[9].Value<string>() },
+                    { PerformanceMetrics.InformationRatio, jStatistics[10].Value<string>() },
+                    { PerformanceMetrics.LossRate, jStatistics[11].Value<string>() },
+                    { PerformanceMetrics.NetProfit, jStatistics[12].Value<string>() },
+                    { PerformanceMetrics.ProbabilisticSharpeRatio, jStatistics[13].Value<string>() },
+                    { PerformanceMetrics.ProfitLossRatio, jStatistics[14].Value<string>() },
+                    { PerformanceMetrics.SharpeRatio, jStatistics[15].Value<string>() },
+                    // TODO: Add SortinoRatio
+                    // TODO: Add StartingEquity
+                    // TODO: Add EndingEquity
+                    { PerformanceMetrics.TotalFees, jStatistics[16].Value<string>() },
+                    { PerformanceMetrics.TotalOrders, jStatistics[17].Value<string>() },
+                    { PerformanceMetrics.TrackingError, jStatistics[18].Value<string>() },
+                    { PerformanceMetrics.TreynorRatio, jStatistics[19].Value<string>() },
+                    { PerformanceMetrics.WinRate, jStatistics[20].Value<string>() },
+                };
+            }
 
             var parameterSet = serializer.Deserialize<ParameterSet>(jObject["parameterSet"].CreateReader());
 
             var equity = new CandlestickSeries();
-            foreach (var point in JsonConvert.DeserializeObject<List<Candlestick>>(jObject["equity"].ToString()))
+            if (jObject["equity"] != null)
             {
-                equity.AddPoint(point);
+                foreach (var point in JsonConvert.DeserializeObject<List<Candlestick>>(jObject["equity"].ToString()))
+                {
+                    equity.AddPoint(point);
+                }
             }
 
             var optimizationBacktest = new OptimizationBacktest(parameterSet, backtestId, name)

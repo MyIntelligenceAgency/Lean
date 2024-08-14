@@ -62,7 +62,7 @@ namespace QuantConnect.Algorithm.CSharp
             var expected = _selection.Dequeue();
             if (expected != Time && !LiveMode)
             {
-                throw new Exception($"Unexpected selection time: {Time}. Expected {expected}");
+                throw new RegressionTestException($"Unexpected selection time: {Time}. Expected {expected}");
             }
 
             Debug($"Coarse selection happening at {Time} {IsWarmingUp}");
@@ -82,7 +82,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var dataSpan = data.EndTime - data.Time;
                 if (dataSpan != expectedDataSpan)
                 {
-                    throw new Exception($"Unexpected bar span! {data}: {dataSpan} Expected {expectedDataSpan}");
+                    throw new RegressionTestException($"Unexpected bar span! {data}: {dataSpan} Expected {expectedDataSpan}");
                 }
             }
 
@@ -102,7 +102,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -115,18 +115,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-33.204%"},
             {"Drawdown", "2.600%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "98573.07"},
             {"Net Profit", "-1.427%"},
             {"Sharpe Ratio", "-0.748"},
+            {"Sortino Ratio", "-0.821"},
             {"Probabilistic Sharpe Ratio", "35.939%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -142,7 +150,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$120000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "7.78%"},
-            {"OrderListHash", "3328c67df43ecdaa0e11c8ff3b4c9817"}
+            {"OrderListHash", "dd0bc02e32815773105030479daf939a"}
         };
     }
 }

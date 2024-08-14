@@ -56,13 +56,13 @@ namespace QuantConnect.Algorithm.CSharp
             //Verify our symbol properties were changed and loaded into this security
             if (_bitcoin.SymbolProperties != properties)
             {
-                throw new Exception("Failed to set and retrieve custom SymbolProperties for BTC");
+                throw new RegressionTestException("Failed to set and retrieve custom SymbolProperties for BTC");
             }
 
             //Verify our exchange hours were changed and loaded into this security
             if (_bitcoin.Exchange.Hours != exchangeHours)
             {
-                throw new Exception("Failed to set and retrieve custom ExchangeHours for BTC");
+                throw new RegressionTestException("Failed to set and retrieve custom ExchangeHours for BTC");
             }
 
             // For regression purposes on AddData overloads, this call is simply to ensure Lean can accept this
@@ -104,7 +104,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -117,18 +117,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "155.211%"},
             {"Drawdown", "84.800%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "5223241.65"},
             {"Net Profit", "5123.242%"},
             {"Sharpe Ratio", "2.058"},
+            {"Sortino Ratio", "2.492"},
             {"Probabilistic Sharpe Ratio", "68.833%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -144,7 +152,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "BTC.Bitcoin 2S"},
             {"Portfolio Turnover", "0.06%"},
-            {"OrderListHash", "afc1a24e5f563b115605767ce78b6970"}
+            {"OrderListHash", "999305e00ec9861f5ff261794e81213d"}
         };
 
         /// <summary>
@@ -153,24 +161,24 @@ namespace QuantConnect.Algorithm.CSharp
         public class Bitcoin : BaseData
         {
             [JsonProperty("timestamp")]
-            public int Timestamp = 0;
+            public int Timestamp { get; set; }
             [JsonProperty("open")]
-            public decimal Open = 0;
+            public decimal Open { get; set; }
             [JsonProperty("high")]
-            public decimal High = 0;
+            public decimal High { get; set; }
             [JsonProperty("low")]
-            public decimal Low = 0;
+            public decimal Low { get; set; }
             [JsonProperty("last")]
-            public decimal Close = 0;
+            public decimal Close { get; set; }
             [JsonProperty("bid")]
-            public decimal Bid = 0;
+            public decimal Bid { get; set; }
             [JsonProperty("ask")]
-            public decimal Ask = 0;
+            public decimal Ask { get; set; }
             [JsonProperty("vwap")]
-            public decimal WeightedPrice = 0;
+            public decimal WeightedPrice { get; set; }
             [JsonProperty("volume")]
-            public decimal VolumeBTC = 0;
-            public decimal VolumeUSD = 0;
+            public decimal VolumeBTC { get; set; }
+            public decimal VolumeUSD { get; set; }
 
             /// <summary>
             /// The end time of this data. Some data covers spans (trade bars)

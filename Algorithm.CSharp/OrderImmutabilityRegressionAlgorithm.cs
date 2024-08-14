@@ -50,7 +50,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!Portfolio.Invested)
             {
@@ -62,14 +62,14 @@ namespace QuantConnect.Algorithm.CSharp
                 _originalOrder = Transactions.GetOrderById(_ticket.OrderId);
 
                 // Create an UpdateOrderRequest and send it to the ticket
-                var updateFields = new UpdateOrderFields { Quantity = 20, Tag = "Pepe", LimitPrice = data[_spy].Low};
+                var updateFields = new UpdateOrderFields { Quantity = 20, Tag = "Pepe", LimitPrice = slice[_spy].Low};
                 var response = _ticket.Update(updateFields);
 
                 // Test order time
                 if (_originalOrder.Time != UtcTime)
                 {
                     Error("Order Time should be UtcTime!");
-                    throw new Exception("Order Time should be UtcTime!");
+                    throw new RegressionTestException("Order Time should be UtcTime!");
                 }
             }
         }
@@ -90,7 +90,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (orderV1 == orderV2)
             {
                 Error("Orders should be clones, hence not equal!");
-                throw new Exception("Orders should be clones, hence not equal!");
+                throw new RegressionTestException("Orders should be clones, hence not equal!");
             }
 
             // Try and manipulate orderV2 using the only external accessor BrokerID, since we
@@ -101,7 +101,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (orderV2.BrokerId.SequenceEqual(orderV3.BrokerId))
             {
                 Error("Broker IDs should not be the same!");
-                throw new Exception("Broker IDs should not be the same!");
+                throw new RegressionTestException("Broker IDs should not be the same!");
             }
 
             //Try and manipulate the orderV1 using UpdateOrderRequest
@@ -114,13 +114,13 @@ namespace QuantConnect.Algorithm.CSharp
             if (orderV4.Quantity == orderV1.Quantity)
             {
                 Error("Order quantity should not be the same!");
-                throw new Exception("Order quantity should not be the same!");
+                throw new RegressionTestException("Order quantity should not be the same!");
             }
 
             if (orderV4.Tag == orderV1.Tag)
             {
                 Error("Order tag should not be the same!");
-                throw new Exception("Order tag should not be the same!");
+                throw new RegressionTestException("Order tag should not be the same!");
             }
         }
 
@@ -136,13 +136,13 @@ namespace QuantConnect.Algorithm.CSharp
             if (updatedOrder.Quantity == _originalOrder.Quantity)
             {
                 Error("Quantities should have been updated!");
-                throw new Exception("Quantities should have been updated!");
+                throw new RegressionTestException("Quantities should have been updated!");
             }
 
             if (updatedOrder.Tag == _originalOrder.Tag)
             {
                 Error("Tag should have been updated!");
-                throw new Exception("Tag should have been updated!");
+                throw new RegressionTestException("Tag should have been updated!");
             }
         }
 
@@ -154,7 +154,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -167,18 +167,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-3.591%"},
             {"Drawdown", "0.000%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99969.95"},
             {"Net Profit", "-0.030%"},
             {"Sharpe Ratio", "-11.996"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -194,7 +202,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$34000000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.96%"},
-            {"OrderListHash", "1d0ec2b5094790a0255f753fc7773454"}
+            {"OrderListHash", "ef870dda527c0e929592a17fb1027c87"}
         };
     }
 }

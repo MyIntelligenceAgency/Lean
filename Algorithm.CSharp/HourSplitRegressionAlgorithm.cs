@@ -44,10 +44,12 @@ namespace QuantConnect.Algorithm.CSharp
             _symbol = AddEquity("AAPL", Resolution.Hour).Symbol;
         }
 
-        public void OnData(TradeBars tradeBars)
+        public override void OnData(Slice slice)
         {
+            _dataCount += slice.Bars.Count;
+
             TradeBar bar;
-            if (!tradeBars.TryGetValue(_symbol, out bar)) return;
+            if (!slice.Bars.TryGetValue(_symbol, out bar)) return;
 
             if (!Portfolio.Invested && Time.Date == EndDate.Date)
             {
@@ -55,41 +57,36 @@ namespace QuantConnect.Algorithm.CSharp
             }
         }
 
-        public override void OnData(Slice slice)
+        public override void OnSplits(Splits splits)
         {
-            _dataCount += slice.Bars.Count;
-            if (slice.Splits.Any())
+            if (splits.Single().Value.Type == SplitType.Warning)
             {
-                if (slice.Splits.Single().Value.Type == SplitType.Warning)
+                _receivedWarningEvent = true;
+                Debug($"{splits.Single().Value}");
+            }
+            else if (splits.Single().Value.Type == SplitType.SplitOccurred)
+            {
+                _receivedOccurredEvent = true;
+                if (splits.Single().Value.Price != 645.5700m || splits.Single().Value.ReferencePrice != 645.5700m)
                 {
-                    _receivedWarningEvent = true;
-                    Debug($"{slice.Splits.Single().Value}");
+                    throw new RegressionTestException("Did not receive expected price values");
                 }
-                else if (slice.Splits.Single().Value.Type == SplitType.SplitOccurred)
-                {
-                    _receivedOccurredEvent = true;
-                    if (slice.Splits.Single().Value.Price != 645.5700m || slice.Splits.Single().Value.ReferencePrice != 645.5700m)
-                    {
-                        throw new Exception("Did not receive expected price values");
-                    }
-                    Debug($"{slice.Splits.Single().Value}");
-                }
+                Debug($"{splits.Single().Value}");
             }
         }
-
         public override void OnEndOfAlgorithm()
         {
             if (!_receivedOccurredEvent)
             {
-                throw new Exception("Did not receive expected split event");
+                throw new RegressionTestException("Did not receive expected split event");
             }
             if (!_receivedWarningEvent)
             {
-                throw new Exception("Did not receive expected split warning event");
+                throw new RegressionTestException("Did not receive expected split warning event");
             }
             if (_dataCount != 14)
             {
-                throw new Exception($"Unexpected data count {_dataCount}. Expected 14");
+                throw new RegressionTestException($"Unexpected data count {_dataCount}. Expected 14");
             }
         }
 
@@ -101,7 +98,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -114,18 +111,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-0.068%"},
             {"Drawdown", "0.000%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99999.31"},
             {"Net Profit", "-0.001%"},
             {"Sharpe Ratio", "-128.305"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -141,7 +146,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$160000000000.00"},
             {"Lowest Capacity Asset", "AAPL R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.01%"},
-            {"OrderListHash", "76b3065df7c91536b04899e2554c124b"}
+            {"OrderListHash", "21df8a4979f3a8b7abcffb471a0a4bb7"}
         };
     }
 }

@@ -50,21 +50,21 @@ namespace QuantConnect.Algorithm.CSharp
             var aapl = AddEquity(UnderlyingTicker, Resolution.Minute);
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (Time.Hour == 9 && Time.Minute == 58)
             {
                 AddOption(UnderlyingTicker);
             }
 
-            AssertValue(data);
+            AssertValue(slice);
         }
 
         public override void OnEndOfAlgorithm()
         {
             if (_expectedCloseValues.Count > 0)
             {
-                throw new Exception($"Not all expected data points were received.");
+                throw new RegressionTestException($"Not all expected data points were received.");
             }
         }
 
@@ -75,7 +75,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (data.Bars.FirstOrDefault().Value?.Close.SmartRounding() != value)
                 {
-                    throw new Exception($"Expected tradebar price, expected {value} but was {data.Bars.First().Value.Close.SmartRounding()}");
+                    throw new RegressionTestException($"Expected tradebar price, expected {value} but was {data.Bars.First().Value.Close.SmartRounding()}");
                 }
 
                 _expectedCloseValues.Remove(data.Time);
@@ -90,12 +90,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 856665;
+        public long DataPoints => 854441;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -103,18 +103,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

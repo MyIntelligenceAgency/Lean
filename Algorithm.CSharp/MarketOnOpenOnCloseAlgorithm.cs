@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
  *
@@ -14,6 +14,7 @@
 */
 
 using System;
+using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Orders;
 using QuantConnect.Securities;
@@ -49,8 +50,8 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">TradeBars IDictionary object with your stock data</param>
-        public void OnData(TradeBars data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             if (Time.Date != last.Date) // each morning submit a market on open order
             {
@@ -65,10 +66,10 @@ namespace QuantConnect.Algorithm.CSharp
             }
         }
 
-        public override void OnOrderEvent(OrderEvent fill)
+        public override void OnOrderEvent(OrderEvent orderEvent)
         {
-            var order = Transactions.GetOrderById(fill.OrderId);
-            Console.WriteLine(Time + " - " + order.Type + " - " + fill.Status + ":: " + fill);
+            var order = Transactions.GetOrderById(orderEvent.OrderId);
+            Console.WriteLine(Time + " - " + order.Type + " - " + orderEvent.Status + ":: " + orderEvent);
         }
     }
 }

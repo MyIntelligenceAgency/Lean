@@ -44,7 +44,7 @@ namespace QuantConnect.Algorithm.CSharp
             var aapl = QuantConnect.Symbol.Create("AAPL", SecurityType.Equity, Market.USA);
 
             _contract = OptionChainProvider.GetOptionContractList(aapl, Time)
-                .OrderBy(symbol => symbol.ID.Symbol)
+                .OrderBy(symbol => symbol.ID.StrikePrice)
                 .FirstOrDefault(optionContract => optionContract.ID.OptionRight == OptionRight.Call
                     && optionContract.ID.OptionStyle == OptionStyle.American);
             AddOptionContract(_contract);
@@ -56,7 +56,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (!_reAdded && slice.ContainsKey(_contract) && slice.ContainsKey(_contract.Underlying))
                 {
-                    throw new Exception("Getting data for removed option and underlying!");
+                    throw new RegressionTestException("Getting data for removed option and underlying!");
                 }
 
                 if (!Portfolio.Invested && _reAdded)
@@ -95,11 +95,11 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!_hasRemoved)
             {
-                throw new Exception("We did not remove the option contract!");
+                throw new RegressionTestException("We did not remove the option contract!");
             }
             if (!_reAdded)
             {
-                throw new Exception("We did not re add the option contract!");
+                throw new RegressionTestException("We did not re add the option contract!");
             }
         }
 
@@ -111,12 +111,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 4677;
+        public long DataPoints => 3930;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -124,18 +124,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
-            {"Average Loss", "-0.05%"},
-            {"Compounding Annual Return", "-4.548%"},
-            {"Drawdown", "0.100%"},
+            {"Average Loss", "-0.70%"},
+            {"Compounding Annual Return", "-47.178%"},
+            {"Drawdown", "0.700%"},
             {"Expectancy", "-1"},
-            {"Net Profit", "-0.051%"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99303"},
+            {"Net Profit", "-0.697%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -148,10 +156,10 @@ namespace QuantConnect.Algorithm.CSharp
             {"Tracking Error", "0.008"},
             {"Treynor Ratio", "0"},
             {"Total Fees", "$2.00"},
-            {"Estimated Strategy Capacity", "$30000.00"},
-            {"Lowest Capacity Asset", "AAPL VXBK4Q9ZIFD2|AAPL R735QTJ8XC9X"},
-            {"Portfolio Turnover", "0.07%"},
-            {"OrderListHash", "b01a993665c5333c37de9dbef0717e14"}
+            {"Estimated Strategy Capacity", "$6400000.00"},
+            {"Lowest Capacity Asset", "AAPL VXBK4R62CXGM|AAPL R735QTJ8XC9X"},
+            {"Portfolio Turnover", "22.80%"},
+            {"OrderListHash", "c2878a81bbb4e52c4fcd6a4f259abc3d"}
         };
     }
 }

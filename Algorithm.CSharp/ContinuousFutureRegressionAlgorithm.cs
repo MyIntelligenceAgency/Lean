@@ -54,26 +54,26 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             // we subtract a minute cause we can get data on the market close, from the previous minute
             if (!_continuousContract.Exchange.DateTimeIsOpen(Time.AddMinutes(-1)))
             {
-                if (data.Bars.Count > 0 || data.QuoteBars.Count > 0)
+                if (slice.Bars.Count > 0 || slice.QuoteBars.Count > 0)
                 {
-                    throw new Exception($"We are getting data during closed market!");
+                    throw new RegressionTestException($"We are getting data during closed market!");
                 }
             }
 
             var currentlyMappedSecurity = Securities[_continuousContract.Mapped];
 
-            if (data.Keys.Count != 1)
+            if (slice.Keys.Count != 1)
             {
-                throw new Exception($"We are getting data for more than one symbols! {string.Join(",", data.Keys.Select(symbol => symbol))}");
+                throw new RegressionTestException($"We are getting data for more than one symbols! {string.Join(",", slice.Keys.Select(symbol => symbol))}");
             }
 
-            foreach (var changedEvent in data.SymbolChangedEvents.Values)
+            foreach (var changedEvent in slice.SymbolChangedEvents.Values)
             {
                 if (changedEvent.Symbol == _continuousContract.Symbol)
                 {
@@ -82,7 +82,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                     if (_currentMappedSymbol == _continuousContract.Mapped)
                     {
-                        throw new Exception($"Continuous contract current symbol did not change! {_continuousContract.Mapped}");
+                        throw new RegressionTestException($"Continuous contract current symbol did not change! {_continuousContract.Mapped}");
                     }
 
                     var currentExpiration = changedEvent.Symbol.Underlying.ID.Date;
@@ -90,7 +90,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                     if (currentExpiration != frontMonthExpiration.Date)
                     {
-                        throw new Exception($"Unexpected current mapped contract expiration {currentExpiration}" +
+                        throw new RegressionTestException($"Unexpected current mapped contract expiration {currentExpiration}" +
                             $" @ {Time} it should be AT front month expiration {frontMonthExpiration}");
                     }
                 }
@@ -115,7 +115,7 @@ namespace QuantConnect.Algorithm.CSharp
                     var response = History(new[] { _continuousContract.Symbol }, 60 * 24 * 90);
                     if (!response.Any())
                     {
-                        throw new Exception("Unexpected empty history response");
+                        throw new RegressionTestException("Unexpected empty history response");
                     }
                 }
             }
@@ -137,7 +137,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (changes.AddedSecurities.Any(security => security.Symbol != _continuousContract.Symbol)
                 || changes.RemovedSecurities.Any(security => security.Symbol != _continuousContract.Symbol))
             {
-                throw new Exception($"We got an unexpected security changes {changes}");
+                throw new RegressionTestException($"We got an unexpected security changes {changes}");
             }
         }
 
@@ -146,13 +146,13 @@ namespace QuantConnect.Algorithm.CSharp
             var expectedMappingCounts = 2;
             if (_mappings.Count != expectedMappingCounts)
             {
-                throw new Exception($"Unexpected symbol changed events: {_mappings.Count}, was expecting {expectedMappingCounts}");
+                throw new RegressionTestException($"Unexpected symbol changed events: {_mappings.Count}, was expecting {expectedMappingCounts}");
             }
 
             var securities = Securities.Total.Where(sec => !sec.IsTradable && !sec.Symbol.IsCanonical() && sec.Symbol.SecurityType == SecurityType.Future).ToList();
             if (securities.Count != 1)
             {
-                throw new Exception($"We should have a single non tradable future contract security! found: {securities.Count}");
+                throw new RegressionTestException($"We should have a single non tradable future contract security! found: {securities.Count}");
             }
         }
 
@@ -164,12 +164,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 703956;
+        public long DataPoints => 713369;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -177,18 +177,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "3"},
+            {"Total Orders", "3"},
             {"Average Win", "1.50%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "3.337%"},
             {"Drawdown", "1.600%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "101666.4"},
             {"Net Profit", "1.666%"},
             {"Sharpe Ratio", "0.594"},
+            {"Sortino Ratio", "0.198"},
             {"Probabilistic Sharpe Ratio", "44.801%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "100%"},
@@ -204,7 +212,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$8000000000.00"},
             {"Lowest Capacity Asset", "ES VMKLFZIH2MTD"},
             {"Portfolio Turnover", "1.39%"},
-            {"OrderListHash", "d0472fc8089ac573d43e6eb4963aeb82"}
+            {"OrderListHash", "40c1137e0bc83b2bc920495af119c8fc"}
         };
     }
 }

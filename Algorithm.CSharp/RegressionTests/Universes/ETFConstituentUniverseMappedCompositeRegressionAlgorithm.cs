@@ -51,12 +51,12 @@ namespace QuantConnect.Algorithm.CSharp
             AddUniverse(Universe.ETF(_qqq, universeFilterFunc: FilterETFs));
         }
 
-        private IEnumerable<Symbol> FilterETFs(IEnumerable<ETFConstituentData> constituents)
+        private IEnumerable<Symbol> FilterETFs(IEnumerable<ETFConstituentUniverse> constituents)
         {
             var constituentSymbols = constituents.Select(x => x.Symbol).ToHashSet();
             if (!constituentSymbols.Contains(_aapl))
             {
-                throw new Exception("AAPL not found in QQQ constituents");
+                throw new RegressionTestException("AAPL not found in QQQ constituents");
             }
             
             _filterDateConstituentSymbolCount[UtcTime.Date] = constituentSymbols.Count;
@@ -71,31 +71,31 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            if (data.SymbolChangedEvents.Count != 0)
+            if (slice.SymbolChangedEvents.Count != 0)
             {
-                foreach (var symbolChanged in data.SymbolChangedEvents.Values)
+                foreach (var symbolChanged in slice.SymbolChangedEvents.Values)
                 {
                     if (symbolChanged.Symbol != _qqq)
                     {
-                        throw new Exception($"Mapped symbol is not QQQ. Instead, found: {symbolChanged.Symbol}");
+                        throw new RegressionTestException($"Mapped symbol is not QQQ. Instead, found: {symbolChanged.Symbol}");
                     }
                     if (symbolChanged.OldSymbol != "QQQQ")
                     {
-                        throw new Exception($"Old QQQ Symbol is not QQQQ. Instead, found: {symbolChanged.OldSymbol}");
+                        throw new RegressionTestException($"Old QQQ Symbol is not QQQQ. Instead, found: {symbolChanged.OldSymbol}");
                     }
                     if (symbolChanged.NewSymbol != "QQQ")
                     {
-                        throw new Exception($"New QQQ Symbol is not QQQ. Instead, found: {symbolChanged.NewSymbol}");
+                        throw new RegressionTestException($"New QQQ Symbol is not QQQ. Instead, found: {symbolChanged.NewSymbol}");
                     }
                     
                     _mappingEventOccurred = true;
                 }
             }
             
-            if (data.Keys.Count == 1 && data.ContainsKey(_qqq))
+            if (slice.Keys.Count == 1 && slice.ContainsKey(_qqq))
             {
                 return;
             }
@@ -105,7 +105,7 @@ namespace QuantConnect.Algorithm.CSharp
                 _constituentDataEncountered[UtcTime.Date] = false;
             }
 
-            if (_constituentSymbols.Intersect(data.Keys).Any())
+            if (_constituentSymbols.Intersect(slice.Keys).Any())
             {
                 _constituentDataEncountered[UtcTime.Date] = true;
             }
@@ -120,18 +120,18 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_filterDateConstituentSymbolCount.Count != 2)
             {
-                throw new Exception($"ETF constituent filtering function was not called 2 times (actual: {_filterDateConstituentSymbolCount.Count}");
+                throw new RegressionTestException($"ETF constituent filtering function was not called 2 times (actual: {_filterDateConstituentSymbolCount.Count}");
             }
             if (!_mappingEventOccurred)
             {
-                throw new Exception("No mapping/SymbolChangedEvent occurred. Expected for QQQ to be mapped from QQQQ -> QQQ");
+                throw new RegressionTestException("No mapping/SymbolChangedEvent occurred. Expected for QQQ to be mapped from QQQQ -> QQQ");
             }
 
             foreach (var kvp in _filterDateConstituentSymbolCount)
             {
                 if (kvp.Value < 25)
                 {
-                    throw new Exception($"Expected 25 or more constituents in filter function on {kvp.Key:yyyy-MM-dd HH:mm:ss.fff}, found {kvp.Value}");
+                    throw new RegressionTestException($"Expected 25 or more constituents in filter function on {kvp.Key:yyyy-MM-dd HH:mm:ss.fff}, found {kvp.Value}");
                 }
             }
 
@@ -139,7 +139,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (!kvp.Value)
                 {
-                    throw new Exception($"Received data in OnData(...) but it did not contain any constituent data on {kvp.Key:yyyy-MM-dd HH:mm:ss.fff}");
+                    throw new RegressionTestException($"Received data in OnData(...) but it did not contain any constituent data on {kvp.Key:yyyy-MM-dd HH:mm:ss.fff}");
                 }
             }
         }
@@ -152,12 +152,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 759;
+        public long DataPoints => 626;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -165,34 +165,42 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-9.690%"},
             {"Drawdown", "4.200%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "98257.31"},
             {"Net Profit", "-1.743%"},
             {"Sharpe Ratio", "-0.95"},
+            {"Sortino Ratio", "-0.832"},
             {"Probabilistic Sharpe Ratio", "17.000%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
             {"Profit-Loss Ratio", "0"},
-            {"Alpha", "-0.118"},
-            {"Beta", "0.445"},
+            {"Alpha", "-0.084"},
+            {"Beta", "0.591"},
             {"Annual Standard Deviation", "0.078"},
             {"Annual Variance", "0.006"},
-            {"Information Ratio", "-2.01"},
-            {"Tracking Error", "0.086"},
-            {"Treynor Ratio", "-0.166"},
+            {"Information Ratio", "-1.408"},
+            {"Tracking Error", "0.065"},
+            {"Treynor Ratio", "-0.125"},
             {"Total Fees", "$22.93"},
             {"Estimated Strategy Capacity", "$75000000.00"},
             {"Lowest Capacity Asset", "AAPL R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.80%"},
-            {"OrderListHash", "b03ace2d8be1869bb9f3b18597161a70"}
+            {"OrderListHash", "69695fb7639b0c1bf243eec7425a9bd2"}
         };
     }
 }

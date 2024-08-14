@@ -67,12 +67,12 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (marginInterestRateModel == null)
             {
-                throw new Exception("CustomMarginInterestRateModel was not set");
+                throw new RegressionTestException("CustomMarginInterestRateModel was not set");
             }
 
             if (marginInterestRateModel.CallCount == 0)
             {
-                throw new Exception("CustomMarginInterestRateModel was not called");
+                throw new RegressionTestException("CustomMarginInterestRateModel was not called");
             }
 
             var expectedCash = _cashAfterOrder * (decimal)Math.Pow(1 + (double)marginInterestRateModel.InterestRate, marginInterestRateModel.CallCount);
@@ -80,7 +80,7 @@ namespace QuantConnect.Algorithm.CSharp
             // add a tolerance since using Math.Pow(double, double) given the lack of a decimal overload
             if (Math.Abs(Portfolio.Cash - expectedCash) > 1e-10m)
             {
-                throw new Exception($"Expected cash {expectedCash} but got {Portfolio.Cash}");
+                throw new RegressionTestException($"Expected cash {expectedCash} but got {Portfolio.Cash}");
             }
         }
 
@@ -90,9 +90,9 @@ namespace QuantConnect.Algorithm.CSharp
 
             public int CallCount { get; private set; }
 
-            public void ApplyMarginInterestRate(MarginInterestRateParameters parameters)
+            public void ApplyMarginInterestRate(MarginInterestRateParameters marginInterestRateParameters)
             {
-                var security = parameters.Security;
+                var security = marginInterestRateParameters.Security;
                 var positionValue = security.Holdings.GetQuantityValue(security.Holdings.Quantity);
 
                 if (positionValue.Amount > 0)
@@ -111,7 +111,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -124,18 +124,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "93.409%"},
             {"Drawdown", "2.400%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "105698.63"},
             {"Net Profit", "5.699%"},
             {"Sharpe Ratio", "4.701"},
+            {"Sortino Ratio", "9.153"},
             {"Probabilistic Sharpe Ratio", "85.653%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -151,7 +159,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$150000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "3.19%"},
-            {"OrderListHash", "0373ee1e720b68fccce5da1a406a40f0"}
+            {"OrderListHash", "91660550269bce594c61fbf9159807d2"}
         };
     }
 }

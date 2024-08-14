@@ -84,7 +84,7 @@ namespace QuantConnect.Algorithm.CSharp
                 }
                 if (!addedSecurity.HasData)
                 {
-                    throw new Exception($"Security {addedSecurity.Symbol} was not warmed up!");
+                    throw new RegressionTestException($"Security {addedSecurity.Symbol} was not warmed up!");
                 }
             }
         }
@@ -93,7 +93,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!_warmedUpChecked)
             {
-                throw new Exception($"Security was not warmed up!");
+                throw new RegressionTestException($"Security was not warmed up!");
             }
         }
 
@@ -105,7 +105,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -118,18 +118,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "155.365%"},
             {"Drawdown", "84.800%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "5223170.23"},
             {"Net Profit", "5123.170%"},
             {"Sharpe Ratio", "2.094"},
+            {"Sortino Ratio", "2.535"},
             {"Probabilistic Sharpe Ratio", "69.967%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -145,7 +153,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "BTC.Bitcoin 2S"},
             {"Portfolio Turnover", "0.06%"},
-            {"OrderListHash", "3123a80f06dab48d8f0945d293350aa1"}
+            {"OrderListHash", "e69e78cd6fe7bc4627da2f51e25539d0"}
         };
 
         /// <summary>
@@ -154,24 +162,24 @@ namespace QuantConnect.Algorithm.CSharp
         public class Bitcoin : BaseData
         {
             [JsonProperty("timestamp")]
-            public int Timestamp = 0;
+            public int Timestamp { get; set; }
             [JsonProperty("open")]
-            public decimal Open = 0;
+            public decimal Open { get; set; }
             [JsonProperty("high")]
-            public decimal High = 0;
+            public decimal High { get; set; }
             [JsonProperty("low")]
-            public decimal Low = 0;
+            public decimal Low { get; set; }
             [JsonProperty("last")]
-            public decimal Close = 0;
+            public decimal Close { get; set; }
             [JsonProperty("bid")]
-            public decimal Bid = 0;
+            public decimal Bid { get; set; }
             [JsonProperty("ask")]
-            public decimal Ask = 0;
+            public decimal Ask { get; set; }
             [JsonProperty("vwap")]
-            public decimal WeightedPrice = 0;
+            public decimal WeightedPrice { get; set; }
             [JsonProperty("volume")]
-            public decimal VolumeBTC = 0;
-            public decimal VolumeUSD = 0;
+            public decimal VolumeBTC { get; set; }
+            public decimal VolumeUSD { get; set; }
 
             /// <summary>
             /// The end time of this data. Some data covers spans (trade bars)

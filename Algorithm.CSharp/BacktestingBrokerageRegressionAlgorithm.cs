@@ -151,12 +151,12 @@ namespace QuantConnect.Algorithm.CSharp
                 case OrderStatus.PartiallyFilled:
                     if (order.LastFillTime == null)
                     {
-                        throw new Exception("LastFillTime should not be null");
+                        throw new RegressionTestException("LastFillTime should not be null");
                     }
 
                     if (order.Quantity / 2 != orderEvent.FillQuantity)
                     {
-                        throw new Exception("Order size should be half");
+                        throw new RegressionTestException("Order size should be half");
                     }
                     break;
 
@@ -164,7 +164,7 @@ namespace QuantConnect.Algorithm.CSharp
                 case OrderStatus.Filled:
                     if (order.SecurityType == SecurityType.Equity && order.CreatedTime == order.LastFillTime)
                     {
-                        throw new Exception("Order should not finish during the CreatedTime bar");
+                        throw new RegressionTestException("Order should not finish during the CreatedTime bar");
                     }
                     break;
 
@@ -182,12 +182,12 @@ namespace QuantConnect.Algorithm.CSharp
             // If the option price isn't the same as the strike price, its incorrect
             if (order.Price != _optionStrikePrice)
             {
-                throw new Exception("OptionExercise order price should be strike price!!");
+                throw new RegressionTestException("OptionExercise order price should be strike price!!");
             }
 
             if (orderEvent.Quantity != -1)
             {
-                throw new Exception("OrderEvent Quantity should be -1");
+                throw new RegressionTestException("OrderEvent Quantity should be -1");
             }
         }
 
@@ -198,14 +198,14 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!Portfolio.ContainsKey(_optionBuy.Symbol) || !Portfolio.ContainsKey(_optionBuy.Symbol.Underlying) || !Portfolio.ContainsKey(_equityBuy.Symbol))
             {
-                throw new Exception("Portfolio does not contain the Symbols we purchased");
+                throw new RegressionTestException("Portfolio does not contain the Symbols we purchased");
             }
 
             //Check option holding, should not be invested since it expired, profit should be -400
             var optionHolding = Portfolio[_optionBuy.Symbol];
             if (optionHolding.Invested || optionHolding.Profit != -400)
             {
-                throw new Exception("Options holding does not match expected outcome");
+                throw new RegressionTestException("Options holding does not match expected outcome");
             }
 
             //Check the option underlying symbol since we should have bought it at exercise
@@ -213,7 +213,7 @@ namespace QuantConnect.Algorithm.CSharp
             var optionExerciseHolding = Portfolio[_optionBuy.Symbol.Underlying];
             if (!optionExerciseHolding.Invested || optionExerciseHolding.Quantity != 100 || optionExerciseHolding.AveragePrice != _optionBuy.Symbol.ID.StrikePrice)
             {
-                throw new Exception("Equity holding for exercised option does not match expected outcome");
+                throw new RegressionTestException("Equity holding for exercised option does not match expected outcome");
             }
 
             //Check equity holding, should be invested, profit should be
@@ -221,7 +221,7 @@ namespace QuantConnect.Algorithm.CSharp
             var equityHolding = Portfolio[_equityBuy.Symbol];
             if (!equityHolding.Invested || equityHolding.Quantity != 52 || equityHolding.AveragePrice != _equityBuy.AverageFillPrice)
             {
-                throw new Exception("Equity holding does not match expected outcome");
+                throw new RegressionTestException("Equity holding does not match expected outcome");
             }
         }
 
@@ -291,12 +291,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 1272232;
+        public long DataPoints => 1267414;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -304,18 +304,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "3"},
+            {"Total Orders", "3"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.40%"},
             {"Compounding Annual Return", "-22.717%"},
             {"Drawdown", "0.400%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99671.06"},
             {"Net Profit", "-0.329%"},
             {"Sharpe Ratio", "-14.095"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "1.216%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -331,7 +339,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "GOOCV VP83T1ZUHROL"},
             {"Portfolio Turnover", "17.02%"},
-            {"OrderListHash", "a172538bd18fa82b11adaeac4f504b2e"}
+            {"OrderListHash", "b1e5e72fb766ab894204bc4b1300912b"}
         };
     }
 }

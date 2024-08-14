@@ -19,7 +19,6 @@ using QuantConnect.Configuration;
 using QuantConnect.Data;
 using QuantConnect.Data.Fundamental;
 using QuantConnect.Data.Market;
-using QuantConnect.Indicators;
 using QuantConnect.Interfaces;
 using QuantConnect.Lean.Engine;
 using QuantConnect.Lean.Engine.DataFeeds;
@@ -36,6 +35,8 @@ using System.Linq;
 using QuantConnect.Packets;
 using System.Threading.Tasks;
 using QuantConnect.Data.UniverseSelection;
+using QuantConnect.Lean.Engine.Setup;
+using QuantConnect.Indicators;
 
 namespace QuantConnect.Research
 {
@@ -115,33 +116,37 @@ namespace QuantConnect.Research
                 // Reset our composer; needed for re-creation of QuantBook
                 Composer.Instance.Reset();
                 var composer = Composer.Instance;
+                Config.Reset();
 
                 // Create our handlers with our composer instance
-                var algorithmHandlers = LeanEngineAlgorithmHandlers.FromConfiguration(composer, researchMode: true);
                 var systemHandlers = LeanEngineSystemHandlers.FromConfiguration(composer);
-
                 // init the API
                 systemHandlers.Initialize();
+                var algorithmHandlers = LeanEngineAlgorithmHandlers.FromConfiguration(composer, researchMode: true);
+;
+
+                var algorithmPacket = new BacktestNodePacket
+                {
+                    UserToken = Globals.UserToken,
+                    UserId = Globals.UserId,
+                    ProjectId = Globals.ProjectId,
+                    OrganizationId = Globals.OrganizationID,
+                    Version = Globals.Version
+                };
+
+                ProjectId = algorithmPacket.ProjectId;
                 systemHandlers.LeanManager.Initialize(systemHandlers,
                     algorithmHandlers,
-                    new BacktestNodePacket(),
+                    algorithmPacket,
                     new AlgorithmManager(false));
                 systemHandlers.LeanManager.SetAlgorithm(this);
 
-                ProjectId = Config.GetInt("project-id");
 
-                algorithmHandlers.DataPermissionsManager.Initialize(new AlgorithmNodePacket(PacketType.BacktestNode)
-                {
-                    UserToken = Config.Get("api-access-token"),
-                    UserId = Config.GetInt("job-user-id"),
-                    ProjectId = ProjectId,
-                    OrganizationId = Config.Get("job-organization-id"),
-                    Version = Globals.Version
-                });
+                algorithmHandlers.DataPermissionsManager.Initialize(algorithmPacket);
 
-                algorithmHandlers.ObjectStore.Initialize(Config.GetInt("job-user-id"),
-                    ProjectId,
-                    Config.Get("api-access-token"),
+                algorithmHandlers.ObjectStore.Initialize(algorithmPacket.UserId,
+                    algorithmPacket.ProjectId,
+                    algorithmPacket.UserToken,
                     new Controls
                     {
                         // if <= 0 we disable periodic persistence and make it synchronous
@@ -188,7 +193,8 @@ namespace QuantConnect.Research
                         null,
                         true,
                         algorithmHandlers.DataPermissionsManager,
-                        ObjectStore
+                        ObjectStore,
+                        Settings
                     )
                 );
 
@@ -415,13 +421,13 @@ namespace QuantConnect.Research
                 var allSymbols = new List<Symbol>();
                 for (var date = start; date < end; date = date.AddDays(1))
                 {
-                    if (option.Exchange.DateIsOpen(date))
+                    if (option.Exchange.DateIsOpen(date, extendedMarketHours: extendedMarketHours))
                     {
                         allSymbols.AddRange(OptionChainProvider.GetOptionContractList(symbol, date));
                     }
                 }
 
-                var optionFilterUniverse = new OptionFilterUniverse();
+                var optionFilterUniverse = new OptionFilterUniverse(option);
                 var distinctSymbols = allSymbols.Distinct();
                 symbols = base.History(symbol.Underlying, start, end.Value, resolution)
                     .SelectMany(x =>
@@ -484,7 +490,7 @@ namespace QuantConnect.Research
 
                 for (var date = start; date < end; date = date.AddDays(1))
                 {
-                    if (future.Exchange.DateIsOpen(date))
+                    if (future.Exchange.DateIsOpen(date, extendedMarketHours))
                     {
                         var allList = FutureChainProvider.GetFutureContractList(future.Symbol, date);
 
@@ -527,10 +533,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of an indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<IndicatorDataPoint> indicator, Symbol symbol, int period, Resolution? resolution = null, Func<IBaseData, decimal> selector = null)
         {
             var history = History(new[] { symbol }, period, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -542,10 +549,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of a bar indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<IBaseDataBar> indicator, Symbol symbol, int period, Resolution? resolution = null, Func<IBaseData, IBaseDataBar> selector = null)
         {
             var history = History(new[] { symbol }, period, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -557,10 +565,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of a bar indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<TradeBar> indicator, Symbol symbol, int period, Resolution? resolution = null, Func<IBaseData, TradeBar> selector = null)
         {
             var history = History(new[] { symbol }, period, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -573,10 +582,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of an indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<IndicatorDataPoint> indicator, Symbol symbol, TimeSpan span, Resolution? resolution = null, Func<IBaseData, decimal> selector = null)
         {
             var history = History(new[] { symbol }, span, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -589,10 +599,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of a bar indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<IBaseDataBar> indicator, Symbol symbol, TimeSpan span, Resolution? resolution = null, Func<IBaseData, IBaseDataBar> selector = null)
         {
             var history = History(new[] { symbol }, span, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -605,10 +616,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of a bar indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<TradeBar> indicator, Symbol symbol, TimeSpan span, Resolution? resolution = null, Func<IBaseData, TradeBar> selector = null)
         {
             var history = History(new[] { symbol }, span, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -622,10 +634,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of an indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<IndicatorDataPoint> indicator, Symbol symbol, DateTime start, DateTime end, Resolution? resolution = null, Func<IBaseData, decimal> selector = null)
         {
             var history = History(new[] { symbol }, start, end, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -639,10 +652,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of a bar indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<IBaseDataBar> indicator, Symbol symbol, DateTime start, DateTime end, Resolution? resolution = null, Func<IBaseData, IBaseDataBar> selector = null)
         {
             var history = History(new[] { symbol }, start, end, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -656,10 +670,11 @@ namespace QuantConnect.Research
         /// <param name="resolution">The resolution to request</param>
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
         /// <returns>pandas.DataFrame of historical data of a bar indicator</returns>
+        [Obsolete("Please use the 'IndicatorHistory()', pandas dataframe available through '.DataFrame'")]
         public PyObject Indicator(IndicatorBase<TradeBar> indicator, Symbol symbol, DateTime start, DateTime end, Resolution? resolution = null, Func<IBaseData, TradeBar> selector = null)
         {
             var history = History(new[] { symbol }, start, end, resolution);
-            return Indicator(indicator, history, selector);
+            return IndicatorHistory(indicator, history, selector).DataFrame;
         }
 
         /// <summary>
@@ -675,19 +690,21 @@ namespace QuantConnect.Research
             where T1 : BaseDataCollection
             where T2 : IBaseData
         {
-            end ??= DateTime.UtcNow.Date;
-            var history = History<T1>(Enumerable.Empty<Symbol>(), start, end.Value);
+            var universeSymbol = ((BaseDataCollection)typeof(T1).GetBaseDataInstance()).UniverseSymbol();
+
+            var symbols = new[] { universeSymbol };
+            var requests = CreateDateRangeHistoryRequests(new[] { universeSymbol }, typeof(T1), start, end ?? DateTime.UtcNow.Date);
+            var history = GetDataTypedHistory<BaseDataCollection>(requests).Select(x => x.Values.Single());
 
             HashSet<Symbol> filteredSymbols = null;
-            foreach (var dataPoints in history)
+            foreach (var data in history)
             {
-                var data = dataPoints.Values.Single();
                 var castedType = data.Data.OfType<T2>();
 
                 if (func != null)
                 {
                     var selection = func(castedType);
-                    if(!ReferenceEquals(selection, Universe.Unchanged))
+                    if (!ReferenceEquals(selection, Universe.Unchanged))
                     {
                         filteredSymbols = selection.ToHashSet();
                     }
@@ -703,29 +720,52 @@ namespace QuantConnect.Research
         /// <summary>
         /// Will return the universe selection data and will optionally perform selection
         /// </summary>
-        /// <param name="type">The universe selection universe data type, for example Fundamentals</param>
+        /// <param name="universe">The universe to fetch the data for</param>
+        /// <param name="start">The start date</param>
+        /// <param name="end">Optionally the end date, will default to today</param>
+        /// <returns>Enumerable of universe selection data for each date, filtered if the func was provided</returns>
+        public IEnumerable<IEnumerable<BaseData>> UniverseHistory(Universe universe, DateTime start, DateTime? end = null)
+        {
+            return RunUniverseSelection(universe, start, end);
+        }
+
+        /// <summary>
+        /// Will return the universe selection data and will optionally perform selection
+        /// </summary>
+        /// <param name="universe">The universe to fetch the data for</param>
         /// <param name="start">The start date</param>
         /// <param name="end">Optionally the end date, will default to today</param>
         /// <param name="func">Optionally the universe selection function</param>
         /// <returns>Enumerable of universe selection data for each date, filtered if the func was provided</returns>
-        public PyObject UniverseHistory(PyObject type, DateTime start, DateTime? end = null, PyObject func = null)
+        public PyObject UniverseHistory(PyObject universe, DateTime start, DateTime? end = null, PyObject func = null)
         {
-            end ??= DateTime.UtcNow.Date;
-            if (func == null)
+            if (universe.TryConvert<Universe>(out var convertedUniverse))
             {
-                return History(type, start, end.Value);
-            }
+                if (func != null)
+                {
+                    throw new ArgumentException($"When providing a universe, the selection func argument isn't supported. Please provider a universe or a type and a func");
+                }
+                var filteredUniverseSelectionData = RunUniverseSelection(convertedUniverse, start, end);
 
-            if (type.TryConvert<Type>(out var convertedType))
+                return GetDataFrame(filteredUniverseSelectionData);
+            }
+            // for backwards compatibility
+            if (universe.TryConvert<Type>(out var convertedType) && convertedType.IsAssignableTo(typeof(BaseDataCollection)))
             {
-                var requests = CreateDateRangeHistoryRequests(Enumerable.Empty<Symbol>(), convertedType, start, end.Value);
-                var history = History(requests).ToList();
+                end ??= DateTime.UtcNow.Date;
+                var universeSymbol = ((BaseDataCollection)convertedType.GetBaseDataInstance()).UniverseSymbol();
+                if (func == null)
+                {
+                    return History(universe, universeSymbol, start, end.Value);
+                }
+
+                var requests = CreateDateRangeHistoryRequests(new[] { universeSymbol }, convertedType, start, end.Value);
+                var history = History(requests);
 
                 return GetDataFrame(GetFilteredSlice(history, func), convertedType);
             }
 
-            throw new ArgumentException($"Failed to convert given universe selection data type {type}. " +
-                $"Please provider a valid {nameof(BaseDataCollection)} inherited data type");
+            throw new ArgumentException($"Failed to convert given universe {universe}. Please provider a valid {nameof(Universe)}");
         }
 
         /// <summary>
@@ -768,8 +808,12 @@ namespace QuantConnect.Research
                 // Gets the startting capital
                 var startingCapital = Convert.ToDecimal(dictEquity.FirstOrDefault().Value);
 
+                // call method to set tradingDayPerYear for Algorithm (use: backwards compatibility)
+                BaseSetupHandler.SetBrokerageTradingDayPerYear(algorithm: this);
+
                 // Compute portfolio statistics
-                var stats = new PortfolioStatistics(profitLoss, equity, new(), listPerformance, listBenchmark, startingCapital, RiskFreeInterestRateModel);
+                var stats = new PortfolioStatistics(profitLoss, equity, new(), listPerformance, listBenchmark, startingCapital, RiskFreeInterestRateModel,
+                    Settings.TradingDaysPerYear.Value);
 
                 result.SetItem("Average Win (%)", Convert.ToDouble(stats.AverageWinRate * 100).ToPython());
                 result.SetItem("Average Loss (%)", Convert.ToDouble(stats.AverageLossRate * 100).ToPython());
@@ -822,6 +866,27 @@ namespace QuantConnect.Research
         }
 
         /// <summary>
+        /// Helper method to perform selection on the given data and filter it using the given universe
+        /// </summary>
+        private IEnumerable<BaseDataCollection> RunUniverseSelection(Universe universe, DateTime start, DateTime? end = null)
+        {
+            var history = History(universe, start, end ?? DateTime.UtcNow.Date);
+
+            HashSet<Symbol> filteredSymbols = null;
+            foreach (var dataPoint in history)
+            {
+                var utcTime = dataPoint.EndTime.ConvertToUtc(universe.Configuration.ExchangeTimeZone);
+                var selection = universe.SelectSymbols(utcTime, dataPoint);
+                if (!ReferenceEquals(selection, Universe.Unchanged))
+                {
+                    filteredSymbols = selection.ToHashSet();
+                }
+                dataPoint.Data = dataPoint.Data.Where(x => filteredSymbols == null || filteredSymbols.Contains(x.Symbol)).ToList();
+                yield return dataPoint;
+            }
+        }
+
+        /// <summary>
         /// Converts a pandas.Series into a <see cref="SortedDictionary{DateTime, Double}"/>
         /// </summary>
         /// <param name="series">pandas.Series to be converted</param>
@@ -860,47 +925,6 @@ namespace QuantConnect.Research
             rocp[0] = 0;
 
             return rocp.ToList();
-        }
-
-        /// <summary>
-        /// Gets the historical data of an indicator and convert it into pandas.DataFrame
-        /// </summary>
-        /// <param name="indicator">Indicator</param>
-        /// <param name="history">Historical data used to calculate the indicator</param>
-        /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
-        /// <returns>pandas.DataFrame containing the historical data of <param name="indicator"></returns>
-        private PyObject Indicator(IndicatorBase<IndicatorDataPoint> indicator, IEnumerable<Slice> history, Func<IBaseData, decimal> selector = null)
-        {
-            var properties = WireIndicatorProperties(indicator);
-
-            selector = selector ?? (x => x.Value);
-
-            history.PushThrough(bar =>
-            {
-                var value = selector(bar);
-                indicator.Update(bar.EndTime, value);
-            });
-
-            return PandasConverter.GetIndicatorDataFrame(properties);
-        }
-
-        /// <summary>
-        /// Gets the historical data of an bar indicator and convert it into pandas.DataFrame
-        /// </summary>
-        /// <param name="indicator">Bar indicator</param>
-        /// <param name="history">Historical data used to calculate the indicator</param>
-        /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to the Value property of BaseData (x => x.Value)</param>
-        /// <returns>pandas.DataFrame containing the historical data of <param name="indicator"></returns>
-        private PyObject Indicator<T>(IndicatorBase<T> indicator, IEnumerable<Slice> history, Func<IBaseData, T> selector = null)
-            where T : IBaseData
-        {
-            var properties = WireIndicatorProperties(indicator);
-
-            selector = selector ?? (x => (T)x);
-
-            history.PushThrough(bar => indicator.Update(selector(bar)));
-
-            return PandasConverter.GetIndicatorDataFrame(properties);
         }
 
         /// <summary>
@@ -992,36 +1016,6 @@ namespace QuantConnect.Research
             }
 
             return symbol;
-        }
-
-        private Dictionary<string, List<IndicatorDataPoint>> WireIndicatorProperties(IndicatorBase indicator)
-        {
-            // Reset the indicator
-            indicator.Reset();
-
-            // Create a dictionary of the properties
-            var name = indicator.GetType().Name;
-
-            var properties = indicator.GetType().GetProperties()
-                .Where(x => x.PropertyType.IsGenericType && x.Name != "Consolidators" && x.Name != "Window")
-                .ToDictionary(x => x.Name, y => new List<IndicatorDataPoint>());
-            properties.Add(name, new List<IndicatorDataPoint>());
-
-            indicator.Updated += (s, e) =>
-            {
-                if (!indicator.IsReady)
-                {
-                    return;
-                }
-
-                foreach (var kvp in properties)
-                {
-                    var dataPoint = kvp.Key == name ? e : GetPropertyValue(s, kvp.Key + ".Current");
-                    kvp.Value.Add((IndicatorDataPoint)dataPoint);
-                }
-            };
-
-            return properties;
         }
 
         private static void RecycleMemory()

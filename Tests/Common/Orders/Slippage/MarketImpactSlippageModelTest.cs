@@ -47,7 +47,7 @@ namespace QuantConnect.Tests.Common.Orders.Slippage
             var historyProvider = new SubscriptionDataReaderHistoryProvider();
             historyProvider.Initialize(new HistoryProviderInitializeParameters(null, null,
                 TestGlobals.DataProvider, TestGlobals.DataCacheProvider, TestGlobals.MapFileProvider, TestGlobals.FactorFileProvider,
-                null, true, new DataPermissionManager(), _algorithm.ObjectStore));
+                null, true, new DataPermissionManager(), _algorithm.ObjectStore, _algorithm.Settings));
             _algorithm.SetHistoryProvider(historyProvider);
 
             FundamentalService.Initialize(TestGlobals.DataProvider, new TestFundamentalDataProvider(), false);
@@ -61,7 +61,7 @@ namespace QuantConnect.Tests.Common.Orders.Slippage
             {
                 _algorithm.AddEquity("SPY", Resolution.Daily),                      // liquid stock
                 _algorithm.AddEquity("AIG", Resolution.Daily),                      // illquid stock
-                _algorithm.AddCrypto("BTCUSD", Resolution.Daily, Market.GDAX),      // crypto
+                _algorithm.AddCrypto("BTCUSD", Resolution.Daily, Market.Coinbase),      // crypto
                 _algorithm.AddOptionContract(optionContract, Resolution.Minute)     // equity options
             };
             foreach (var security in _securities)
@@ -69,7 +69,7 @@ namespace QuantConnect.Tests.Common.Orders.Slippage
                 security.SetMarketPrice(new TradeBar(_algorithm.Time, security.Symbol, 100m, 100m, 100m, 100m, 1));
             }
 
-            _algorithm.EnableAutomaticIndicatorWarmUp = true;
+            _algorithm.Settings.AutomaticIndicatorWarmUp = true;
 
             _slippageModel = new MarketImpactSlippageModel(_algorithm);
         }

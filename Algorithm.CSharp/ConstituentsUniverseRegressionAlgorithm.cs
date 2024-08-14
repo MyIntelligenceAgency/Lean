@@ -32,7 +32,7 @@ namespace QuantConnect.Algorithm.CSharp
         private readonly Symbol _fb = QuantConnect.Symbol.Create("FB", SecurityType.Equity, Market.USA);
         private int _step;
 
-        /// <summary>
+    /// <summary>
         /// Initialise the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized.
         /// </summary>
         public override void Initialize()
@@ -55,20 +55,20 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             _step++;
             if (_step == 1)
             {
-                if (!data.ContainsKey(_qqq)
-                    || !data.ContainsKey(_appl))
+                if (!slice.ContainsKey(_qqq)
+                    || !slice.ContainsKey(_appl))
                 {
-                    throw new Exception($"Unexpected symbols found, step: {_step}");
+                    throw new RegressionTestException($"Unexpected symbols found, step: {_step}");
                 }
-                if (data.Count != 2)
+                if (slice.Count != 2)
                 {
-                    throw new Exception($"Unexpected data count, step: {_step}");
+                    throw new RegressionTestException($"Unexpected data count, step: {_step}");
                 }
                 // AAPL will be deselected by the ConstituentsUniverse
                 // but it shouldn't be removed since we hold it
@@ -76,13 +76,13 @@ namespace QuantConnect.Algorithm.CSharp
             }
             else if (_step == 2)
             {
-                if (!data.ContainsKey(_appl))
+                if (!slice.ContainsKey(_appl))
                 {
-                    throw new Exception($"Unexpected symbols found, step: {_step}");
+                    throw new RegressionTestException($"Unexpected symbols found, step: {_step}");
                 }
-                if (data.Count != 1)
+                if (slice.Count != 1)
                 {
-                    throw new Exception($"Unexpected data count, step: {_step}");
+                    throw new RegressionTestException($"Unexpected data count, step: {_step}");
                 }
                 // AAPL should now be released
                 // note: takes one extra loop because the order is executed on market open
@@ -90,39 +90,39 @@ namespace QuantConnect.Algorithm.CSharp
             }
             else if (_step == 3)
             {
-                if (!data.ContainsKey(_fb)
-                    || !data.ContainsKey(_spy)
-                    || !data.ContainsKey(_appl))
+                if (!slice.ContainsKey(_fb)
+                    || !slice.ContainsKey(_spy)
+                    || !slice.ContainsKey(_appl))
                 {
-                    throw new Exception($"Unexpected symbols found, step: {_step}");
+                    throw new RegressionTestException($"Unexpected symbols found, step: {_step}");
                 }
-                if (data.Count != 3)
+                if (slice.Count != 3)
                 {
-                    throw new Exception($"Unexpected data count, step: {_step}");
+                    throw new RegressionTestException($"Unexpected data count, step: {_step}");
                 }
             }
             else if (_step == 4)
             {
-                if (!data.ContainsKey(_fb)
-                    || !data.ContainsKey(_spy))
+                if (!slice.ContainsKey(_fb)
+                    || !slice.ContainsKey(_spy))
                 {
-                    throw new Exception($"Unexpected symbols found, step: {_step}");
+                    throw new RegressionTestException($"Unexpected symbols found, step: {_step}");
                 }
-                if (data.Count != 2)
+                if (slice.Count != 2)
                 {
-                    throw new Exception($"Unexpected data count, step: {_step}");
+                    throw new RegressionTestException($"Unexpected data count, step: {_step}");
                 }
             }
             else if (_step == 5)
             {
-                if (!data.ContainsKey(_fb)
-                    || !data.ContainsKey(_spy))
+                if (!slice.ContainsKey(_fb)
+                    || !slice.ContainsKey(_spy))
                 {
-                    throw new Exception($"Unexpected symbols found, step: {_step}");
+                    throw new RegressionTestException($"Unexpected symbols found, step: {_step}");
                 }
-                if (data.Count != 2)
+                if (slice.Count != 2)
                 {
-                    throw new Exception($"Unexpected data count, step: {_step}");
+                    throw new RegressionTestException($"Unexpected data count, step: {_step}");
                 }
             }
         }
@@ -131,7 +131,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_step != 5)
             {
-                throw new Exception($"Unexpected step count: {_step}");
+                throw new RegressionTestException($"Unexpected step count: {_step}");
             }
         }
 
@@ -150,7 +150,7 @@ namespace QuantConnect.Algorithm.CSharp
                 if (removed.Symbol == _appl && _step != 1 && _step != 2
                     || removed.Symbol == _qqq && _step != 1)
                 {
-                    throw new Exception($"Unexpected removal step count: {_step}");
+                    throw new RegressionTestException($"Unexpected removal step count: {_step}");
                 }
             }
         }
@@ -163,12 +163,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 59;
+        public long DataPoints => 52;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -176,18 +176,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.54%"},
             {"Compounding Annual Return", "-32.671%"},
             {"Drawdown", "0.900%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99459.59"},
             {"Net Profit", "-0.540%"},
             {"Sharpe Ratio", "-3.436"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "25.715%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -203,7 +211,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$95000000.00"},
             {"Lowest Capacity Asset", "AAPL R735QTJ8XC9X"},
             {"Portfolio Turnover", "20.06%"},
-            {"OrderListHash", "4974971ff72bc90b2f161e46b240c282"}
+            {"OrderListHash", "2271d307c23224ed7abc7fc852a51f24"}
         };
     }
 }

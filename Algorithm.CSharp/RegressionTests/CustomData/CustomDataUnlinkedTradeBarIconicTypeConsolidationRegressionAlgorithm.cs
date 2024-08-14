@@ -49,11 +49,11 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (_bb.Current.Value == 0)
             {
-                throw new Exception("Bollinger Band value is zero when we expect non-zero value.");
+                throw new RegressionTestException("Bollinger Band value is zero when we expect non-zero value.");
             }
 
             if (!_invested && _bb.Current.Value > 0.05m)
@@ -128,7 +128,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <remarks>
         /// Unable to be tested in Python, due to pythonnet not supporting overriding of methods from Python
         /// </remarks>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -141,18 +141,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "28.248%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100330"},
             {"Net Profit", "0.330%"},
             {"Sharpe Ratio", "315.406"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -168,7 +176,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "VIX.IncrementallyGeneratedCustomData 2S"},
             {"Portfolio Turnover", "0.02%"},
-            {"OrderListHash", "04c8ea3753ae34727dc3ca58e68146c0"}
+            {"OrderListHash", "a3abee8c47244710f63c596af48a7951"}
         };
     }
 }

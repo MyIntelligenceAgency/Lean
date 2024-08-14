@@ -27,8 +27,7 @@ namespace QuantConnect.Optimizer.Objectives
         /// <summary>
         /// Defines the direction of optimization, i.e. maximization or minimization
         /// </summary>
-        [JsonProperty("extremum")]
-        public Extremum Extremum { get; }
+        public Extremum Extremum { get; set; }
 
         /// <summary>
         /// Current value
@@ -47,6 +46,14 @@ namespace QuantConnect.Optimizer.Objectives
         public Target(string target, Extremum extremum, decimal? targetValue): base(target, targetValue)
         {
             Extremum = extremum;
+        }
+
+        /// <summary>
+        /// Creates a new instance
+        /// </summary>
+        public Target()
+        {
+
         }
 
         /// <summary>

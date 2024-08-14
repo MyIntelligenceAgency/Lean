@@ -100,27 +100,25 @@ namespace QuantConnect.Algorithm.CSharp
             SetBrokerageModel(new AllShortableSymbolsRegressionAlgorithmBrokerageModel());
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (Time.Date == _lastTradeDate)
             {
                 return;
             }
 
-            foreach (var symbol in ActiveSecurities.Keys.OrderBy(symbol => symbol))
+            foreach (var (symbol, security) in ActiveSecurities.Where(kvp => !kvp.Value.Invested).OrderBy(kvp => kvp.Key))
             {
-                if (!Portfolio.ContainsKey(symbol) || !Portfolio[symbol].Invested)
+                var shortableQuantity = security.ShortableProvider.ShortableQuantity(symbol, Time);
+                if (shortableQuantity == null)
                 {
-                    if (!Shortable(symbol))
-                    {
-                        throw new Exception($"Expected {symbol} to be shortable on {Time:yyyy-MM-dd}");
-                    }
-
-                    // Buy at least once into all Symbols. Since daily data will always use
-                    // MOO orders, it makes the testing of liquidating buying into Symbols difficult.
-                    MarketOrder(symbol, -(decimal)ShortableQuantity(symbol));
-                    _lastTradeDate = Time.Date;
+                    throw new RegressionTestException($"Expected {symbol} to be shortable on {Time:yyyy-MM-dd}");
                 }
+
+                // Buy at least once into all Symbols. Since daily data will always use
+                // MOO orders, it makes the testing of liquidating buying into Symbols difficult.
+                MarketOrder(symbol, -(decimal)shortableQuantity);
+                _lastTradeDate = Time.Date;
             }
         }
 
@@ -139,11 +137,11 @@ namespace QuantConnect.Algorithm.CSharp
                 var gme = QuantConnect.Symbol.Create("GME", SecurityType.Equity, Market.USA);
                 if (!shortableSymbols.ContainsKey(gme))
                 {
-                    throw new Exception("Expected unmapped GME in shortable symbols list on 2014-03-27");
+                    throw new RegressionTestException("Expected unmapped GME in shortable symbols list on 2014-03-27");
                 }
                 if (!coarse.Select(x => x.Symbol.Value).Contains("GME"))
                 {
-                    throw new Exception("Expected mapped GME in coarse symbols on 2014-03-27");
+                    throw new RegressionTestException("Expected mapped GME in coarse symbols on 2014-03-27");
                 }
 
                 expectedMissing = 1;
@@ -152,7 +150,7 @@ namespace QuantConnect.Algorithm.CSharp
             var missing = _expectedSymbols[Time.Date].Except(selectedSymbols).ToList();
             if (missing.Count != expectedMissing)
             {
-                throw new Exception($"Expected Symbols selected on {Time.Date:yyyy-MM-dd} to match expected Symbols, but the following Symbols were missing: {string.Join(", ", missing.Select(s => s.ToString()))}");
+                throw new RegressionTestException($"Expected Symbols selected on {Time.Date:yyyy-MM-dd} to match expected Symbols, but the following Symbols were missing: {string.Join(", ", missing.Select(s => s.ToString()))}");
             }
 
             _coarseSelected[Time.Date] = true;
@@ -235,12 +233,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp};
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 37754;
+        public long DataPoints => 37748;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -248,34 +246,42 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "5"},
+            {"Total Orders", "5"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "19.147%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "10000000"},
+            {"End Equity", "10019217.27"},
             {"Net Profit", "0.192%"},
-            {"Sharpe Ratio", "221.176"},
+            {"Sharpe Ratio", "15.743"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
             {"Profit-Loss Ratio", "0"},
-            {"Alpha", "0.156"},
-            {"Beta", "-0.007"},
-            {"Annual Standard Deviation", "0.001"},
+            {"Alpha", "0.17"},
+            {"Beta", "0.037"},
+            {"Annual Standard Deviation", "0.01"},
             {"Annual Variance", "0"},
-            {"Information Ratio", "4.804"},
-            {"Tracking Error", "0.098"},
-            {"Treynor Ratio", "-21.505"},
+            {"Information Ratio", "5"},
+            {"Tracking Error", "0.094"},
+            {"Treynor Ratio", "4.278"},
             {"Total Fees", "$307.50"},
             {"Estimated Strategy Capacity", "$2600000.00"},
             {"Lowest Capacity Asset", "GOOCV VP83T1ZUHROL"},
             {"Portfolio Turnover", "10.61%"},
-            {"OrderListHash", "9c129e856afe96579b52cbfe95237100"}
+            {"OrderListHash", "854d4ba6a4ae39f9be2f9a10c8544fe5"}
         };
     }
 }

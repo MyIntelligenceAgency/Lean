@@ -29,8 +29,8 @@ namespace QuantConnect.Algorithm.CSharp
     /// </summary>
     public class FutureOptionDailyRegressionAlgorithm : QCAlgorithm, IRegressionAlgorithmDefinition
     {
-        protected OrderTicket Ticket;
-        protected Symbol DcOption;
+        protected OrderTicket Ticket { get; set; }
+        protected Symbol DcOption { get; set; }
         protected virtual Resolution Resolution => Resolution.Daily;
 
         public override void Initialize()
@@ -59,7 +59,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (DcOption != expectedContract)
             {
-                throw new Exception($"Contract {DcOption} was not the expected contract {expectedContract}");
+                throw new RegressionTestException($"Contract {DcOption} was not the expected contract {expectedContract}");
             }
 
             ScheduleBuySell();
@@ -92,17 +92,17 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Ran at the end of the algorithm to ensure the algorithm has no holdings
         /// </summary>
-        /// <exception cref="Exception">The algorithm has holdings</exception>
+        /// <exception cref="RegressionTestException">The algorithm has holdings</exception>
         public override void OnEndOfAlgorithm()
         {
             if (Portfolio.Invested)
             {
-                throw new Exception($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
+                throw new RegressionTestException($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
             }
 
             if (Ticket.Status != OrderStatus.Filled)
             {
-                throw new Exception("Future option order failed to fill correctly");
+                throw new RegressionTestException("Future option order failed to fill correctly");
             }
         }
 
@@ -114,7 +114,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public virtual Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public virtual List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -127,18 +127,26 @@ namespace QuantConnect.Algorithm.CSharp
         public virtual int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.82%"},
             {"Compounding Annual Return", "-66.144%"},
             {"Drawdown", "0.800%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99175.06"},
             {"Net Profit", "-0.825%"},
             {"Sharpe Ratio", "-7.069"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -154,7 +162,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "DC V5E8P9VAH3IC|DC V5E8P9SH0U0X"},
             {"Portfolio Turnover", "1.39%"},
-            {"OrderListHash", "4a190a2b77e2603e8756788acb4d49b4"}
+            {"OrderListHash", "0ab3e8edb3c7a5e31550a23895daa460"}
         };
     }
 }

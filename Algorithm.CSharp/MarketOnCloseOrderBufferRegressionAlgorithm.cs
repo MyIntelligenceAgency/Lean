@@ -71,19 +71,19 @@ namespace QuantConnect.Algorithm.CSharp
             // Verify that our good order filled
             if (_validOrderTicket.Status != OrderStatus.Filled)
             {
-                throw new Exception("Valid order failed to fill");
+                throw new RegressionTestException("Valid order failed to fill");
             }
 
             // Verify our order was marked invalid
             if (_invalidOrderTicket.Status != OrderStatus.Invalid)
             {
-                throw new Exception("Invalid order was not rejected");
+                throw new RegressionTestException("Invalid order was not rejected");
             }
 
             // Verify that our second good order filled
             if (_validOrderTicketExtendedMarketHours.Status != OrderStatus.Filled)
             {
-                throw new Exception("Valid order during extended market hours failed to fill");
+                throw new RegressionTestException("Valid order during extended market hours failed to fill");
             }
         }
 
@@ -95,7 +95,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -108,18 +108,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new()
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99994.65"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -135,7 +143,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$18000000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.29%"},
-            {"OrderListHash", "2f572e52de0a9d10b030bb342fcd1233"}
+            {"OrderListHash", "105d3eb1a9b673ce88238a93a63d6d08"}
         };
     }
 }

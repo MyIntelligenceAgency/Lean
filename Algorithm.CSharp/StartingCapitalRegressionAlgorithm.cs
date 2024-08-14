@@ -50,7 +50,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!Portfolio.Invested)
             {
@@ -67,7 +67,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -80,18 +80,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 180;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "76970482.10"},
+            {"End Equity", "71490762.61"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -105,9 +113,9 @@ namespace QuantConnect.Algorithm.CSharp
             {"Treynor Ratio", "0"},
             {"Total Fees", "$1.21"},
             {"Estimated Strategy Capacity", "$170000.00"},
-            {"Lowest Capacity Asset", "ETHUSD XJ"},
+            {"Lowest Capacity Asset", "ETHUSD 2XR"},
             {"Portfolio Turnover", "0.00%"},
-            {"OrderListHash", "0be1ba882218cf108297c086fd3d3411"}
+            {"OrderListHash", "563e667ab49944c44f57b7f20a444b2e"}
         };
     }
 }

@@ -64,19 +64,19 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (conversionSymbols.Count != 2)
             {
-                throw new Exception(
+                throw new RegressionTestException(
                     $"Expected two conversion rate securities for LTC to ETH, is {conversionSymbols.Count}");
             }
 
             if (conversionSymbols[0] != _ltcUsdSymbol)
             {
-                throw new Exception(
+                throw new RegressionTestException(
                     $"Expected first conversion rate security from LTC to ETH to be {_ltcUsdSymbol}, is {conversionSymbols[0]}");
             }
 
             if (conversionSymbols[1] != _ethUsdSymbol)
             {
-                throw new Exception(
+                throw new RegressionTestException(
                     $"Expected second conversion rate security from LTC to ETH to be {_ethUsdSymbol}, is {conversionSymbols[1]}");
             }
 
@@ -88,7 +88,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (actualConversionRate != expectedConversionRate)
             {
-                throw new Exception(
+                throw new RegressionTestException(
                     $"Expected conversion rate from LTC to ETH to be {expectedConversionRate}, is {actualConversionRate}");
             }
         }
@@ -101,7 +101,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -114,18 +114,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 120;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "132348.63"},
+            {"End Equity", "131620.05"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -139,9 +147,9 @@ namespace QuantConnect.Algorithm.CSharp
             {"Treynor Ratio", "0"},
             {"Total Fees", "Ξ0.00"},
             {"Estimated Strategy Capacity", "Ξ2000.00"},
-            {"Lowest Capacity Asset", "LTCUSD XJ"},
+            {"Lowest Capacity Asset", "LTCUSD 2XR"},
             {"Portfolio Turnover", "0.00%"},
-            {"OrderListHash", "83fcdd53388a1dac3fb2476e314a148d"}
+            {"OrderListHash", "c5d6001a28b12bd2d6c714a9aaa3aa07"}
         };
     }
 }

@@ -47,7 +47,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (UtcTime.Hour != 6) return;
 
@@ -99,7 +99,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (orders.Count != expectedOrders)
             {
-                throw new Exception($"Expected orders: {expectedOrders}, actual orders: {orders.Count}");
+                throw new RegressionTestException($"Expected orders: {expectedOrders}, actual orders: {orders.Count}");
             }
 
             for (var i = 0; i < expectedOrders; i++)
@@ -107,7 +107,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var order = orders[i];
                 if (order.Status != expectedStatus[i])
                 {
-                    throw new Exception($"Invalid status for order {order.Id}, Expected: {expectedStatus[i]}, actual: {order.Status}");
+                    throw new RegressionTestException($"Invalid status for order {order.Id}, Expected: {expectedStatus[i]}, actual: {order.Status}");
                 }
             }
         }
@@ -120,7 +120,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -133,18 +133,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 120;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "5"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "1000.00"},
+            {"End Equity", "955.69"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -158,9 +166,9 @@ namespace QuantConnect.Algorithm.CSharp
             {"Treynor Ratio", "0"},
             {"Total Fees", "$0.00"},
             {"Estimated Strategy Capacity", "$370000.00"},
-            {"Lowest Capacity Asset", "ETHUSD XJ"},
+            {"Lowest Capacity Asset", "ETHUSD 2XR"},
             {"Portfolio Turnover", "104.59%"},
-            {"OrderListHash", "2bda2fad0dbf6884c1cf33f4e591c7ee"}
+            {"OrderListHash", "5277847166fcd10cde634e3986e1d285"}
         };
     }
 }

@@ -48,7 +48,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!Portfolio.Invested && !_alreadyTraded)
             {
@@ -70,22 +70,22 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (Portfolio.CashBook["USD"].Amount - _security.Holdings.LastTradeProfit != 100000)
             {
-                throw new Exception("Unexpected USD cash amount: " +
+                throw new RegressionTestException("Unexpected USD cash amount: " +
                     $"{Portfolio.CashBook["USD"].Amount}");
             }
             if (Portfolio.CashBook.ContainsKey(Currencies.NullCurrency))
             {
-                throw new Exception("Unexpected NullCurrency cash");
+                throw new RegressionTestException("Unexpected NullCurrency cash");
             }
 
             var closedTrade = TradeBuilder.ClosedTrades[0];
             if (closedTrade.TotalFees != 0)
             {
-                throw new Exception($"Unexpected closed trades total fees {closedTrade.TotalFees}");
+                throw new RegressionTestException($"Unexpected closed trades total fees {closedTrade.TotalFees}");
             }
             if (_security.Holdings.TotalFees != 0)
             {
-                throw new Exception($"Unexpected closed trades total fees {closedTrade.TotalFees}");
+                throw new RegressionTestException($"Unexpected closed trades total fees {closedTrade.TotalFees}");
             }
         }
 
@@ -105,7 +105,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -118,18 +118,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.05%"},
             {"Compounding Annual Return", "-3.660%"},
             {"Drawdown", "0.000%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99952.34"},
             {"Net Profit", "-0.048%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -145,7 +153,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$18000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "39.91%"},
-            {"OrderListHash", "1859f65051891cc7fb5a3d879e3edf1b"}
+            {"OrderListHash", "5bd6d98c36a3344f7383557bc375cf83"}
         };
     }
 }

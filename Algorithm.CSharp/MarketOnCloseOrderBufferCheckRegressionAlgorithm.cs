@@ -67,7 +67,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (_validOrderTicket.Status == OrderStatus.Invalid)
                 {
-                    throw new Exception("MOC order placed at the last minute was expected to be valid.");
+                    throw new RegressionTestException("MOC order placed at the last minute was expected to be valid.");
                 }
             }
 
@@ -79,7 +79,7 @@ namespace QuantConnect.Algorithm.CSharp
                 if (_invalidOrderTicket.Status != OrderStatus.Invalid ||
                     _invalidOrderTicket.SubmitRequest.Response.ErrorCode != OrderResponseErrorCode.MarketOnCloseOrderTooLate)
                 {
-                    throw new Exception(
+                    throw new RegressionTestException(
                         "MOC order placed after the latest allowed submission time was not rejected or the reason was not the submission time");
                 }
             }
@@ -92,18 +92,18 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (_validOrderTicket == null)
             {
-                throw new Exception("Valid MOC order was not placed");
+                throw new RegressionTestException("Valid MOC order was not placed");
             }
 
             // Verify that our good order filled
             if (_validOrderTicket.Status != OrderStatus.Filled)
             {
-                throw new Exception("MOC order failed to fill");
+                throw new RegressionTestException("MOC order failed to fill");
             }
 
             if (_invalidOrderTicket == null)
             {
-                throw new Exception("Invalid MOC order was not placed");
+                throw new RegressionTestException("Invalid MOC order was not placed");
             }
         }
 
@@ -115,7 +115,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -128,18 +128,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new()
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99999"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -155,7 +163,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$67000000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.14%"},
-            {"OrderListHash", "d56c7a6cc4cedceca2420443a9b7d97a"}
+            {"OrderListHash", "e44ec9a38c118cc34a487dcfa645a658"}
         };
     }
 }

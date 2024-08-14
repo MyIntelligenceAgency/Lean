@@ -77,7 +77,7 @@ namespace QuantConnect.Report
 
             Algorithm = new PortfolioLooperAlgorithm((decimal)startingCash, orders, algorithmConfiguration);
             var dataPermissionManager = new DataPermissionManager();
-            historyProvider.Initialize(new HistoryProviderInitializeParameters(null, null, null, _cacheProvider, mapFileProvider, factorFileProvider, (_) => { }, false, dataPermissionManager, Algorithm.ObjectStore));
+            historyProvider.Initialize(new HistoryProviderInitializeParameters(null, null, null, _cacheProvider, mapFileProvider, factorFileProvider, (_) => { }, false, dataPermissionManager, Algorithm.ObjectStore, Algorithm.Settings));
             Algorithm.SetHistoryProvider(historyProvider);
 
             // Dummy LEAN datafeed classes and initializations that essentially do nothing
@@ -130,7 +130,7 @@ namespace QuantConnect.Report
             Algorithm.FromOrders(orders);
 
             // More initialization, this time with Algorithm and other misc. classes
-            _resultHandler.Initialize(job, new Messaging.Messaging(), new Api.Api(), transactions);
+            _resultHandler.Initialize(new (job, new Messaging.Messaging(), new Api.Api(), transactions, mapFileProvider));
             _resultHandler.SetAlgorithm(Algorithm, Algorithm.Portfolio.TotalPortfolioValue);
 
             Algorithm.Transactions.SetOrderProcessor(transactions);

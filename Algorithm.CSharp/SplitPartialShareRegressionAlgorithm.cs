@@ -39,9 +39,9 @@ namespace QuantConnect.Algorithm.CSharp
             AddEquity("AAPL");
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
-            foreach (var dataSplit in data.Splits)
+            foreach (var dataSplit in slice.Splits)
             {
                 if (_splitType == null || _splitType < dataSplit.Value.Type)
                 {
@@ -49,7 +49,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                     if (_splitType == SplitType.Warning && _cash != Portfolio.CashBook[Currencies.USD].Amount)
                     {
-                        throw new Exception("Unexpected cash amount change before split");
+                        throw new RegressionTestException("Unexpected cash amount change before split");
                     }
 
                     if (_splitType == SplitType.SplitOccurred)
@@ -57,13 +57,13 @@ namespace QuantConnect.Algorithm.CSharp
                         var newCash = Portfolio.CashBook[Currencies.USD].Amount;
                         if (_cash == newCash || newCash - _cash >= dataSplit.Value.SplitFactor * dataSplit.Value.ReferencePrice)
                         {
-                            throw new Exception("Unexpected cash amount change after split");
+                            throw new RegressionTestException("Unexpected cash amount change after split");
                         }
                     }
                 }
                 else
                 {
-                    throw new Exception($"Unexpected split event {dataSplit.Value.Type}");
+                    throw new RegressionTestException($"Unexpected split event {dataSplit.Value.Type}");
                 }
             }
 
@@ -78,7 +78,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_splitType == null)
             {
-                throw new Exception("No split was emitted!");
+                throw new RegressionTestException("No split was emitted!");
             }
         }
 
@@ -90,7 +90,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -103,18 +103,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0.562%"},
             {"Drawdown", "0.000%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100007.16"},
             {"Net Profit", "0.007%"},
             {"Sharpe Ratio", "-3.983"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "79.393%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -130,7 +138,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$4200000000.00"},
             {"Lowest Capacity Asset", "AAPL R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.13%"},
-            {"OrderListHash", "6514676b99c5c629c7e7b405c4c8d61e"}
+            {"OrderListHash", "87f55de4577d35a6ff70a7fd335e14a4"}
         };
     }
 }

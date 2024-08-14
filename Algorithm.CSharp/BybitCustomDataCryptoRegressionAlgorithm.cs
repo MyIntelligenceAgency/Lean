@@ -52,7 +52,7 @@ namespace QuantConnect.Algorithm.CSharp
             _slow = EMA(_btcUsdt, 60, Resolution.Minute);
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!_slow.IsReady)
             {
@@ -82,11 +82,11 @@ namespace QuantConnect.Algorithm.CSharp
 
         public class CustomCryptoData : BaseData
         {
-            public decimal Open;
-            public decimal High;
-            public decimal Low;
-            public decimal Close;
-            public decimal Volume;
+            public decimal Open { get; set; }
+            public decimal High { get; set; }
+            public decimal Low { get; set; }
+            public decimal Close { get; set; }
+            public decimal Volume { get; set; }
 
             public override DateTime EndTime
             {
@@ -137,7 +137,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -150,18 +150,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 60;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000.00"},
+            {"End Equity", "99981.72"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -177,7 +185,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "₮0"},
             {"Lowest Capacity Asset", "BTCUSDT.CustomCryptoData 2US"},
             {"Portfolio Turnover", "34.30%"},
-            {"OrderListHash", "6d099b57951f4801f9c07fba5f4c9f05"}
+            {"OrderListHash", "52ddb7dfcaaf1ea4f70cc614c49f0cd0"}
         };
     }
 }

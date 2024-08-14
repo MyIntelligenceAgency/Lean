@@ -44,8 +44,8 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             if (Portfolio.CashBook["EUR"].ConversionRate == 0
                 || Portfolio.CashBook["BTC"].ConversionRate == 0
@@ -57,7 +57,7 @@ namespace QuantConnect.Algorithm.CSharp
                 Log($"BTC conversion rate: {Portfolio.CashBook["BTC"].ConversionRate}");
                 Log($"LTC conversion rate: {Portfolio.CashBook["LTC"].ConversionRate}");
 
-                throw new Exception("Conversion rate is 0");
+                throw new RegressionTestException("Conversion rate is 0");
             }
 
             if (IsWarmingUp) return;
@@ -76,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -89,18 +89,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 180;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "10000.00"},
+            {"End Equity", "9884.48"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -114,9 +122,9 @@ namespace QuantConnect.Algorithm.CSharp
             {"Treynor Ratio", "0"},
             {"Total Fees", "$29.84"},
             {"Estimated Strategy Capacity", "$410000.00"},
-            {"Lowest Capacity Asset", "LTCUSD XJ"},
+            {"Lowest Capacity Asset", "LTCUSD 2XR"},
             {"Portfolio Turnover", "100.61%"},
-            {"OrderListHash", "2aa5ec9752b0766d0524f68820b6ba7f"}
+            {"OrderListHash", "716b5757844f607d1402a5571f015aea"}
         };
     }
 }

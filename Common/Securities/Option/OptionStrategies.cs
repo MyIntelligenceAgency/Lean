@@ -136,6 +136,63 @@ namespace QuantConnect.Securities.Option
         }
 
         /// <summary>
+        /// Creates a Protective Collar strategy that consists of buying 1 put contract and 1 lot of the underlying.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="callStrike">The strike price for the call option contract</param>
+        /// <param name="putStrike">The strike price for the put option contract</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy ProtectiveCollar(Symbol canonicalOption, decimal callStrike, decimal putStrike, DateTime expiration)
+        {
+            if (callStrike < putStrike)
+            {
+                throw new ArgumentException("ProtectiveCollar: callStrike must be greater than putStrike", $"{nameof(callStrike)}, {nameof(putStrike)}");
+            }
+
+            // Since a protective collar is a combination of protective put and covered call
+            var coveredCall = CoveredCall(canonicalOption, callStrike, expiration);
+            var protectivePut = ProtectivePut(canonicalOption, putStrike, expiration);
+
+            return new OptionStrategy
+            {
+                Name = OptionStrategyDefinitions.ProtectiveCollar.Name,
+                Underlying = canonicalOption.Underlying,
+                CanonicalOption = canonicalOption,
+                OptionLegs = coveredCall.OptionLegs.Concat(protectivePut.OptionLegs).ToList(),
+                UnderlyingLegs = coveredCall.UnderlyingLegs     // only 1 lot of long stock position
+            };
+        }
+
+        /// <summary>
+        /// Creates a Conversion strategy that consists of buying 1 put contract, 1 lot of the underlying and selling 1 call contract.
+        /// Put and call must have the same expiration date, underlying (multiplier), and strike price.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="strike">The strike price for the call and put option contract</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy Conversion(Symbol canonicalOption, decimal strike, DateTime expiration)
+        {
+            var strategy = ProtectiveCollar(canonicalOption, strike, strike, expiration);
+            strategy.Name = OptionStrategyDefinitions.Conversion.Name;
+            return strategy;
+        }
+
+        /// <summary>
+        /// Creates a Reverse Conversion strategy that consists of buying 1 put contract and 1 lot of the underlying.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="strike">The strike price for the put option contract</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy ReverseConversion(Symbol canonicalOption, decimal strike, DateTime expiration)
+        {
+            // Since a reverse conversion is an inverted conversion, we can just use the Conversion method and invert the legs
+            return InvertStrategy(Conversion(canonicalOption, strike, expiration), OptionStrategyDefinitions.ReverseConversion.Name);
+        }
+
+        /// <summary>
         /// Creates a Naked Call strategy that consists of selling 1 call contract.
         /// </summary>
         /// <param name="canonicalOption">Option symbol</param>
@@ -762,6 +819,47 @@ namespace QuantConnect.Securities.Option
         }
 
         /// <summary>
+        /// Creates a new Iron Butterfly strategy which consists of a short ATM call, a short ATM put, a long OTM call, and a long OTM put.
+        /// all with the same expiration date and with increasing strikes prices in the mentioned order.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="otmCallStrike">OTM call option strike price</param>
+        /// <param name="atmStrike">2 ATM options strike price</param>
+        /// <param name="otmPutStrike">OTM put option strike price</param>
+        /// <param name="expiration">Expiration date for all the options</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy IronButterfly(Symbol canonicalOption, decimal otmPutStrike, decimal atmStrike, decimal otmCallStrike,
+            DateTime expiration)
+        {
+            if (atmStrike - otmPutStrike != otmCallStrike - atmStrike)
+            {
+                throw new ArgumentException("IronButterfly: intervals between exercise prices must be equal");
+            }
+            
+            var strategy = IronCondor(canonicalOption, otmPutStrike, atmStrike, atmStrike, otmCallStrike, expiration);
+            strategy.Name = OptionStrategyDefinitions.IronButterfly.Name;
+            return strategy;
+        }
+
+        /// <summary>
+        /// Creates a new Short Iron Butterfly strategy which consists of a long ATM call, a long ATM put, a short OTM call, and a short OTM put,
+        /// all with the same expiration date and with increasing strikes prices in the mentioned order.
+        /// <remarks>It is the inverse of an <see cref="IronButterfly" />.</remarks>
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="otmCallStrike">OTM call option strike price</param>
+        /// <param name="atmStrike">2 ATM options strike price</param>
+        /// <param name="otmPutStrike">OTM put option strike price</param>
+        /// <param name="expiration">Expiration date for all the options</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy ShortIronButterfly(Symbol canonicalOption, decimal otmPutStrike, decimal atmStrike, decimal otmCallStrike,
+            DateTime expiration)
+        {
+            return InvertStrategy(IronButterfly(canonicalOption, otmPutStrike, atmStrike, otmCallStrike, expiration),
+                OptionStrategyDefinitions.ShortIronButterfly.Name);
+        }
+
+        /// <summary>
         /// Creates a new Iron Condor strategy which consists of a long put, a short put, a short call and a long option,
         /// all with the same expiration date and with increasing strikes prices in the mentioned order.
         /// </summary>
@@ -778,7 +876,7 @@ namespace QuantConnect.Securities.Option
             CheckCanonicalOptionSymbol(canonicalOption, "IronCondor");
             CheckExpirationDate(expiration, "IronCondor", nameof(expiration));
 
-            if (longPutStrike >= shortPutStrike || shortPutStrike >= shortCallStrike || shortCallStrike >= longCallStrike)
+            if (longPutStrike >= shortPutStrike || shortPutStrike > shortCallStrike || shortCallStrike >= longCallStrike)
             {
                 throw new ArgumentException("IronCondor: strike prices must be in ascending order",
                     $"{nameof(longPutStrike)}, {nameof(shortPutStrike)}, {nameof(shortCallStrike)}, {nameof(longCallStrike)}");
@@ -809,6 +907,248 @@ namespace QuantConnect.Securities.Option
                     }
                 }
             };
+        }
+
+        /// <summary>
+        /// Creates a new Short Iron Condor strategy which consists of a short put, a long put, a long call and a short call,
+        /// all with the same expiration date and with increasing strikes prices in the mentioned order.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="shortPutStrike">Short put option strike price</param>
+        /// <param name="longPutStrike">Long put option strike price</param>
+        /// <param name="longCallStrike">Long call option strike price</param>
+        /// <param name="shortCallStrike">Short call option strike price</param>
+        /// <param name="expiration">Expiration date for all the options</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy ShortIronCondor(Symbol canonicalOption, decimal shortPutStrike, decimal longPutStrike, decimal longCallStrike,
+            decimal shortCallStrike, DateTime expiration)
+        {
+            return InvertStrategy(IronCondor(canonicalOption, shortPutStrike, longPutStrike, longCallStrike, shortCallStrike, expiration),
+                OptionStrategyDefinitions.ShortIronCondor.Name);
+        }
+
+        /// <summary>
+        /// Creates a Box Spread strategy which consists of a long call and a short put (buy side) of the same strikes,
+        /// coupled with a short call and a long put (sell side) of higher but same strikes. All options have the same expiry.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="higherStrike">The strike price of the sell side legs</param>
+        /// <param name="lowerStrike">The strike price of the buy side legs</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy BoxSpread(Symbol canonicalOption, decimal higherStrike, decimal lowerStrike, DateTime expiration)
+        {
+            if (higherStrike <= lowerStrike)
+            {
+                throw new ArgumentException($"BoxSpread: strike prices must be in descending order, {nameof(higherStrike)}, {nameof(lowerStrike)}");
+            }
+
+            // It is a combination of a BearPutSpread and a BullCallSpread with the same expiry and strikes
+            var bearPutSpread = BearPutSpread(canonicalOption, higherStrike, lowerStrike, expiration);
+            var bullCallSpread = BullCallSpread(canonicalOption, lowerStrike, higherStrike, expiration);
+
+            return new OptionStrategy
+            {
+                Name = OptionStrategyDefinitions.BoxSpread.Name,
+                Underlying = canonicalOption.Underlying,
+                CanonicalOption = canonicalOption,
+                OptionLegs = bearPutSpread.OptionLegs.Concat(bullCallSpread.OptionLegs).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Creates a Short Box Spread strategy which consists of a long call and a short put (buy side) of the same strikes,
+        /// coupled with a short call and a long put (sell side) of lower but same strikes. All options have the same expiry.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="higherStrike">The strike price of the buy side</param>
+        /// <param name="lowerStrike">The strike price of the sell side</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy ShortBoxSpread(Symbol canonicalOption, decimal higherStrike, decimal lowerStrike, DateTime expiration)
+        {
+            // Since a short box spread is an inverted box spread, we can just use the BoxSpread method and invert the legs
+            return InvertStrategy(BoxSpread(canonicalOption, higherStrike, lowerStrike, expiration), OptionStrategyDefinitions.ShortBoxSpread.Name);
+        }
+
+        /// <summary>
+        /// Creates new Jelly Roll strategy which combines a long call calendar spread and a short put calendar spread
+        /// with the same strikes and the same pair of expiration dates.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="strike">The strike price of the all legs</param>
+        /// <param name="nearExpiration">Near expiration date for the short call and the long put</param>
+        /// <param name="farExpiration">Far expiration date for the long call and the short put</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy JellyRoll(Symbol canonicalOption, decimal strike, DateTime nearExpiration, DateTime farExpiration)
+        {
+            var callCalendarSpread = CallCalendarSpread(canonicalOption, strike, nearExpiration, farExpiration);
+            var shortPutCalendarSpread = ShortPutCalendarSpread(canonicalOption, strike, nearExpiration, farExpiration);
+
+            return new OptionStrategy
+            {
+                Name = OptionStrategyDefinitions.JellyRoll.Name,
+                Underlying = canonicalOption.Underlying,
+                CanonicalOption = canonicalOption,
+                OptionLegs = callCalendarSpread.OptionLegs.Concat(shortPutCalendarSpread.OptionLegs).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Creates new Short Jelly Roll strategy which combines a long call calendar spread and a short put calendar spread
+        /// with the same strikes and the same pair of expiration dates.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="strike">The strike price of the all legs</param>
+        /// <param name="nearExpiration">Near expiration date for the short call and the long put</param>
+        /// <param name="farExpiration">Far expiration date for the long call and the short put</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy ShortJellyRoll(Symbol canonicalOption, decimal strike, DateTime nearExpiration, DateTime farExpiration)
+        {
+            return InvertStrategy(JellyRoll(canonicalOption, strike, nearExpiration, farExpiration), OptionStrategyDefinitions.ShortJellyRoll.Name);
+        }
+
+        /// <summary>
+        /// Method creates new Bear Call Ladder strategy, that consists of three calls with the same expiration but different strikes.
+        /// The strike price of the short call is below the strikes of the two long calls.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="lowerStrike">The strike price of the short call</param>
+        /// <param name="middleStrike">The middle strike price of one long call</param>
+        /// <param name="higherStrike">The strike price of one long call with higher strike price</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy BearCallLadder(
+            Symbol canonicalOption,
+            decimal lowerStrike,
+            decimal middleStrike,
+            decimal higherStrike,
+            DateTime expiration
+            )
+        {
+            CheckCanonicalOptionSymbol(canonicalOption, "BearCallLadder");
+            CheckExpirationDate(expiration, "BearCallLadder", nameof(expiration));
+
+            if (lowerStrike >= middleStrike || lowerStrike >= higherStrike || middleStrike >= higherStrike)
+            {
+                throw new ArgumentException("BearCallLadder: strike prices must be in ascending order", 
+                    $"{nameof(lowerStrike)}, {nameof(middleStrike)}, {nameof(higherStrike)}");
+            }
+
+            return new OptionStrategy
+            {
+                Name = OptionStrategyDefinitions.BearCallLadder.Name,
+                Underlying = canonicalOption.Underlying,
+                CanonicalOption = canonicalOption,
+                OptionLegs = new List<OptionStrategy.OptionLegData>
+                {
+                    new OptionStrategy.OptionLegData
+                    {
+                        Right = OptionRight.Call, Strike = lowerStrike, Quantity = -1, Expiration = expiration
+                    },
+                    new OptionStrategy.OptionLegData
+                    {
+                        Right = OptionRight.Call, Strike = middleStrike, Quantity = 1, Expiration = expiration
+                    },
+                    new OptionStrategy.OptionLegData
+                    {
+                        Right = OptionRight.Call, Strike = higherStrike, Quantity = 1, Expiration = expiration
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Method creates new Bear Put Ladder strategy, that consists of three puts with the same expiration but different strikes.
+        /// The strike price of the long put is above the strikes of the two short puts.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="higherStrike">The strike price of the long put</param>
+        /// <param name="middleStrike">The middle strike price of one short put</param>
+        /// <param name="lowerStrike">The strike price of one short put with lower strike price</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy BearPutLadder(
+            Symbol canonicalOption,
+            decimal higherStrike,
+            decimal middleStrike,
+            decimal lowerStrike,
+            DateTime expiration
+            )
+        {
+            CheckCanonicalOptionSymbol(canonicalOption, "BearPutLadder");
+            CheckExpirationDate(expiration, "BearPutLadder", nameof(expiration));
+
+            if (higherStrike <= middleStrike || higherStrike <= lowerStrike || middleStrike <= lowerStrike)
+            {
+                throw new ArgumentException("BearPutLadder: strike prices must be in descending order", 
+                    $"{nameof(higherStrike)}, {nameof(middleStrike)}, {nameof(lowerStrike)}");
+            }
+
+            return new OptionStrategy
+            {
+                Name = OptionStrategyDefinitions.BearPutLadder.Name,
+                Underlying = canonicalOption.Underlying,
+                CanonicalOption = canonicalOption,
+                OptionLegs = new List<OptionStrategy.OptionLegData>
+                {
+                    new OptionStrategy.OptionLegData
+                    {
+                        Right = OptionRight.Put, Strike = higherStrike, Quantity = 1,
+                        Expiration = expiration
+                    },
+                    new OptionStrategy.OptionLegData
+                    {
+                        Right = OptionRight.Put, Strike = middleStrike, Quantity = -1, Expiration = expiration
+                    },
+                    new OptionStrategy.OptionLegData
+                    {
+                        Right = OptionRight.Put, Strike = lowerStrike, Quantity = -1, Expiration = expiration
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Method creates new Bull Call Ladder strategy, that consists of three calls with the same expiration but different strikes.
+        /// The strike price of the long call is below the strikes of the two short calls.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="lowerStrike">The strike price of the long call</param>
+        /// <param name="middleStrike">The middle strike price of one short call</param>
+        /// <param name="higherStrike">The strike price of one short call with higher strike price</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy BullCallLadder(
+            Symbol canonicalOption,
+            decimal lowerStrike,
+            decimal middleStrike,
+            decimal higherStrike,
+            DateTime expiration
+            )
+        {
+            return InvertStrategy(BearCallLadder(canonicalOption, lowerStrike, middleStrike, higherStrike, expiration), OptionStrategyDefinitions.BullCallLadder.Name);
+        }
+
+        /// <summary>
+        /// Method creates new Bull Put Ladder strategy, that consists of three puts with the same expiration but different strikes.
+        /// The strike price of the short put is above the strikes of the two long puts.
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="higherStrike">The strike price of the short put</param>
+        /// <param name="middleStrike">The middle strike price of one long put</param>
+        /// <param name="lowerStrike">The strike price of one long put with lower strike price</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy BullPutLadder(
+            Symbol canonicalOption,
+            decimal higherStrike,
+            decimal middleStrike,
+            decimal lowerStrike,
+            DateTime expiration
+            )
+        {
+            return InvertStrategy(BearPutLadder(canonicalOption, higherStrike, middleStrike, lowerStrike, expiration), OptionStrategyDefinitions.BullPutLadder.Name);
         }
 
         /// <summary>

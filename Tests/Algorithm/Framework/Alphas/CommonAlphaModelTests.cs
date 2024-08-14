@@ -39,7 +39,7 @@ namespace QuantConnect.Tests.Algorithm.Framework.Alphas
     /// </summary>
     public abstract class CommonAlphaModelTests
     {
-        protected QCAlgorithm Algorithm;
+        protected QCAlgorithm Algorithm { get; set; }
 
         [OneTimeSetUp]
         public void Initialize()
@@ -332,7 +332,8 @@ namespace QuantConnect.Tests.Algorithm.Framework.Alphas
                 null,
                 false,
                 new DataPermissionManager(),
-                Algorithm.ObjectStore));
+                Algorithm.ObjectStore,
+                Algorithm.Settings));
         }
 
         /// <summary>

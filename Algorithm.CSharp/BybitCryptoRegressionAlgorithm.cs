@@ -60,14 +60,14 @@ namespace QuantConnect.Algorithm.CSharp
             _slow = EMA(_btcUsdt, 60, Resolution.Minute);
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (Portfolio.CashBook["USDT"].ConversionRate == 0 || Portfolio.CashBook["BTC"].ConversionRate == 0)
             {
                 Log($"USDT conversion rate: {Portfolio.CashBook["USDT"].ConversionRate}");
                 Log($"BTC conversion rate: {Portfolio.CashBook["BTC"].ConversionRate}");
 
-                throw new Exception("Conversion rate is 0");
+                throw new RegressionTestException("Conversion rate is 0");
             }
 
             if (!_slow.IsReady)
@@ -113,7 +113,7 @@ namespace QuantConnect.Algorithm.CSharp
             var btcAmount = Portfolio.CashBook["BTC"].Amount;
             if (btcAmount > 0)
             {
-                throw new Exception($"BTC holdings should be zero at the end of the algorithm, but was {btcAmount}");
+                throw new RegressionTestException($"BTC holdings should be zero at the end of the algorithm, but was {btcAmount}");
             }
         }
 
@@ -125,7 +125,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -138,18 +138,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 60;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "3"},
+            {"Total Orders", "3"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "117171.12"},
+            {"End Equity", "117244.50"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -165,7 +173,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "₮560000.00"},
             {"Lowest Capacity Asset", "BTCUSDT 2UZ"},
             {"Portfolio Turnover", "44.04%"},
-            {"OrderListHash", "fb30d137fffe2bc4195d261f0f195b69"}
+            {"OrderListHash", "7426da82dca9e493acbc53c7b9f449f0"}
         };
     }
 }

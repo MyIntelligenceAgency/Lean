@@ -13,7 +13,6 @@
  * limitations under the License.
 */
 
-using QuantConnect.Configuration;
 using QuantConnect.Interfaces;
 using QuantConnect.Logging;
 using QuantConnect.Util;
@@ -55,10 +54,7 @@ namespace QuantConnect.Data
 
                 lock (_lock)
                 {
-                    if (_riskFreeRateProvider == null)
-                    {
-                        LoadInterestRateProvider();
-                    }
+                    _riskFreeRateProvider ??= GetInterestRateProvider();
                     return _riskFreeRateProvider;
                 }
             }
@@ -84,25 +80,27 @@ namespace QuantConnect.Data
         /// <summary>
         /// Generate the daily historical US primary credit rate
         /// </summary>
-        protected void LoadInterestRateProvider()
+        protected static Dictionary<DateTime, decimal> GetInterestRateProvider()
         {
             var directory = Path.Combine(Globals.DataFolder, "alternative", "interest-rate", "usa",
                 "interest-rate.csv");
-            _riskFreeRateProvider = FromCsvFile(directory, out var previousInterestRate);
+            var riskFreeRateProvider = FromCsvFile(directory, out var previousInterestRate);
 
             _lastInterestRateDate = DateTime.UtcNow.Date;
 
             // Sparse the discrete data points into continuous credit rate data for every day
             for (var date = _firstInterestRateDate; date <= _lastInterestRateDate; date = date.AddDays(1))
             {
-                if (!_riskFreeRateProvider.TryGetValue(date, out var currentRate))
+                if (!riskFreeRateProvider.TryGetValue(date, out var currentRate))
                 {
-                    _riskFreeRateProvider[date] = previousInterestRate;
+                    riskFreeRateProvider[date] = previousInterestRate;
                     continue;
                 }
 
                 previousInterestRate = currentRate;
             }
+
+            return riskFreeRateProvider;
         }
 
         /// <summary>
@@ -113,8 +111,7 @@ namespace QuantConnect.Data
         /// <returns>Dictionary of historical credit rate change events</returns>
         public static Dictionary<DateTime, decimal> FromCsvFile(string file, out decimal firstInterestRate)
         {
-            var dataProvider = Composer.Instance.GetExportedValueByTypeName<IDataProvider>(
-                Config.Get("data-provider", "DefaultDataProvider"));
+            var dataProvider = Composer.Instance.GetPart<IDataProvider>();
 
             var firstInterestRateSet = false;
             firstInterestRate = DefaultRiskFreeRate;
@@ -161,7 +158,7 @@ namespace QuantConnect.Data
                 return false;
             }
 
-            if (!decimal.TryParse(line[1], out interestRate))
+            if (!decimal.TryParse(line[1], NumberStyles.Any, CultureInfo.InvariantCulture, out interestRate))
             {
                 Log.Error($"Couldn't parse primary credit rate while reading FED primary credit rate file. Line: {csvLine}");
                 return false;

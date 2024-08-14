@@ -89,7 +89,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (filledOrders.Count != 2)
             {
-                throw new Exception($"Expected 2 filled orders but found {filledOrders.Count}");
+                throw new RegressionTestException($"Expected 2 filled orders but found {filledOrders.Count}");
             }
         }
 
@@ -101,7 +101,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -114,18 +114,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 25;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "95130.3"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -141,7 +149,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$6000.00"},
             {"Lowest Capacity Asset", "GOOCV 30AKMELSHQVZA|GOOCV VP83T1ZUHROL"},
             {"Portfolio Turnover", "208.51%"},
-            {"OrderListHash", "3b38055cdc7e0643cc32f0ce24d651a9"}
+            {"OrderListHash", "80f3cfbffc903339387a788a4d35dad1"}
         };
     }
 }

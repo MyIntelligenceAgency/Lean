@@ -34,61 +34,52 @@ namespace QuantConnect.Packets
         /// <summary>
         /// Name of the backtest as randomly defined in the IDE.
         /// </summary>
-        [JsonProperty(PropertyName = "sName")]
-        public string Name = "";
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// BacktestId / Algorithm Id for this task
         /// </summary>
-        [JsonProperty(PropertyName = "sBacktestID")]
-        public string BacktestId = DefaultId;
+        public string BacktestId { get; set; } = DefaultId;
 
         /// <summary>
         /// Optimization Id for this task
         /// </summary>
-        [JsonProperty(PropertyName = "sOptimizationID")]
-        public string OptimizationId;
+        public string OptimizationId { get; set; }
 
         /// <summary>
         /// Backtest start-date as defined in the Initialize() method.
         /// </summary>
-        [JsonProperty(PropertyName = "dtPeriodStart")]
-        public DateTime? PeriodStart;
+        public DateTime? PeriodStart { get; set; }
 
         /// <summary>
         /// Backtest end date as defined in the Initialize() method.
         /// </summary>
-        [JsonProperty(PropertyName = "dtPeriodFinish")]
-        public DateTime? PeriodFinish;
+        public DateTime? PeriodFinish { get; set; }
 
         /// <summary>
         /// Backtest maximum end date
         /// </summary>
-        [JsonProperty(PropertyName = "dtOutOfSampleMaxEndDate")]
-        public DateTime? OutOfSampleMaxEndDate;
+        public DateTime? OutOfSampleMaxEndDate { get; set; }
 
         /// <summary>
         /// The backtest out of sample day count
         /// </summary>
-        [JsonProperty(PropertyName = "iOutOfSampleDays")]
-        public int OutOfSampleDays;
+        public int OutOfSampleDays { get; set; }
 
         /// <summary>
         /// Estimated number of trading days in this backtest task based on the start-end dates.
         /// </summary>
-        [JsonProperty(PropertyName = "iTradeableDates")]
-        public int TradeableDates = 0;
+        public int TradeableDates { get; set; }
 
         /// <summary>
         /// True, if this is a debugging backtest
         /// </summary>
-        [JsonProperty(PropertyName = "bDebugging")]
-        public bool IsDebugging;
+        public bool Debugging { get; set; }
 
         /// <summary>
         /// Optional initial cash amount if set
         /// </summary>
-        public CashAmount? CashAmount;
+        public CashAmount? CashAmount { get; set; }
 
         /// <summary>
         /// Algorithm running mode.

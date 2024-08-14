@@ -62,7 +62,8 @@ namespace QuantConnect.Tests.Algorithm.Framework.Portfolio
                 i => { },
                 true,
                 new DataPermissionManager(),
-                _algorithm.ObjectStore));
+                _algorithm.ObjectStore,
+                _algorithm.Settings));
 
             _simplexTestArray = new List<double> {0.2d, 0.5d, 0.4d, -0.1d, 0d};
             _simplexExpectedArray1 = new double[] {1d/6, 7d/15, 11d/30, 0d, 0d};
@@ -74,7 +75,7 @@ namespace QuantConnect.Tests.Algorithm.Framework.Portfolio
         public void DoesNotReturnTargetsIfSecurityPriceIsZero(Language language)
         {
             _algorithm.AddEquity(Symbols.SPY.Value);
-            _algorithm.SetDateTime(DateTime.MinValue.ConvertToUtc(_algorithm.TimeZone));
+            _algorithm.SetDateTime(_nowUtc.ConvertToUtc(_algorithm.TimeZone));
 
             SetPortfolioConstruction(language, PortfolioBias.Long);
 

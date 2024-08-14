@@ -36,6 +36,8 @@ using QuantConnect.Securities.Forex;
 using QuantConnect.Securities.Option;
 using QuantConnect.Statistics;
 using QuantConnect.Util;
+using QuantConnect.Data.Market;
+using QuantConnect.Data.Fundamental;
 using System.Collections.Concurrent;
 using QuantConnect.Securities.Future;
 using QuantConnect.Securities.Crypto;
@@ -50,7 +52,6 @@ using Index = QuantConnect.Securities.Index.Index;
 using QuantConnect.Securities.CryptoFuture;
 using QuantConnect.Algorithm.Framework.Alphas.Analysis;
 using QuantConnect.Algorithm.Framework.Portfolio.SignalExports;
-using QuantConnect.Data.Fundamental;
 
 namespace QuantConnect.Algorithm
 {
@@ -81,9 +82,23 @@ namespace QuantConnect.Algorithm
         const string StatisticsTag = "Statistics";
         #endregion
 
+        /// <summary>
+        /// Maximum length of the name or tags of a backtest
+        /// </summary>
+        protected const int MaxNameAndTagsLength = 200;
+
+        /// <summary>
+        /// Maximum number of tags allowed for a backtest
+        /// </summary>
+        protected const int MaxTagsCount = 100;
+
         private readonly TimeKeeper _timeKeeper;
         private LocalTimeKeeper _localTimeKeeper;
 
+        private string _name;
+        private HashSet<string> _tags;
+        private bool _tagsLimitReachedLogSent;
+        private bool _tagsCollectionTruncatedLogSent;
         private DateTime _start;
         private DateTime _startDate;   //Default start and end dates.
         private DateTime _endDate;     //Default end to yesterday
@@ -136,6 +151,7 @@ namespace QuantConnect.Algorithm
         public QCAlgorithm()
         {
             Name = GetType().Name;
+            Tags = new();
             Status = AlgorithmStatus.Running;
 
             // AlgorithmManager will flip this when we're caught up with realtime
@@ -166,7 +182,7 @@ namespace QuantConnect.Algorithm
             DefaultOrderProperties = new OrderProperties();
 
             //Initialise Data Manager
-            SubscriptionManager = new SubscriptionManager();
+            SubscriptionManager = new SubscriptionManager(_timeKeeper);
 
             Securities = new SecurityManager(_timeKeeper);
             Transactions = new SecurityTransactionManager(this, Securities);
@@ -190,7 +206,7 @@ namespace QuantConnect.Algorithm
             UniverseSettings = new UniverseSettings(Resolution.Minute, Security.NullLeverage, true, false, TimeSpan.FromDays(1));
 
             // initialize our scheduler, this acts as a liason to the real time handler
-            Schedule = new ScheduleManager(Securities, TimeZone);
+            Schedule = new ScheduleManager(Securities, TimeZone, MarketHoursDatabase);
 
             // initialize the trade builder
             SetTradeBuilder(new TradeBuilder(FillGroupingMethod.FillToFill, FillMatchingMethod.FIFO));
@@ -472,9 +488,68 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(HandlingData)]
         public string Name
         {
-            get;
-            set;
+            get
+            {
+                return _name;
+            }
+            set
+            {
+                if (_locked)
+                {
+                    throw new InvalidOperationException("Cannot set algorithm name after it is initialized.");
+                }
+
+                if (!string.IsNullOrEmpty(value))
+                {
+                    _name = value.Truncate(MaxNameAndTagsLength);
+                }
+            }
         }
+
+        /// <summary>
+        /// A list of tags associated with the algorithm or the backtest, useful for categorization
+        /// </summary>
+        [DocumentationAttribute(HandlingData)]
+        public HashSet<string> Tags
+        {
+            get
+            {
+                return _tags;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    return;
+                }
+
+                var tags = value.Where(x => !string.IsNullOrEmpty(x?.Trim())).ToList();
+
+                if (tags.Count > MaxTagsCount && !_tagsCollectionTruncatedLogSent)
+                {
+                    Log($"Warning: The tags collection cannot contain more than {MaxTagsCount} items. It will be truncated.");
+                    _tagsCollectionTruncatedLogSent = true;
+                }
+
+                _tags = tags.Take(MaxTagsCount).ToHashSet(tag => tag.Truncate(MaxNameAndTagsLength));
+                if (_locked)
+                {
+                    TagsUpdated?.Invoke(this, Tags);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Event fired algorithm's name is changed
+        /// </summary>
+        [DocumentationAttribute(HandlingData)]
+        public event AlgorithmEvent<string> NameUpdated;
+
+        /// <summary>
+        /// Event fired when the tag collection is updated
+        /// </summary>
+        [DocumentationAttribute(HandlingData)]
+        public event AlgorithmEvent<HashSet<string>> TagsUpdated;
 
         /// <summary>
         /// Read-only value for current time frontier of the algorithm in terms of the <see cref="TimeZone"/>
@@ -732,7 +807,7 @@ namespace QuantConnect.Algorithm
                 }
             }
 
-            if(TryGetWarmupHistoryStartTime(out var result))
+            if (TryGetWarmupHistoryStartTime(out var result))
             {
                 SetDateTime(result.ConvertToUtc(TimeZone));
             }
@@ -949,7 +1024,7 @@ namespace QuantConnect.Algorithm
                     .Where(x => x.Name == "OnData")
                     .Where(x => x.DeclaringType != typeof(QCAlgorithm))
                     .Where(x => x.GetParameters().Length == 1)
-                    .FirstOrDefault(x => x.GetParameters()[0].ParameterType == typeof (Slice));
+                    .FirstOrDefault(x => x.GetParameters()[0].ParameterType == typeof(Slice));
 
                 if (method == null)
                 {
@@ -957,7 +1032,7 @@ namespace QuantConnect.Algorithm
                 }
 
                 var self = Expression.Constant(this);
-                var parameter = Expression.Parameter(typeof (Slice), "data");
+                var parameter = Expression.Parameter(typeof(Slice), "data");
                 var call = Expression.Call(self, method, parameter);
                 var lambda = Expression.Lambda<Action<Slice>>(call, parameter);
                 _onDataSlice = lambda.Compile();
@@ -970,6 +1045,42 @@ namespace QuantConnect.Algorithm
         }
 
         /// <summary>
+        /// Event handler to be called when there's been a split event
+        /// </summary>
+        /// <param name="splits">The current time slice splits</param>
+        [DocumentationAttribute(HandlingData)]
+        public virtual void OnSplits(Splits splits)
+        {
+        }
+
+        /// <summary>
+        /// Event handler to be called when there's been a dividend event
+        /// </summary>
+        /// <param name="dividends">The current time slice dividends</param>
+        [DocumentationAttribute(HandlingData)]
+        public virtual void OnDividends(Dividends dividends)
+        {
+        }
+
+        /// <summary>
+        /// Event handler to be called when there's been a delistings event
+        /// </summary>
+        /// <param name="delistings">The current time slice delistings</param>
+        [DocumentationAttribute(HandlingData)]
+        public virtual void OnDelistings(Delistings delistings)
+        {
+        }
+
+        /// <summary>
+        /// Event handler to be called when there's been a symbol changed event
+        /// </summary>
+        /// <param name="symbolsChanged">The current time slice symbol changed events</param>
+        [DocumentationAttribute(HandlingData)]
+        public virtual void OnSymbolChangedEvents(SymbolChangedEvents symbolsChanged)
+        {
+        }
+
+        /// <summary>
         /// Event fired each time the we add/remove securities from the data feed
         /// </summary>
         /// <param name="changes">Security additions/removals for this time step</param>
@@ -978,72 +1089,6 @@ namespace QuantConnect.Algorithm
         public virtual void OnSecuritiesChanged(SecurityChanges changes)
         {
         }
-
-        // <summary>
-        // Event - v2.0 TRADEBAR EVENT HANDLER: (Pattern) Basic template for user to override when requesting tradebar data.
-        // </summary>
-        // <param name="data"></param>
-        //public void OnData(TradeBars data)
-        //{
-        //
-        //}
-
-        // <summary>
-        // Event - v2.0 QUOTEBAR EVENT HANDLER: (Pattern) Basic template for user to override when requesting quotebar data.
-        // </summary>
-        // <param name="data"></param>
-        //public void OnData(QuoteBars data)
-        //{
-        //
-        //}
-
-        // <summary>
-        // Event - v2.0 TICK EVENT HANDLER: (Pattern) Basic template for user to override when requesting tick data.
-        // </summary>
-        // <param name="data">List of Tick Data</param>
-        //public void OnData(Ticks data)
-        //{
-        //
-        //}
-
-        // <summary>
-        // Event - v2.0 OPTIONCHAIN EVENT HANDLER: (Pattern) Basic template for user to override when requesting option data.
-        // </summary>
-        // <param name="data">List of Tick Data</param>
-        //public void OnData(OptionChains data)
-        //{
-        //
-        //}
-
-        // <summary>
-        // Event - v2.0 SPLIT EVENT HANDLER: (Pattern) Basic template for user to override when inspecting split data.
-        // </summary>
-        // <param name="data">IDictionary of Split Data Keyed by Symbol String</param>
-        //public void OnData(Splits data)
-        //{
-        //
-        //}
-
-        // <summary>
-        // Event - v2.0 DIVIDEND EVENT HANDLER: (Pattern) Basic template for user to override when inspecting dividend data
-        // </summary>
-        // <param name="data">IDictionary of Dividend Data Keyed by Symbol String</param>
-        //public void OnData(Dividends data)
-        //{
-        //
-        //}
-
-        // <summary>
-        // Event - v2.0 DELISTING EVENT HANDLER: (Pattern) Basic template for user to override when inspecting delisting data
-        // </summary>
-        // <param name="data">IDictionary of Delisting Data Keyed by Symbol String</param>
-        //public void OnData(Delistings data)
-
-        // <summary>
-        // Event - v2.0 SYMBOL CHANGED EVENT HANDLER: (Pattern) Basic template for user to override when inspecting symbol changed data
-        // </summary>
-        // <param name="data">IDictionary of SymbolChangedEvent Data Keyed by Symbol String</param>
-        //public void OnData(SymbolChangedEvents data)
 
         /// <summary>
         /// Margin call event handler. This method is called right before the margin call orders are placed in the market.
@@ -1412,6 +1457,50 @@ namespace QuantConnect.Algorithm
         }
 
         /// <summary>
+        /// Sets name to the currently running backtest
+        /// </summary>
+        /// <param name="name">The name for the backtest</param>
+        public void SetName(string name)
+        {
+            Name = name;
+        }
+
+        /// <summary>
+        /// Adds a tag to the algorithm
+        /// </summary>
+        /// <param name="tag">The tag to add</param>
+        public void AddTag(string tag)
+        {
+            if (!string.IsNullOrEmpty(tag?.Trim()))
+            {
+                if (Tags.Count >= MaxTagsCount)
+                {
+                    if (!_tagsLimitReachedLogSent)
+                    {
+                        Log($"Warning: AddTag({tag}): Unable to add tag. Tags are limited to a maximum of {MaxTagsCount}.");
+                        _tagsLimitReachedLogSent = true;
+                    }
+                    return;
+                }
+
+                // We'll only notify the tad update after the algorithm has been initialized
+                if (Tags.Add(tag.Truncate(MaxNameAndTagsLength)) && _locked)
+                {
+                    TagsUpdated?.Invoke(this, Tags);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets the tags for the algorithm
+        /// </summary>
+        /// <param name="tags">The tags</param>
+        public void SetTags(HashSet<string> tags)
+        {
+            Tags = tags;
+        }
+
+        /// <summary>
         /// Sets the account currency cash symbol this algorithm is to manage, as well as
         /// the starting cash in this currency if given
         /// </summary>
@@ -1645,6 +1734,10 @@ namespace QuantConnect.Algorithm
         public void SetLocked()
         {
             _locked = true;
+
+            // The algorithm is initialized, we can now send the initial name and tags updates
+            NameUpdated?.Invoke(this, Name);
+            TagsUpdated?.Invoke(this, Tags);
         }
 
         /// <summary>
@@ -2201,7 +2294,7 @@ namespace QuantConnect.Algorithm
         public Option AddOptionContract(Symbol symbol, Resolution? resolution = null, bool fillForward = true,
             decimal leverage = Security.NullLeverage, bool extendedMarketHours = false)
         {
-            if(symbol == null || !symbol.SecurityType.IsOption() || symbol.Underlying == null)
+            if (symbol == null || !symbol.SecurityType.IsOption() || symbol.Underlying == null)
             {
                 throw new ArgumentException($"Unexpected option symbol {symbol}. " +
                     $"Please provide a valid option contract with it's underlying symbol set.");
@@ -2218,6 +2311,11 @@ namespace QuantConnect.Algorithm
                 underlyingSecurity = AddSecurity(underlying, resolution, fillForward, leverage, extendedMarketHours);
                 underlyingConfigs = SubscriptionManager.SubscriptionDataConfigService
                     .GetSubscriptionDataConfigs(underlying);
+            }
+            else if (underlyingSecurity != null && underlyingSecurity.IsDelisted)
+            {
+                throw new ArgumentException($"The underlying {underlying.SecurityType} asset ({underlying.Value}) is delisted " +
+                    $"(current time is {Time})");
             }
             else
             {
@@ -2251,7 +2349,8 @@ namespace QuantConnect.Algorithm
             Universe universe;
             if (!UniverseManager.TryGetValue(universeSymbol, out universe))
             {
-                var settings = new UniverseSettings(UniverseSettings) {
+                var settings = new UniverseSettings(UniverseSettings)
+                {
                     DataNormalizationMode = DataNormalizationMode.Raw,
                     Resolution = underlyingConfigs.GetHighestResolution(),
                     ExtendedMarketHours = extendedMarketHours
@@ -2583,7 +2682,7 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(Logging)]
         public void Debug(string message)
         {
-            if (!_liveMode && (message == "" || _previousDebugMessage == message)) return;
+            if (!_liveMode && (string.IsNullOrEmpty(message) || _previousDebugMessage == message)) return;
             _debugMessages.Enqueue(message);
             _previousDebugMessage = message;
         }
@@ -2633,7 +2732,7 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(Logging)]
         public void Log(string message)
         {
-            if (!_liveMode && message == "") return;
+            if (!_liveMode && string.IsNullOrEmpty(message)) return;
             _logMessages.Enqueue(message);
         }
 
@@ -2682,7 +2781,7 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(Logging)]
         public void Error(string message)
         {
-            if (!_liveMode && (message == "" || _previousErrorMessage == message)) return;
+            if (!_liveMode && (string.IsNullOrEmpty(message) || _previousErrorMessage == message)) return;
             _errorMessages.Enqueue(message);
             _previousErrorMessage = message;
         }
@@ -2733,7 +2832,7 @@ namespace QuantConnect.Algorithm
         public void Error(Exception error)
         {
             var message = error.Message;
-            if (!_liveMode && (message == "" || _previousErrorMessage == message)) return;
+            if (!_liveMode && (string.IsNullOrEmpty(message) || _previousErrorMessage == message)) return;
             _errorMessages.Enqueue(message);
             _previousErrorMessage = message;
         }
@@ -2819,7 +2918,7 @@ namespace QuantConnect.Algorithm
                 dataMappingMode: mappingMode ?? UniverseSettings.DataMappingMode);
             var security = Securities.CreateSecurity(symbol, configs, leverage);
 
-            return (T) AddToUserDefinedUniverse(security, configs);
+            return (T)AddToUserDefinedUniverse(security, configs);
         }
 
         /// <summary>
@@ -2927,7 +3026,6 @@ namespace QuantConnect.Algorithm
         /// Event invocator for the <see cref="InsightsGenerated"/> event
         /// </summary>
         /// <param name="insights">The collection of insights generaed at the current time step</param>
-        /// <param name="clone">Will emit a clone of the generated insights</param>
         [DocumentationAttribute(AlgorithmFramework)]
         private void OnInsightsGenerated(Insight[] insights)
         {

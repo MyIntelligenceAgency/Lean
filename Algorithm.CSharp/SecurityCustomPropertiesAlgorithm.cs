@@ -60,7 +60,7 @@ namespace QuantConnect.Algorithm.CSharp
             _dynamicSpy.OrdersFeesPrices = new Dictionary<int, decimal>();
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!_dynamicSpy.FastEma.IsReady)
             {
@@ -94,7 +94,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var expectedFee = _dynamicSpy.OrdersFeesPrices[orderEvent.OrderId] * orderEvent.AbsoluteFillQuantity * _dynamicSpy.FeeFactor;
                 if (fee.Value.Amount != expectedFee)
                 {
-                    throw new Exception($"Custom fee model failed to set the correct fee. Expected: {expectedFee}. Actual: {fee.Value.Amount}");
+                    throw new RegressionTestException($"Custom fee model failed to set the correct fee. Expected: {expectedFee}. Actual: {fee.Value.Amount}");
                 }
             }
         }
@@ -103,7 +103,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (Transactions.OrdersCount == 0)
             {
-                throw new Exception("No orders executed");
+                throw new RegressionTestException("No orders executed");
             }
         }
 
@@ -143,7 +143,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -156,18 +156,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "30"},
+            {"Total Orders", "31"},
             {"Average Win", "0.43%"},
             {"Average Loss", "-0.08%"},
             {"Compounding Annual Return", "84.608%"},
             {"Drawdown", "0.800%"},
             {"Expectancy", "0.628"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100786.91"},
             {"Net Profit", "0.787%"},
             {"Sharpe Ratio", "12.062"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "88.912%"},
             {"Loss Rate", "73%"},
             {"Win Rate", "27%"},
@@ -183,7 +191,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$7300000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "597.29%"},
-            {"OrderListHash", "e6af3324f38e8ad846515e3e7c047380"}
+            {"OrderListHash", "947ae7fbc63fb8cc499f96ac92ee3394"}
         };
     }
 }

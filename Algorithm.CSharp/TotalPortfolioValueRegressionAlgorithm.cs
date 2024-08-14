@@ -52,8 +52,8 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             if (Portfolio.Invested)
             {
@@ -76,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (totalPortfolioValueSnapshot * 1.1m != Portfolio.TotalPortfolioValue)
                 {
-                    throw new Exception($"Unexpected TotalPortfolioValue {Portfolio.TotalPortfolioValue}." +
+                    throw new RegressionTestException($"Unexpected TotalPortfolioValue {Portfolio.TotalPortfolioValue}." +
                         $" Expected: {totalPortfolioValueSnapshot * 1.1m}");
                 }
 
@@ -85,7 +85,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (totalPortfolioValueSnapshot * 1.05m != Portfolio.TotalPortfolioValue)
                 {
-                    throw new Exception($"Unexpected TotalPortfolioValue {Portfolio.TotalPortfolioValue}." +
+                    throw new RegressionTestException($"Unexpected TotalPortfolioValue {Portfolio.TotalPortfolioValue}." +
                         $" Expected: {totalPortfolioValueSnapshot * 1.05m}");
                 }
 
@@ -93,7 +93,7 @@ namespace QuantConnect.Algorithm.CSharp
                 Portfolio.CashBook[AccountCurrency].SetAmount(existingAmount);
                 if (totalPortfolioValueSnapshot != Portfolio.TotalPortfolioValue)
                 {
-                    throw new Exception($"Unexpected TotalPortfolioValue {Portfolio.TotalPortfolioValue}." +
+                    throw new RegressionTestException($"Unexpected TotalPortfolioValue {Portfolio.TotalPortfolioValue}." +
                         $" Expected: {totalPortfolioValueSnapshot}");
                 }
             }
@@ -107,7 +107,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -120,18 +120,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "3528"},
+            {"Total Orders", "3542"},
             {"Average Win", "0.68%"},
             {"Average Loss", "-0.71%"},
             {"Compounding Annual Return", "15.587%"},
             {"Drawdown", "64.100%"},
             {"Expectancy", "0.019"},
+            {"Start Equity", "100000"},
+            {"End Equity", "115586.59"},
             {"Net Profit", "15.587%"},
             {"Sharpe Ratio", "0.696"},
+            {"Sortino Ratio", "0.834"},
             {"Probabilistic Sharpe Ratio", "29.597%"},
             {"Loss Rate", "48%"},
             {"Win Rate", "52%"},
@@ -147,7 +155,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$510000.00"},
             {"Lowest Capacity Asset", "BNO UN3IMQ2JU1YD"},
             {"Portfolio Turnover", "602.27%"},
-            {"OrderListHash", "dfad90b050446bd2ad9ff62c79ccd5d6"}
+            {"OrderListHash", "878a294fac97d47e9a917e85866cedf9"}
         };
     }
 }

@@ -35,9 +35,9 @@ namespace QuantConnect.Algorithm.CSharp
         // We assert the following occur in FIFO order in OnOrderEvent
         private readonly Queue<string> _expectedEvents = new Queue<string>(new[]
         {
-            "Time: 10/10/2013 13:31:00 OrderID: 72 EventID: 399 Symbol: SPY Status: Filled Quantity: -1 FillQuantity: -1 FillPrice: 144.6434 USD LimitPrice: 144.3551 TriggerPrice: 143.61 OrderFee: 1 USD",
-            "Time: 10/10/2013 15:57:00 OrderID: 73 EventID: 156 Symbol: SPY Status: Filled Quantity: -1 FillQuantity: -1 FillPrice: 145.6636 USD LimitPrice: 145.6434 TriggerPrice: 144.89 OrderFee: 1 USD",
-            "Time: 10/11/2013 15:37:00 OrderID: 74 EventID: 380 Symbol: SPY Status: Filled Quantity: -1 FillQuantity: -1 FillPrice: 146.7185 USD LimitPrice: 146.6723 TriggerPrice: 145.92 OrderFee: 1 USD"        });
+            "Time: 10/10/2013 13:31:00 OrderID: 72 EventID: 399 Symbol: SPY Status: Filled Quantity: -1 FillQuantity: -1 FillPrice: $144.6434 LimitPrice: $144.3551 TriggerPrice: $143.61 OrderFee: 1 USD",
+            "Time: 10/10/2013 15:57:00 OrderID: 73 EventID: 156 Symbol: SPY Status: Filled Quantity: -1 FillQuantity: -1 FillPrice: $145.6636 LimitPrice: $145.6434 TriggerPrice: $144.89 OrderFee: 1 USD",
+            "Time: 10/11/2013 15:37:00 OrderID: 74 EventID: 380 Symbol: SPY Status: Filled Quantity: -1 FillQuantity: -1 FillPrice: $146.7185 LimitPrice: $146.6723 TriggerPrice: $145.92 OrderFee: 1 USD"        });
 
         /// <summary>
         /// Initialise the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized.
@@ -54,10 +54,10 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            if (!data.ContainsKey("SPY"))
+            if (!slice.ContainsKey("SPY"))
             {
                 return;
             }
@@ -70,14 +70,14 @@ namespace QuantConnect.Algorithm.CSharp
                 _negative = goLong ? 1 : -1;
                 var orderRequest = new SubmitOrderRequest(OrderType.LimitIfTouched, SecurityType.Equity, "SPY",
                     _negative * 10, 0,
-                    data["SPY"].Price - (decimal) _negative, data["SPY"].Price - (decimal) 0.25 * _negative, UtcTime,
+                    slice["SPY"].Price - (decimal) _negative, slice["SPY"].Price - (decimal) 0.25 * _negative, UtcTime,
                     $"LIT - Quantity: {_negative * 10}");
                 _request = Transactions.AddOrder(orderRequest);
                 return;
-                
+
             }
 
-            // Order updating if request exists 
+            // Order updating if request exists
             if (_request != null)
             {
                 if (_request.Quantity == 1)
@@ -105,7 +105,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (orderEvent.ToString() != expected)
                 {
-                    throw new Exception($"orderEvent {orderEvent.Id} differed from {expected}");
+                    throw new RegressionTestException($"orderEvent {orderEvent.Id} differed from {expected}. Actual {orderEvent}");
                 }
             }
         }
@@ -118,7 +118,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages => new[] { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -131,18 +131,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "3"},
+            {"Total Orders", "75"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-0.601%"},
             {"Drawdown", "0.000%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99992.29"},
             {"Net Profit", "-0.008%"},
             {"Sharpe Ratio", "-34.372"},
+            {"Sortino Ratio", "-110.972"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -158,7 +166,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$4400000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.09%"},
-            {"OrderListHash", "f66c7bff8484989d0472d7d03cdba4bb"}
+            {"OrderListHash", "70e29c5d9168728385ee48b92f2ef56c"}
         };
     }
 }

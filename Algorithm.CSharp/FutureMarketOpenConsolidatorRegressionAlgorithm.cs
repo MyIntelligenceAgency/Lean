@@ -17,7 +17,7 @@ using System;
 using System.Collections.Generic;
 using QuantConnect.Interfaces;
 using QuantConnect.Data;
-using QuantConnect.Data.Consolidators;
+using QuantConnect.Util;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -64,33 +64,8 @@ namespace QuantConnect.Algorithm.CSharp
 
             Consolidate<BaseData>(es.Symbol, dataTime =>
             {
-                var start = es.Exchange.Hours.GetPreviousMarketOpen(dataTime, ExtendedMarketHours);
-                var end = es.Exchange.Hours.GetNextMarketClose(start, ExtendedMarketHours);
-
-                if (ExtendedMarketHours)
-                {
-                    // market might open at 16:30 and close again at 17:00 but we are not interested in using the close so we skip it here
-                    while (end.Date == start.Date)
-                    {
-                        end = es.Exchange.Hours.GetNextMarketClose(end, ExtendedMarketHours);
-                    }
-                } else
-                {
-                    // Let's not consider regular market gaps like when market closes at 16:15 and opens again at 16:30
-                    while (true)
-                    {
-                        var potentialEnd = es.Exchange.Hours.GetNextMarketClose(end, ExtendedMarketHours);
-                        if (potentialEnd.Date != end.Date)
-                        {
-                            break;
-                        }
-                        end = potentialEnd;
-                    }
-                }
-
-                var period = end - start;
                 // based on the given data time we return the start time of it's bar and the expected period size
-                return new CalendarInfo(start, period);
+                return LeanData.GetDailyCalendar(dataTime, es.Exchange, ExtendedMarketHours);
             }, bar => Assert(bar));
         }
 
@@ -101,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (open != bar.Time || close != bar.EndTime)
             {
-                throw new Exception($"Bar span was expected to be from {open} to {close}. " +
+                throw new RegressionTestException($"Bar span was expected to be from {open} to {close}. " +
                     $"\n But was from {bar.Time} to {bar.EndTime}.");
             }
 
@@ -113,12 +88,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public virtual Language[] Languages { get; } = { Language.CSharp };
+        public virtual List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public virtual long DataPoints => 32062;
+        public virtual long DataPoints => 32071;
 
         /// </summary>
         /// Data Points count of the algorithm history
@@ -126,18 +101,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

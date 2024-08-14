@@ -61,7 +61,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!Portfolio.Invested)
             {
@@ -69,7 +69,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (order != null)
                 {
-                    throw new Exception($"Unexpected open order {order}");
+                    throw new RegressionTestException($"Unexpected open order {order}");
                 }
 
                 EmitInsights(Insight.Price(_symbol, Resolution.Daily, 10, InsightDirection.Down));
@@ -79,12 +79,12 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (order == null)
                 {
-                    throw new Exception("Expected open order for emitted insight");
+                    throw new RegressionTestException("Expected open order for emitted insight");
                 }
                 if (order.Direction != OrderDirection.Sell
                     || order.Symbol != _symbol)
                 {
-                    throw new Exception($"Unexpected open order for emitted insight: {order}");
+                    throw new RegressionTestException($"Unexpected open order for emitted insight: {order}");
                 }
 
                 SetHoldings(_symbol, 1);
@@ -96,7 +96,7 @@ namespace QuantConnect.Algorithm.CSharp
             var holdings = Securities[_symbol].Holdings;
             if (Math.Sign(holdings.Quantity) != -1)
             {
-                throw new Exception("Unexpected holdings");
+                throw new RegressionTestException("Unexpected holdings");
             }
         }
 
@@ -108,7 +108,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -121,18 +121,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "5"},
+            {"Total Orders", "6"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.02%"},
             {"Compounding Annual Return", "-72.241%"},
             {"Drawdown", "2.900%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "98259.71"},
             {"Net Profit", "-1.740%"},
             {"Sharpe Ratio", "-3.018"},
+            {"Sortino Ratio", "-3.766"},
             {"Probabilistic Sharpe Ratio", "24.616%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -148,7 +156,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$540000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "100.02%"},
-            {"OrderListHash", "a73b68f79311d1b9510c6b5e80ad0a58"}
+            {"OrderListHash", "2f1cb4d9ca245eeab8ff432e85b4f221"}
         };
     }
 }

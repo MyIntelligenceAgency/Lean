@@ -68,9 +68,9 @@ namespace QuantConnect.Algorithm.CSharp
             _btcUsd.BaseCurrency.SetAmount(0.005m);
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
-            var interestRates = data.Get<MarginInterestRate>();
+            var interestRates = slice.Get<MarginInterestRate>();
             foreach (var interestRate in interestRates)
             {
                 _interestPerSymbol[interestRate.Key]++;
@@ -78,7 +78,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var cachedInterestRate = Securities[interestRate.Key].Cache.GetData<MarginInterestRate>();
                 if (cachedInterestRate != interestRate.Value)
                 {
-                    throw new Exception($"Unexpected cached margin interest rate for {interestRate.Key}!");
+                    throw new RegressionTestException($"Unexpected cached margin interest rate for {interestRate.Key}!");
                 }
             }
 
@@ -94,7 +94,7 @@ namespace QuantConnect.Algorithm.CSharp
                     var ticket = Buy(_btcUsd.Symbol, 1000);
                     if (ticket.Status != OrderStatus.Invalid)
                     {
-                        throw new Exception($"Unexpected valid order {ticket}, should fail due to margin not sufficient");
+                        throw new RegressionTestException($"Unexpected valid order {ticket}, should fail due to margin not sufficient");
                     }
 
                     Buy(_btcUsd.Symbol, 100);
@@ -106,17 +106,17 @@ namespace QuantConnect.Algorithm.CSharp
                     var holdingsValueBtcUsd = 100;
                     if (Math.Abs(btcUsdHoldings.TotalSaleVolume - holdingsValueBtcUsd) > 1)
                     {
-                        throw new Exception($"Unexpected TotalSaleVolume {btcUsdHoldings.TotalSaleVolume}");
+                        throw new RegressionTestException($"Unexpected TotalSaleVolume {btcUsdHoldings.TotalSaleVolume}");
                     }
                     if (Math.Abs(btcUsdHoldings.AbsoluteHoldingsCost - holdingsValueBtcUsd) > 1)
                     {
-                        throw new Exception($"Unexpected holdings cost {btcUsdHoldings.HoldingsCost}");
+                        throw new RegressionTestException($"Unexpected holdings cost {btcUsdHoldings.HoldingsCost}");
                     }
                     // margin used is based on the maintenance rate
                     if (Math.Abs(btcUsdHoldings.AbsoluteHoldingsCost * 0.05m - marginUsed) > 1
                         || _btcUsd.BuyingPowerModel.GetMaintenanceMargin(_btcUsd) != marginUsed)
                     {
-                        throw new Exception($"Unexpected margin used {marginUsed}");
+                        throw new RegressionTestException($"Unexpected margin used {marginUsed}");
                     }
 
                     Buy(_btcUsdt.Symbol, 0.01);
@@ -129,28 +129,28 @@ namespace QuantConnect.Algorithm.CSharp
 
                     if (Math.Abs(btcUsdtHoldings.TotalSaleVolume - holdingsValueUsdt) > 1)
                     {
-                        throw new Exception($"Unexpected TotalSaleVolume {btcUsdtHoldings.TotalSaleVolume}");
+                        throw new RegressionTestException($"Unexpected TotalSaleVolume {btcUsdtHoldings.TotalSaleVolume}");
                     }
                     if (Math.Abs(btcUsdtHoldings.AbsoluteHoldingsCost - holdingsValueUsdt) > 1)
                     {
-                        throw new Exception($"Unexpected holdings cost {btcUsdtHoldings.HoldingsCost}");
+                        throw new RegressionTestException($"Unexpected holdings cost {btcUsdtHoldings.HoldingsCost}");
                     }
                     if (Math.Abs(btcUsdtHoldings.AbsoluteHoldingsCost * 0.05m - marginUsed) > 1
                         || _btcUsdt.BuyingPowerModel.GetMaintenanceMargin(_btcUsdt) != marginUsed)
                     {
-                        throw new Exception($"Unexpected margin used {marginUsed}");
+                        throw new RegressionTestException($"Unexpected margin used {marginUsed}");
                     }
 
                     // position just opened should be just spread here
                     var unrealizedProfit = Portfolio.TotalUnrealizedProfit;
                     if ((5 - Math.Abs(unrealizedProfit)) < 0)
                     {
-                        throw new Exception($"Unexpected TotalUnrealizedProfit {Portfolio.TotalUnrealizedProfit}");
+                        throw new RegressionTestException($"Unexpected TotalUnrealizedProfit {Portfolio.TotalUnrealizedProfit}");
                     }
 
                     if (Portfolio.TotalProfit != 0)
                     {
-                        throw new Exception($"Unexpected TotalProfit {Portfolio.TotalProfit}");
+                        throw new RegressionTestException($"Unexpected TotalProfit {Portfolio.TotalProfit}");
                     }
                 }
             }
@@ -163,7 +163,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (Math.Abs(btcUsdHoldings.AbsoluteHoldingsCost - 100 * 2) > 1)
                 {
-                    throw new Exception($"Unexpected holdings cost {btcUsdHoldings.HoldingsCost}");
+                    throw new RegressionTestException($"Unexpected holdings cost {btcUsdHoldings.HoldingsCost}");
                 }
 
                 Sell(_btcUsdt.Symbol, 0.03);
@@ -175,19 +175,19 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (Math.Abs(btcUsdtHoldings.AbsoluteHoldingsCost - holdingsValueUsdt) > 1)
                 {
-                    throw new Exception($"Unexpected holdings cost {btcUsdtHoldings.HoldingsCost}");
+                    throw new RegressionTestException($"Unexpected holdings cost {btcUsdtHoldings.HoldingsCost}");
                 }
 
                 // position just opened should be just spread here
                 var profit = Portfolio.TotalUnrealizedProfit;
                 if ((5 - Math.Abs(profit)) < 0)
                 {
-                    throw new Exception($"Unexpected TotalUnrealizedProfit {Portfolio.TotalUnrealizedProfit}");
+                    throw new RegressionTestException($"Unexpected TotalUnrealizedProfit {Portfolio.TotalUnrealizedProfit}");
                 }
                 // we barely did any difference on the previous trade
                 if ((5 - Math.Abs(Portfolio.TotalProfit)) < 0)
                 {
-                    throw new Exception($"Unexpected TotalProfit {Portfolio.TotalProfit}");
+                    throw new RegressionTestException($"Unexpected TotalProfit {Portfolio.TotalProfit}");
                 }
             }
         }
@@ -204,7 +204,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (_interestPerSymbol.Any(kvp => kvp.Value == 0))
             {
-                throw new Exception("Expected interest rate data for all symbols");
+                throw new RegressionTestException("Expected interest rate data for all symbols");
             }
         }
 
@@ -216,7 +216,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -229,18 +229,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 60;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "4"},
+            {"Total Orders", "5"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100285.86"},
+            {"End Equity", "100285.26"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -256,7 +264,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$200000000.00"},
             {"Lowest Capacity Asset", "BTCUSDT 2V3"},
             {"Portfolio Turnover", "1.08%"},
-            {"OrderListHash", "114cfc5cfe796850f7ac29c2e63407d6"}
+            {"OrderListHash", "0157a5c7c2c8a8c13e984b72721aa0ca"}
         };
     }
 }

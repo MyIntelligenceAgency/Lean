@@ -40,15 +40,16 @@ namespace QuantConnect.Tests.Common.Data.UniverseSelection
             _timekeeper = new TimeKeeper(new DateTime(2000, 1, 1), _timezone);
             _securities = new SecurityManager(_timekeeper);
 
-            _dateRules = new DateRules(_securities, _timezone);
-            _timeRules = new TimeRules(_securities, _timezone);
+            var mhdb = MarketHoursDatabase.FromDataFolder();
+            _dateRules = new DateRules(_securities, _timezone, mhdb);
+            _timeRules = new TimeRules(_securities, _timezone, mhdb);
         }
 
         [Test]
         public void TimeTriggeredDoesNotReturnPastTimes()
         {
             // Schedule our universe for 12PM each day
-            var universe = new ScheduledUniverse( 
+            using var universe = new ScheduledUniverse( 
                 _dateRules.EveryDay(), _timeRules.At(12, 0),
                 (time =>
                 {
@@ -95,7 +96,7 @@ namespace QuantConnect.Tests.Common.Data.UniverseSelection
             var dateRule = _dateRules.EveryDay();
             var timeRule = _timeRules.At(12, 0);
 
-            var universe = new ScheduledUniverse(dateRule, timeRule, time =>
+            using var universe = new ScheduledUniverse(dateRule, timeRule, time =>
             {
                 return new List<Symbol>();
             });

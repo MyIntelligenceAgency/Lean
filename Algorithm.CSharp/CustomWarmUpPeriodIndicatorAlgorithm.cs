@@ -59,11 +59,11 @@ namespace QuantConnect.Algorithm.CSharp
             // Check _customWarmUp indicator has already been warmed up with the requested data
             if (!_customWarmUp.IsReady)
             {
-                throw new Exception("_customWarmUp indicator was expected to be ready");
+                throw new RegressionTestException("_customWarmUp indicator was expected to be ready");
             }
             if (_customWarmUp.Samples != 60)
             {
-                throw new Exception("_customWarmUp indicator was expected to have processed 60 datapoints already");
+                throw new RegressionTestException("_customWarmUp indicator was expected to have processed 60 datapoints already");
             }
 
             // Try to warm up _customNotWarmUp indicator. It's expected from LEAN to skip the warm up process
@@ -73,33 +73,33 @@ namespace QuantConnect.Algorithm.CSharp
             // Check _customNotWarmUp indicator is not ready, because the warm up process was skipped
             if (_customNotWarmUp.IsReady)
             {
-                throw new Exception("_customNotWarmUp indicator wasn't expected to be warmed up");
+                throw new RegressionTestException("_customNotWarmUp indicator wasn't expected to be warmed up");
             }
 
             WarmUpIndicator("SPY", _customNotInherit, Resolution.Minute);
             // Check _customWarmUp indicator has already been warmed up with the requested data
             if (!_customNotInherit.IsReady)
             {
-                throw new Exception("_customNotInherit indicator was expected to be ready");
+                throw new RegressionTestException("_customNotInherit indicator was expected to be ready");
             }
             if (_customNotInherit.Samples != 60)
             {
-                throw new Exception("_customNotInherit indicator was expected to have processed 60 datapoints already");
+                throw new RegressionTestException("_customNotInherit indicator was expected to have processed 60 datapoints already");
             }
 
             WarmUpIndicator("SPY", _duplicateSMA, Resolution.Minute);
             // Check _customWarmUp indicator has already been warmed up with the requested data
             if (!_duplicateSMA.IsReady)
             {
-                throw new Exception("_duplicateSMA indicator was expected to be ready");
+                throw new RegressionTestException("_duplicateSMA indicator was expected to be ready");
             }
             if (_duplicateSMA.Samples != 60)
             {
-                throw new Exception("_duplicateSMA indicator was expected to have processed 60 datapoints already");
+                throw new RegressionTestException("_duplicateSMA indicator was expected to have processed 60 datapoints already");
             }
         }
 
-        public void OnData(TradeBars data)
+        public override void OnData(Slice slice)
         {
             if (!Portfolio.Invested)
             {
@@ -119,13 +119,13 @@ namespace QuantConnect.Algorithm.CSharp
                 // Check _customNotWarmUp indicator is ready when the number of samples is bigger than its period
                 if (_customNotWarmUp.IsReady != (_customNotWarmUp.Samples >= 60))
                 {
-                    throw new Exception("_customNotWarmUp indicator was expected to be ready when the number of samples were bigger that its WarmUpPeriod parameter");
+                    throw new RegressionTestException("_customNotWarmUp indicator was expected to be ready when the number of samples were bigger that its WarmUpPeriod parameter");
                 }
 
                 // Check their values are the same when both are ready
                 if (diff > 1e-10m && _customNotWarmUp.IsReady && _customWarmUp.IsReady) 
                 {
-                    throw new Exception($"The values of the indicators are not the same. The difference is {diff}");
+                    throw new RegressionTestException($"The values of the indicators are not the same. The difference is {diff}");
                 }
             }
         }
@@ -183,7 +183,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -196,18 +196,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 360;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "272.157%"},
             {"Drawdown", "2.200%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "101694.38"},
             {"Net Profit", "1.694%"},
             {"Sharpe Ratio", "8.863"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "67.609%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -223,7 +231,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$310000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "19.96%"},
-            {"OrderListHash", "323a9d2cc3a7383013096d28aab66367"}
+            {"OrderListHash", "8c925e7c6c10ff1da3a40669accba91a"}
         };
     }
 }

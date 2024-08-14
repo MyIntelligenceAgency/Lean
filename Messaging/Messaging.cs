@@ -19,7 +19,6 @@ using QuantConnect.Notifications;
 using QuantConnect.Packets;
 using QuantConnect.Util;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace QuantConnect.Messaging
@@ -113,13 +112,9 @@ namespace QuantConnect.Messaging
         /// </summary>
         public void SendNotification(Notification notification)
         {
-            var type = notification.GetType();
-            if (type == typeof(NotificationEmail)
-             || type == typeof(NotificationWeb)
-             || type == typeof(NotificationSms)
-             || type == typeof(NotificationTelegram))
+            if (!notification.CanSend())
             {
-                Log.Error("Messaging.SendNotification(): Send not implemented for notification of type: " + type.Name);
+                Log.Error("Messaging.SendNotification(): Send not implemented for notification of type: " + notification.GetType().Name);
                 return;
             }
             notification.Send();

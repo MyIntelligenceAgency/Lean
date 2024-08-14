@@ -46,17 +46,17 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            foreach (var kvp in data)
+            foreach (var kvp in slice)
             {
                 var symbol = kvp.Key;
                 _dataPointsPerSymbol[symbol]++;
 
                 if (symbol == "EURUSD" && kvp.Value.IsFillForward)
                 {
-                    throw new Exception($"Unexpected fill forward for 'EURUSD' bar at {Time}");
+                    throw new RegressionTestException($"Unexpected fill forward for 'EURUSD' bar at {Time}");
                 }
             }
         }
@@ -71,7 +71,7 @@ namespace QuantConnect.Algorithm.CSharp
                 // data from '10/7/2013 12:00:00 AM' to '10/9/2013 12:00:00 AM'
                 || _dataPointsPerSymbol["EURUSD"] != 49)
             {
-                throw new Exception($"Data point count mismatch for symbol {string.Join(",", _dataPointsPerSymbol.Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
+                throw new RegressionTestException($"Data point count mismatch for symbol {string.Join(",", _dataPointsPerSymbol.Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
             }
         }
 
@@ -83,7 +83,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -96,18 +96,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 189;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000.00"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

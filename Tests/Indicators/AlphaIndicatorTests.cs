@@ -34,7 +34,9 @@ namespace QuantConnect.Tests.Indicators
 
         protected override IndicatorBase<IBaseDataBar> CreateIndicator()
         {
+            #pragma warning disable CS0618
             var indicator = new Alpha("testAlphaIndicator", "AMZN 2T", "SPX 2T", 5);
+            #pragma warning restore CS0618
             return indicator;
         }
         [Test]
@@ -85,6 +87,22 @@ namespace QuantConnect.Tests.Indicators
             }
 
             Assert.AreEqual(2 * warmUpPeriod.Value, indicator.Samples);
+        }
+
+        [Test]
+        public override void WorksWithLowValues()
+        {
+            var indicator = new Alpha("testAlphaIndicator", Symbols.IBM, Symbols.SPY, 10);
+            var warmUpPeriod = (indicator as IIndicatorWarmUpPeriodProvider)?.WarmUpPeriod;
+
+            var random = new Random();
+            var time = DateTime.UtcNow;
+            for (int i = 0; i < 2 * warmUpPeriod; i++)
+            {
+                var value = (decimal)(random.NextDouble() * 0.000000000000000000000000000001);
+                Assert.DoesNotThrow(() => indicator.Update(new TradeBar() { Symbol = Symbols.IBM, Low = value, High = value, Volume = 100, Close = value, Time = _reference.AddDays(1 + i) }));
+                Assert.DoesNotThrow(() => indicator.Update(new TradeBar() { Symbol = Symbols.SPY, Low = value, High = value, Volume = 100, Close = value, Time = _reference.AddDays(1 + i) }));
+            }
         }
 
         [Test]

@@ -23,6 +23,7 @@ using QuantConnect.Orders;
 using QuantConnect.Orders.Fees;
 using QuantConnect.Securities;
 using QuantConnect.Securities.Cfd;
+using QuantConnect.Securities.Crypto;
 using QuantConnect.Securities.Forex;
 using QuantConnect.Securities.Future;
 using QuantConnect.Securities.FutureOption;
@@ -97,6 +98,34 @@ namespace QuantConnect.Tests.Common.Orders.Fees
 
             Assert.AreEqual(Currencies.USD, fee.Value.Currency);
             Assert.AreEqual(1000 * expectedFee, fee.Value.Amount);
+        }
+
+        [TestCase("USD", 70000, 0.00002 * 70000)]
+        [TestCase("USD", 100000, 0.00002 * 100000)]
+        [TestCase("USD", 10000, 1)] // The calculated fee will be under 1, but the minimum fee is 1 USD
+        [TestCase("JPY", 3000000, 0.00002 * 3000000)]
+        [TestCase("JPY", 1000000, 40)]// The calculated fee will be under 40, but the minimum fee is 40 JPY
+        [TestCase("HKD", 600000, 0.00002 * 600000)]
+        [TestCase("HKD", 200000, 10)]// The calculated fee will be under 10, but the minimum fee is 10 HKD
+        public void CalculatesCFDFee(string quoteCurrency, decimal price, decimal expectedFee)
+        {
+            var security = new Cfd(Symbols.DE10YBEUR,
+                SecurityExchangeHours.AlwaysOpen(TimeZones.NewYork),
+                new Cash(quoteCurrency, 0, 0),
+                SymbolProperties.GetDefault(quoteCurrency),
+                ErrorCurrencyConverter.Instance,
+                RegisteredSecurityDataTypesProvider.Null,
+                new SecurityCache());
+            security.QuoteCurrency.ConversionRate = 1;
+
+
+            security.SetMarketPrice(new Tick(DateTime.UtcNow, security.Symbol, price, price));
+
+            var order = new MarketOrder(security.Symbol, 1, DateTime.UtcNow);
+            var fee = _feeModel.GetOrderFee(new OrderFeeParameters(security, order));
+
+            Assert.AreEqual(quoteCurrency, fee.Value.Currency);
+            Assert.AreEqual(expectedFee, fee.Value.Amount);
         }
 
         [TestCase(OrderType.ComboMarket, 0.01, 250)]
@@ -256,13 +285,15 @@ namespace QuantConnect.Tests.Common.Orders.Fees
                 () =>
                 {
                     var tz = TimeZones.NewYork;
-                    var security = new Cfd(
+                    var security = new Crypto(
+                        Symbols.BTCUSD,
                         SecurityExchangeHours.AlwaysOpen(tz),
-                        new Cash("EUR", 0, 0),
-                        new SubscriptionDataConfig(typeof(QuoteBar), Symbols.DE30EUR, Resolution.Minute, tz, tz, true, false, false),
-                        new SymbolProperties("DE30EUR", "EUR", 1, 0.01m, 1m, string.Empty),
+                        new Cash("USD", 0, 0),
+                        new Cash("BTC", 0, 0),
+                        SymbolProperties.GetDefault("USD"),
                         ErrorCurrencyConverter.Instance,
-                        RegisteredSecurityDataTypesProvider.Null
+                        RegisteredSecurityDataTypesProvider.Null,
+                        new SecurityCache()
                     );
                     security.SetMarketPrice(new Tick(DateTime.UtcNow, security.Symbol, 12000, 12000));
 
@@ -300,7 +331,7 @@ namespace QuantConnect.Tests.Common.Orders.Fees
                 new { Symbol = Futures.Financials.MicroY30TreasuryBond, Type = SecurityType.Future, ExpectedFee = 0.57m },
                 new { Symbol = Futures.Metals.MicroGold, Type = SecurityType.Future, ExpectedFee = 0.57m },
                 new { Symbol = Futures.Metals.MicroSilver, Type = SecurityType.Future, ExpectedFee = 0.57m },
-                new { Symbol = Futures.Energies.MicroCrudeOilWTI, Type = SecurityType.Future, ExpectedFee = 0.57m },
+                new { Symbol = Futures.Energy.MicroCrudeOilWTI, Type = SecurityType.Future, ExpectedFee = 0.57m },
                 // Micro E-mini Future options
                 new { Symbol = Futures.Indices.MicroDow30EMini, Type = SecurityType.FutureOption, ExpectedFee = 0.47m },
                 new { Symbol = Futures.Indices.MicroRussell2000EMini, Type = SecurityType.FutureOption, ExpectedFee = 0.47m },
@@ -312,7 +343,7 @@ namespace QuantConnect.Tests.Common.Orders.Fees
                 new { Symbol = Futures.Financials.MicroY30TreasuryBond, Type = SecurityType.FutureOption, ExpectedFee = 0.47m },
                 new { Symbol = Futures.Metals.MicroGold, Type = SecurityType.FutureOption, ExpectedFee = 0.47m },
                 new { Symbol = Futures.Metals.MicroSilver, Type = SecurityType.FutureOption, ExpectedFee = 0.47m },
-                new { Symbol = Futures.Energies.MicroCrudeOilWTI, Type = SecurityType.FutureOption, ExpectedFee = 0.47m },
+                new { Symbol = Futures.Energy.MicroCrudeOilWTI, Type = SecurityType.FutureOption, ExpectedFee = 0.47m },
                 // Cryptocurrency futures
                 new { Symbol = Futures.Currencies.BTC, Type = SecurityType.Future, ExpectedFee = 11.02m },
                 new { Symbol = Futures.Currencies.ETH, Type = SecurityType.Future, ExpectedFee = 7.02m },
@@ -341,26 +372,26 @@ namespace QuantConnect.Tests.Common.Orders.Fees
                 // Other futures
                 new { Symbol = Futures.Metals.MicroGoldTAS, Type = SecurityType.Future, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Metals.MicroPalladium, Type = SecurityType.Future, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroGasoilZeroPointOnePercentBargesFOBARAPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroEuropeanThreePointFivePercentFuelOilCargoesFOBMedPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroCoalAPIFivefobNewcastleArgusMcCloskey, Type = SecurityType.Future, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroSingaporeFuelOil380CSTPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroEuropeanThreePointFivePercentOilBargesFOBRdamPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroEuropeanFOBRdamMarineFuelZeroPointFivePercentBargesPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroSingaporeFOBMarineFuelZeroPointFivePercetPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroGasoilZeroPointOnePercentBargesFOBARAPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroEuropeanThreePointFivePercentFuelOilCargoesFOBMedPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroCoalAPIFivefobNewcastleArgusMcCloskey, Type = SecurityType.Future, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroSingaporeFuelOil380CSTPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroEuropeanThreePointFivePercentOilBargesFOBRdamPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroEuropeanFOBRdamMarineFuelZeroPointFivePercentBargesPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroSingaporeFOBMarineFuelZeroPointFivePercetPlatts, Type = SecurityType.Future, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Currencies.USD, Type = SecurityType.Future, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Currencies.CAD, Type = SecurityType.Future, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Currencies.EUR, Type = SecurityType.Future, ExpectedFee = 2.47m },
                 // Other future options
                 new { Symbol = Futures.Metals.MicroGoldTAS, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Metals.MicroPalladium, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroGasoilZeroPointOnePercentBargesFOBARAPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroEuropeanThreePointFivePercentFuelOilCargoesFOBMedPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroCoalAPIFivefobNewcastleArgusMcCloskey, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroSingaporeFuelOil380CSTPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroEuropeanThreePointFivePercentOilBargesFOBRdamPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroEuropeanFOBRdamMarineFuelZeroPointFivePercentBargesPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
-                new { Symbol = Futures.Energies.MicroSingaporeFOBMarineFuelZeroPointFivePercetPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroGasoilZeroPointOnePercentBargesFOBARAPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroEuropeanThreePointFivePercentFuelOilCargoesFOBMedPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroCoalAPIFivefobNewcastleArgusMcCloskey, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroSingaporeFuelOil380CSTPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroEuropeanThreePointFivePercentOilBargesFOBRdamPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroEuropeanFOBRdamMarineFuelZeroPointFivePercentBargesPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
+                new { Symbol = Futures.Energy.MicroSingaporeFOBMarineFuelZeroPointFivePercetPlatts, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Currencies.USD, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Currencies.CAD, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },
                 new { Symbol = Futures.Currencies.EUR, Type = SecurityType.FutureOption, ExpectedFee = 2.47m },

@@ -47,12 +47,12 @@ namespace QuantConnect.Securities
         /// <summary>
         /// Local access to the securities collection for the portfolio summation.
         /// </summary>
-        public SecurityManager Securities;
+        public SecurityManager Securities { get; init; }
 
         /// <summary>
         /// Local access to the transactions collection for the portfolio summation and updates.
         /// </summary>
-        public SecurityTransactionManager Transactions;
+        public SecurityTransactionManager Transactions { get; init; }
 
         /// <summary>
         /// Local access to the position manager
@@ -230,18 +230,18 @@ namespace QuantConnect.Securities
         }
 
         /// <summary>
-        /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the Symbol objects of the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// Gets an <see cref="System.Collections.Generic.ICollection{T}"/> containing the Symbol objects of the <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </summary>
         /// <returns>
-        /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the Symbol objects of the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// An <see cref="System.Collections.Generic.ICollection{T}"/> containing the Symbol objects of the object that implements <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </returns>
         protected override IEnumerable<Symbol> GetKeys => Keys;
 
         /// <summary>
-        /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// Gets an <see cref="System.Collections.Generic.ICollection{T}"/> containing the values in the <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </summary>
         /// <returns>
-        /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// An <see cref="System.Collections.Generic.ICollection{T}"/> containing the values in the object that implements <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </returns>
         protected override IEnumerable<SecurityHolding> GetValues => Securities.Select(pair => pair.Value.Holdings);
 
@@ -387,7 +387,7 @@ namespace QuantConnect.Securities
         }
 
         /// <summary>
-        /// Alias for HoldStock. Check if we have and holdings.
+        /// Alias for HoldStock. Check if we have any holdings.
         /// </summary>
         /// <seealso cref="HoldStock"/>
         public bool Invested => HoldStock;
@@ -815,26 +815,9 @@ namespace QuantConnect.Securities
                 _baseCurrencyCash.AddAmount(leftOver * split.ReferencePrice * split.SplitFactor);
                 return;
             }
-            next.Value *= split.SplitFactor;
 
-            // make sure to modify open/high/low as well for tradebar data types
-            var tradeBar = next as TradeBar;
-            if (tradeBar != null)
-            {
-                tradeBar.Open *= split.SplitFactor;
-                tradeBar.High *= split.SplitFactor;
-                tradeBar.Low *= split.SplitFactor;
-            }
-
-            // make sure to modify bid/ask as well for tradebar data types
-            var tick = next as Tick;
-            if (tick != null)
-            {
-                tick.AskPrice *= split.SplitFactor;
-                tick.BidPrice *= split.SplitFactor;
-            }
-
-            security.SetMarketPrice(next);
+            security.ApplySplit(split);
+            // The data price should have been adjusted already
             _baseCurrencyCash.AddAmount(leftOver * next.Price);
 
             // security price updated

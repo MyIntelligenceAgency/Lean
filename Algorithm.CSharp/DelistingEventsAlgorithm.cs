@@ -54,17 +54,17 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            _dataCount += data.Bars.Count;
+            _dataCount += slice.Bars.Count;
             if (Transactions.OrdersCount == 0)
             {
                 SetHoldings("AAA.1", 1);
                 Debug("Purchased Stock");
             }
 
-            foreach (var kvp in data.Bars)
+            foreach (var kvp in slice.Bars)
             {
                 var symbol = kvp.Key;
                 var tradeBar = kvp.Value;
@@ -76,14 +76,14 @@ namespace QuantConnect.Algorithm.CSharp
             var aaa = Securities["AAA.1"];
             if (aaa.IsDelisted && aaa.IsTradable)
             {
-                throw new Exception("Delisted security must NOT be tradable");
+                throw new RegressionTestException("Delisted security must NOT be tradable");
             }
             if (!aaa.IsDelisted && !aaa.IsTradable)
             {
-                throw new Exception("Securities must be marked as tradable until they're delisted or removed from the universe");
+                throw new RegressionTestException("Securities must be marked as tradable until they're delisted or removed from the universe");
             }
 
-            foreach (var kvp in data.Delistings)
+            foreach (var kvp in slice.Delistings)
             {
                 var symbol = kvp.Key;
                 var delisting = kvp.Value;
@@ -126,19 +126,19 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!_receivedDelistedEvent)
             {
-                throw new Exception("Did not receive expected delisted event");
+                throw new RegressionTestException("Did not receive expected delisted event");
             }
             if (!_receivedDelistedWarningEvent)
             {
-                throw new Exception("Did not receive expected delisted warning event");
+                throw new RegressionTestException("Did not receive expected delisted warning event");
             }
             if (_dataCount != 13)
             {
-                throw new Exception($"Unexpected data count {_dataCount}. Expected 13");
+                throw new RegressionTestException($"Unexpected data count {_dataCount}. Expected 13");
             }
             if (_receivedSecurityChangesEvent != 1)
             {
-                throw new Exception($"Did not receive expected security changes removal! Got {_receivedSecurityChangesEvent}");
+                throw new RegressionTestException($"Did not receive expected security changes removal! Got {_receivedSecurityChangesEvent}");
             }
         }
 
@@ -150,7 +150,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -163,18 +163,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "-5.58%"},
             {"Compounding Annual Return", "-87.694%"},
             {"Drawdown", "5.600%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "94421.6"},
             {"Net Profit", "-5.578%"},
             {"Sharpe Ratio", "-5.122"},
+            {"Sortino Ratio", "-6.562"},
             {"Probabilistic Sharpe Ratio", "0.008%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -190,7 +198,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$65000.00"},
             {"Lowest Capacity Asset", "AAA SEVKGI6HF885"},
             {"Portfolio Turnover", "20.16%"},
-            {"OrderListHash", "e9f56f907bce4be693f9cfb61f572121"}
+            {"OrderListHash", "e956792307b884e3c46e95b29c1563f6"}
         };
     }
 }

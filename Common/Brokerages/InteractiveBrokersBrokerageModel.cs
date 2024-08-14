@@ -18,8 +18,6 @@ using System.Collections.Generic;
 using System.Linq;
 using QuantConnect.Util;
 using QuantConnect.Benchmarks;
-using QuantConnect.Data.Shortable;
-using QuantConnect.Interfaces;
 using QuantConnect.Orders;
 using QuantConnect.Orders.Fees;
 using QuantConnect.Orders.TimeInForces;
@@ -47,7 +45,7 @@ namespace QuantConnect.Brokerages
             {SecurityType.Future, Market.CME},
             {SecurityType.FutureOption, Market.CME},
             {SecurityType.Forex, Market.Oanda},
-            {SecurityType.Cfd, Market.Oanda}
+            {SecurityType.Cfd, Market.InteractiveBrokers}
         }.ToReadOnlyDictionary();
 
         private readonly Type[] _supportedTimeInForces =
@@ -110,6 +108,21 @@ namespace QuantConnect.Brokerages
         }
 
         /// <summary>
+        /// Gets the brokerage's leverage for the specified security
+        /// </summary>
+        /// <param name="security">The security's whose leverage we seek</param>
+        /// <returns>The leverage for the specified security</returns>
+        public override decimal GetLeverage(Security security)
+        {
+            if (AccountType == AccountType.Cash)
+            {
+                return 1m;
+            }
+
+            return security.Type == SecurityType.Cfd ? 10m : base.GetLeverage(security);
+        }
+
+        /// <summary>
         /// Returns true if the brokerage could accept this order. This takes into account
         /// order type, security type, and order size limits.
         /// </summary>
@@ -132,6 +145,18 @@ namespace QuantConnect.Brokerages
 
                 return false;
             }
+            else if (order.Type == OrderType.MarketOnClose && security.Type != SecurityType.Future && security.Type != SecurityType.Equity)
+            {
+                message = new BrokerageMessageEvent(BrokerageMessageType.Warning, $"Unsupported order type for {security.Type} security type",
+                    "InteractiveBrokers does not support Market-on-Close orders for other security types different than Future and Equity.");
+                return false;
+            }
+            else if (order.Type == OrderType.MarketOnOpen && security.Type != SecurityType.Equity && !security.Type.IsOption())
+            {
+                message = new BrokerageMessageEvent(BrokerageMessageType.Warning, $"Unsupported order type for {security.Type} security type",
+                    "InteractiveBrokers does not support Market-on-Open orders for other security types different than Option and Equity.");
+                return false;
+            }
 
             // validate security type
             if (security.Type != SecurityType.Equity &&
@@ -140,7 +165,8 @@ namespace QuantConnect.Brokerages
                 security.Type != SecurityType.Future &&
                 security.Type != SecurityType.FutureOption &&
                 security.Type != SecurityType.Index &&
-                security.Type != SecurityType.IndexOption)
+                security.Type != SecurityType.IndexOption &&
+                security.Type != SecurityType.Cfd)
             {
                 message = new BrokerageMessageEvent(BrokerageMessageType.Warning, "NotSupported",
                     Messages.DefaultBrokerageModel.UnsupportedSecurityType(this, security));

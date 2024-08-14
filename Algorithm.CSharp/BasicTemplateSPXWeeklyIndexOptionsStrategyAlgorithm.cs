@@ -48,7 +48,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             // weekly option SPX contracts
             var spxw = AddIndexOption(spx, "SPXW");
-            spxw.SetFilter(u => u.Strikes(0, 1)
+            spxw.SetFilter(u => u.Strikes(-1, +1)
                  // single week ahead since there are many SPXW contracts and we want to preserve performance
                  .Expiration(0, 7)
                  .IncludeWeeklys());
@@ -66,7 +66,7 @@ namespace QuantConnect.Algorithm.CSharp
             OptionChain chain;
             if (slice.OptionChains.TryGetValue(_spxOption, out chain))
             {
-                // we find the first expiration group of call options and order them in ascending strike 
+                // we find the first expiration group of call options and order them in ascending strike
                 var contracts = chain
                     .Where(x => x.Right == OptionRight.Call)
                     .OrderBy(x => x.Expiry)
@@ -92,7 +92,7 @@ namespace QuantConnect.Algorithm.CSharp
             Debug(orderEvent.ToString());
             if (orderEvent.Symbol.ID.Symbol != "SPXW")
             {
-                throw new Exception("Unexpected order event symbol!");
+                throw new RegressionTestException("Unexpected order event symbol!");
             }
         }
 
@@ -104,12 +104,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public virtual Language[] Languages { get; } = { Language.CSharp };
+        public virtual List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public virtual long DataPoints => 35451;
+        public virtual long DataPoints => 40968;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -117,34 +117,42 @@ namespace QuantConnect.Algorithm.CSharp
         public virtual int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "4"},
-            {"Average Win", "0.12%"},
-            {"Average Loss", "0.00%"},
-            {"Compounding Annual Return", "8.975%"},
+            {"Total Orders", "10"},
+            {"Average Win", "0.47%"},
+            {"Average Loss", "-0.01%"},
+            {"Compounding Annual Return", "101.998%"},
             {"Drawdown", "0.100%"},
-            {"Expectancy", "62.078"},
-            {"Net Profit", "0.110%"},
-            {"Sharpe Ratio", "-14.495"},
-            {"Probabilistic Sharpe Ratio", "1.216%"},
+            {"Expectancy", "24.484"},
+            {"Start Equity", "1000000"},
+            {"End Equity", "1009050"},
+            {"Net Profit", "0.905%"},
+            {"Sharpe Ratio", "8.44"},
+            {"Sortino Ratio", "0"},
+            {"Probabilistic Sharpe Ratio", "95.546%"},
             {"Loss Rate", "50%"},
             {"Win Rate", "50%"},
-            {"Profit-Loss Ratio", "125.16"},
-            {"Alpha", "-0.014"},
-            {"Beta", "0.001"},
-            {"Annual Standard Deviation", "0"},
+            {"Profit-Loss Ratio", "49.97"},
+            {"Alpha", "-2.01"},
+            {"Beta", "0.307"},
+            {"Annual Standard Deviation", "0.021"},
             {"Annual Variance", "0"},
-            {"Information Ratio", "-103.223"},
-            {"Tracking Error", "0.069"},
-            {"Treynor Ratio", "-4.479"},
+            {"Information Ratio", "-144.654"},
+            {"Tracking Error", "0.048"},
+            {"Treynor Ratio", "0.589"},
             {"Total Fees", "$0.00"},
-            {"Estimated Strategy Capacity", "$1800000.00"},
+            {"Estimated Strategy Capacity", "$13000000.00"},
             {"Lowest Capacity Asset", "SPXW XKX6S2GM9PGU|SPX 31"},
-            {"Portfolio Turnover", "0.03%"},
-            {"OrderListHash", "3d5b18554d5e10a5edaed0c7cb298192"}
+            {"Portfolio Turnover", "0.28%"},
+            {"OrderListHash", "c1a9bc141ae25c9542b93a887e79dafe"}
         };
     }
 }

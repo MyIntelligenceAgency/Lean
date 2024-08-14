@@ -195,7 +195,11 @@ namespace QuantConnect.Brokerages
             switch (brokerage)
             {
                 case BrokerageName.Default:
+                case BrokerageName.TerminalLink:
                     return new DefaultBrokerageModel(accountType);
+
+                case BrokerageName.Alpaca:
+                    return new AlpacaBrokerageModel();
 
                 case BrokerageName.InteractiveBrokersBrokerage:
                     return new InteractiveBrokersBrokerageModel(accountType);
@@ -226,6 +230,9 @@ namespace QuantConnect.Brokerages
 
                 case BrokerageName.GDAX:
                     return new GDAXBrokerageModel(accountType);
+
+                case BrokerageName.Coinbase:
+                    return new CoinbaseBrokerageModel(accountType);
 
                 case BrokerageName.AlphaStreams:
                     return new AlphaStreamsBrokerageModel(accountType);
@@ -272,6 +279,9 @@ namespace QuantConnect.Brokerages
                 case BrokerageName.Bitstamp:
                     return new BitstampBrokerageModel(accountType);
 
+                case BrokerageName.TradeStation:
+                    return new TradeStationBrokerageModel(accountType);
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(brokerage), brokerage, null);
             }
@@ -294,6 +304,9 @@ namespace QuantConnect.Brokerages
             // Case order matters to ensure we get the correct brokerage name from the inheritance chain
             switch (model)
             {
+                case AlpacaBrokerageModel:
+                    return BrokerageName.Alpaca;
+
                 case InteractiveBrokersBrokerageModel _:
                     return BrokerageName.InteractiveBrokersBrokerage;
 
@@ -317,6 +330,9 @@ namespace QuantConnect.Brokerages
 
                 case GDAXBrokerageModel _:
                     return BrokerageName.GDAX;
+
+                case CoinbaseBrokerageModel _:
+                    return BrokerageName.Coinbase;
 
                 case AlphaStreamsBrokerageModel _:
                     return BrokerageName.AlphaStreams;
@@ -362,6 +378,9 @@ namespace QuantConnect.Brokerages
 
                 case BitstampBrokerageModel _:
                     return BrokerageName.Bitstamp;
+
+                case TradeStationBrokerageModel _:
+                    return BrokerageName.TradeStation;
 
                 case DefaultBrokerageModel _:
                     return BrokerageName.Default;

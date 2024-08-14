@@ -134,6 +134,106 @@ namespace QuantConnect.Tests.Common.Securities.Options
         }
 
         [Test]
+        public void BuildsProtectiveCollarStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var callStrike = 350m;
+            var putStrike = 300m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.ProtectiveCollar(canonicalOptionSymbol, callStrike, putStrike, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.ProtectiveCollar.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+            Assert.AreEqual(2, strategy.OptionLegs.Count);
+
+            var callOptionLeg = strategy.OptionLegs[0];
+            Assert.AreEqual(OptionRight.Call, callOptionLeg.Right);
+            Assert.AreEqual(callStrike, callOptionLeg.Strike);
+            Assert.AreEqual(expiration, callOptionLeg.Expiration);
+            Assert.AreEqual(-1, callOptionLeg.Quantity);
+
+            var putOptionLeg = strategy.OptionLegs[1];
+            Assert.AreEqual(OptionRight.Put, putOptionLeg.Right);
+            Assert.AreEqual(putStrike, putOptionLeg.Strike);
+            Assert.AreEqual(expiration, putOptionLeg.Expiration);
+            Assert.AreEqual(1, putOptionLeg.Quantity);
+
+            Assert.AreEqual(1, strategy.UnderlyingLegs.Count);
+            var underlyingLeg = strategy.UnderlyingLegs[0];
+            Assert.AreEqual(underlying, underlyingLeg.Symbol);
+            Assert.AreEqual(100, underlyingLeg.Quantity);
+        }
+
+        [Test]
+        public void BuildsConversionStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike = 350m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.Conversion(canonicalOptionSymbol, strike, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.Conversion.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+            Assert.AreEqual(2, strategy.OptionLegs.Count);
+
+            var callOptionLeg = strategy.OptionLegs[0];
+            Assert.AreEqual(OptionRight.Call, callOptionLeg.Right);
+            Assert.AreEqual(strike, callOptionLeg.Strike);
+            Assert.AreEqual(expiration, callOptionLeg.Expiration);
+            Assert.AreEqual(-1, callOptionLeg.Quantity);
+
+            var putOptionLeg = strategy.OptionLegs[1];
+            Assert.AreEqual(OptionRight.Put, putOptionLeg.Right);
+            Assert.AreEqual(strike, putOptionLeg.Strike);
+            Assert.AreEqual(expiration, putOptionLeg.Expiration);
+            Assert.AreEqual(1, putOptionLeg.Quantity);
+
+            Assert.AreEqual(1, strategy.UnderlyingLegs.Count);
+            var underlyingLeg = strategy.UnderlyingLegs[0];
+            Assert.AreEqual(underlying, underlyingLeg.Symbol);
+            Assert.AreEqual(100, underlyingLeg.Quantity);
+        }
+
+        [Test]
+        public void BuildsReverseConversionStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike = 350m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.ReverseConversion(canonicalOptionSymbol, strike, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.ReverseConversion.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+            Assert.AreEqual(2, strategy.OptionLegs.Count);
+
+            var callOptionLeg = strategy.OptionLegs[0];
+            Assert.AreEqual(OptionRight.Call, callOptionLeg.Right);
+            Assert.AreEqual(strike, callOptionLeg.Strike);
+            Assert.AreEqual(expiration, callOptionLeg.Expiration);
+            Assert.AreEqual(1, callOptionLeg.Quantity);
+
+            var putOptionLeg = strategy.OptionLegs[1];
+            Assert.AreEqual(OptionRight.Put, putOptionLeg.Right);
+            Assert.AreEqual(strike, putOptionLeg.Strike);
+            Assert.AreEqual(expiration, putOptionLeg.Expiration);
+            Assert.AreEqual(-1, putOptionLeg.Quantity);
+
+            Assert.AreEqual(1, strategy.UnderlyingLegs.Count);
+            var underlyingLeg = strategy.UnderlyingLegs[0];
+            Assert.AreEqual(underlying, underlyingLeg.Symbol);
+            Assert.AreEqual(-100, underlyingLeg.Quantity);
+        }
+
+        [Test]
         public void BuildsNakedCallStrategy()
         {
             var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
@@ -683,6 +783,109 @@ namespace QuantConnect.Tests.Common.Securities.Options
         }
 
         [Test]
+        public void FailsBuildingIronButterflyStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 326m;
+            var strike4 = 350m;
+
+            // Unordered and non-equal interval strikes
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.IronButterfly(canonicalOptionSymbol, strike1, strike4, strike2, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.IronButterfly(canonicalOptionSymbol, strike2, strike1, strike4, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.IronButterfly(canonicalOptionSymbol, strike2, strike4, strike1, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.IronButterfly(canonicalOptionSymbol, strike4, strike1, strike2, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.IronButterfly(canonicalOptionSymbol, strike4, strike2, strike1, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.IronButterfly(canonicalOptionSymbol, strike1, strike3, strike4, expiration));
+        }
+
+        [Test]
+        public void BuildsIronButterflyStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 350m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.IronButterfly(canonicalOptionSymbol, strike1, strike2, strike3, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.IronButterfly.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(4, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var longPutLeg = strategy.OptionLegs.Single(x => x.Strike == strike1);
+            Assert.AreEqual(OptionRight.Put, longPutLeg.Right);
+            Assert.AreEqual(expiration, longPutLeg.Expiration);
+            Assert.AreEqual(+1, longPutLeg.Quantity);
+
+            var shortPutLeg = strategy.OptionLegs.Single(x => x.Strike == strike2 && x.Right == OptionRight.Put);
+            Assert.AreEqual(expiration, shortPutLeg.Expiration);
+            Assert.AreEqual(-1, shortPutLeg.Quantity);
+
+            var shortCallLeg = strategy.OptionLegs.Single(x => x.Strike == strike2 && x.Right == OptionRight.Call);
+            Assert.AreEqual(expiration, shortCallLeg.Expiration);
+            Assert.AreEqual(-1, shortCallLeg.Quantity);
+
+            var longCallLeg = strategy.OptionLegs.Single(x => x.Strike == strike3);
+            Assert.AreEqual(OptionRight.Call, longCallLeg.Right);
+            Assert.AreEqual(expiration, longCallLeg.Expiration);
+            Assert.AreEqual(+1, longCallLeg.Quantity);
+        }
+
+
+        [Test]
+        public void BuildsShortIronButterflyStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 350m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.ShortIronButterfly(canonicalOptionSymbol, strike1, strike2, strike3, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.ShortIronButterfly.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(4, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var shortPutLeg = strategy.OptionLegs.Single(x => x.Strike == strike1);
+            Assert.AreEqual(OptionRight.Put, shortPutLeg.Right);
+            Assert.AreEqual(expiration, shortPutLeg.Expiration);
+            Assert.AreEqual(-1, shortPutLeg.Quantity);
+
+            var longPutLeg = strategy.OptionLegs.Single(x => x.Strike == strike2 && x.Right == OptionRight.Put);
+            Assert.AreEqual(expiration, longPutLeg.Expiration);
+            Assert.AreEqual(1, longPutLeg.Quantity);
+
+            var longCallLeg = strategy.OptionLegs.Single(x => x.Strike == strike2 && x.Right == OptionRight.Call);
+            Assert.AreEqual(expiration, longCallLeg.Expiration);
+            Assert.AreEqual(1, longCallLeg.Quantity);
+
+            var shortCallLeg = strategy.OptionLegs.Single(x => x.Strike == strike3);
+            Assert.AreEqual(OptionRight.Call, shortCallLeg.Right);
+            Assert.AreEqual(expiration, shortCallLeg.Expiration);
+            Assert.AreEqual(-1, shortCallLeg.Quantity);
+        }
+        [Test]
         public void FailsBuildingIronCondorStrategy()
         {
             var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
@@ -746,6 +949,468 @@ namespace QuantConnect.Tests.Common.Securities.Options
             Assert.AreEqual(OptionRight.Call, longCallLeg.Right);
             Assert.AreEqual(expiration, longCallLeg.Expiration);
             Assert.AreEqual(1, longCallLeg.Quantity);
+        }
+
+        [Test]
+        public void BuildsShortIronCondorStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 350m;
+            var strike4 = 375m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.ShortIronCondor(canonicalOptionSymbol, strike1, strike2, strike3, strike4, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.ShortIronCondor.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(4, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var shortPutLeg = strategy.OptionLegs.Single(x => x.Strike == strike1);
+            Assert.AreEqual(OptionRight.Put, shortPutLeg.Right);
+            Assert.AreEqual(expiration, shortPutLeg.Expiration);
+            Assert.AreEqual(-1, shortPutLeg.Quantity);
+
+            var longPutLeg = strategy.OptionLegs.Single(x => x.Strike == strike2);
+            Assert.AreEqual(OptionRight.Put, longPutLeg.Right);
+            Assert.AreEqual(expiration, longPutLeg.Expiration);
+            Assert.AreEqual(+1, longPutLeg.Quantity);
+
+            var longCallLeg = strategy.OptionLegs.Single(x => x.Strike == strike3);
+            Assert.AreEqual(OptionRight.Call, longCallLeg.Right);
+            Assert.AreEqual(expiration, longCallLeg.Expiration);
+            Assert.AreEqual(+1, longCallLeg.Quantity);
+
+            var shortCallLeg = strategy.OptionLegs.Single(x => x.Strike == strike4);
+            Assert.AreEqual(OptionRight.Call, shortCallLeg.Right);
+            Assert.AreEqual(expiration, shortCallLeg.Expiration);
+            Assert.AreEqual(-1, shortCallLeg.Quantity);
+        }
+
+        [Test]
+        public void FailsBuildingBoxSpreadStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strike1 = 300m;
+            var strike2 = 325m;
+
+            // Unordered and repeated strikes
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BoxSpread(canonicalOptionSymbol, strike1, strike2, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BoxSpread(canonicalOptionSymbol, strike1, strike1, expiration));
+        }
+
+        [Test]
+        public void BuildsBoxSpreadStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var higherStrike = 320m;
+            var lowerStrike = 300m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.BoxSpread(canonicalOptionSymbol, higherStrike, lowerStrike, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.BoxSpread.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(4, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var longPutLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Put && x.Strike == higherStrike);
+            Assert.AreEqual(expiration, longPutLeg.Expiration);
+            Assert.AreEqual(1, longPutLeg.Quantity);
+
+            var shortPutLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Put && x.Strike == lowerStrike);
+            Assert.AreEqual(expiration, shortPutLeg.Expiration);
+            Assert.AreEqual(-1, shortPutLeg.Quantity);
+
+            var shortCallLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Call && x.Strike == higherStrike);
+            Assert.AreEqual(expiration, shortCallLeg.Expiration);
+            Assert.AreEqual(-1, shortCallLeg.Quantity);
+
+            var longCallLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Call && x.Strike == lowerStrike);
+            Assert.AreEqual(expiration, longCallLeg.Expiration);
+            Assert.AreEqual(1, longCallLeg.Quantity);
+        }
+
+        [Test]
+        public void BuildsShortBoxSpreadStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var higherStrike = 320m;
+            var lowerStrike = 300m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.ShortBoxSpread(canonicalOptionSymbol, higherStrike, lowerStrike, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.ShortBoxSpread.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(4, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var longPutLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Put && x.Strike == lowerStrike);
+            Assert.AreEqual(expiration, longPutLeg.Expiration);
+            Assert.AreEqual(1, longPutLeg.Quantity);
+
+            var shortPutLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Put && x.Strike == higherStrike);
+            Assert.AreEqual(expiration, shortPutLeg.Expiration);
+            Assert.AreEqual(-1, shortPutLeg.Quantity);
+
+            var shortCallLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Call && x.Strike == lowerStrike);
+            Assert.AreEqual(expiration, shortCallLeg.Expiration);
+            Assert.AreEqual(-1, shortCallLeg.Quantity);
+
+            var longCallLeg = strategy.OptionLegs.Single(x => x.Right == OptionRight.Call && x.Strike == higherStrike);
+            Assert.AreEqual(expiration, longCallLeg.Expiration);
+            Assert.AreEqual(1, longCallLeg.Quantity);
+        }
+
+        [Test]
+        public void FailsBuildingJellyRollStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike = 350m;
+            var nearExpiration = new DateTime(2023, 08, 18);
+            var farExpiration = new DateTime(2023, 09, 18);
+
+            // Invalid expiration dates
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.JellyRoll(canonicalOptionSymbol, strike, DateTime.MinValue, farExpiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.JellyRoll(canonicalOptionSymbol, strike, DateTime.MaxValue, farExpiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.JellyRoll(canonicalOptionSymbol, strike, nearExpiration, DateTime.MinValue));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.JellyRoll(canonicalOptionSymbol, strike, nearExpiration, DateTime.MaxValue));
+
+            // Switched expiration dates
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.JellyRoll(canonicalOptionSymbol, strike, farExpiration, nearExpiration));
+
+            // Same expiration dates
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.JellyRoll(canonicalOptionSymbol, strike, nearExpiration, nearExpiration));
+        }
+
+        [Test]
+        public void BuildsJellyRollStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike = 350m;
+            var nearExpiration = new DateTime(2023, 08, 18);
+            var farExpiration = new DateTime(2023, 09, 18);
+
+            var strategy = OptionStrategies.JellyRoll(canonicalOptionSymbol, strike, nearExpiration, farExpiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.JellyRoll.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(4, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var nearExpirationCall = strategy.OptionLegs.Single(x => 
+                x.Expiration == nearExpiration && x.Right == OptionRight.Call);
+            Assert.AreEqual(strike, nearExpirationCall.Strike);
+            Assert.AreEqual(-1, nearExpirationCall.Quantity);
+
+            var farExpirationCall = strategy.OptionLegs.Single(x =>
+                x.Expiration == farExpiration && x.Right == OptionRight.Call);
+            Assert.AreEqual(strike, farExpirationCall.Strike);
+            Assert.AreEqual(+1, farExpirationCall.Quantity);
+
+            var nearExpirationPut = strategy.OptionLegs.Single(x =>
+                x.Expiration == nearExpiration && x.Right == OptionRight.Put);
+            Assert.AreEqual(strike, nearExpirationPut.Strike);
+            Assert.AreEqual(+1, nearExpirationPut.Quantity);
+
+            var farExpirationPut = strategy.OptionLegs.Single(x =>
+                x.Expiration == farExpiration && x.Right == OptionRight.Put);
+            Assert.AreEqual(strike, farExpirationPut.Strike);
+            Assert.AreEqual(-1, farExpirationPut.Quantity);
+        }
+
+        [Test]
+        public void BuildsShortJellyRollStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike = 350m;
+            var nearExpiration = new DateTime(2023, 08, 18);
+            var farExpiration = new DateTime(2023, 09, 18);
+
+            var strategy = OptionStrategies.ShortJellyRoll(canonicalOptionSymbol, strike, nearExpiration, farExpiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.ShortJellyRoll.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(4, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var nearExpirationCall = strategy.OptionLegs.Single(x =>
+                x.Expiration == nearExpiration && x.Right == OptionRight.Call);
+            Assert.AreEqual(strike, nearExpirationCall.Strike);
+            Assert.AreEqual(+1, nearExpirationCall.Quantity);
+
+            var farExpirationCall = strategy.OptionLegs.Single(x =>
+                x.Expiration == farExpiration && x.Right == OptionRight.Call);
+            Assert.AreEqual(strike, farExpirationCall.Strike);
+            Assert.AreEqual(-1, farExpirationCall.Quantity);
+
+            var nearExpirationPut = strategy.OptionLegs.Single(x =>
+                x.Expiration == nearExpiration && x.Right == OptionRight.Put);
+            Assert.AreEqual(strike, nearExpirationPut.Strike);
+            Assert.AreEqual(-1, nearExpirationPut.Quantity);
+
+            var farExpirationPut = strategy.OptionLegs.Single(x =>
+                x.Expiration == farExpiration && x.Right == OptionRight.Put);
+            Assert.AreEqual(strike, farExpirationPut.Strike);
+            Assert.AreEqual(+1, farExpirationPut.Quantity);
+        }
+        
+        [Test]
+        public void FailsBuildingBearCallLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 350m;
+
+            // Unordered and repeated strikes
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearCallLadder(canonicalOptionSymbol, strike3, strike2, strike1, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearCallLadder(canonicalOptionSymbol, strike1, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearCallLadder(canonicalOptionSymbol, strike2, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearCallLadder(canonicalOptionSymbol, strike1, strike3, strike2, expiration));
+        }
+
+        [Test]
+        public void BuildsBearCallLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 350m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.BearCallLadder(canonicalOptionSymbol, strike1, strike2, strike3, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.BearCallLadder.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(3, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var lowStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike1);
+            Assert.AreEqual(OptionRight.Call, lowStrikeLeg.Right);
+            Assert.AreEqual(expiration, lowStrikeLeg.Expiration);
+            Assert.AreEqual(-1, lowStrikeLeg.Quantity);
+
+            var middleStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike2);
+            Assert.AreEqual(OptionRight.Call, middleStrikeLeg.Right);
+            Assert.AreEqual(expiration, middleStrikeLeg.Expiration);
+            Assert.AreEqual(1, middleStrikeLeg.Quantity);
+
+            var highStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike3);
+            Assert.AreEqual(OptionRight.Call, highStrikeLeg.Right);
+            Assert.AreEqual(expiration, highStrikeLeg.Expiration);
+            Assert.AreEqual(1, highStrikeLeg.Quantity);
+        }
+        
+        [Test]
+        public void FailsBuildingBearPutLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strike1 = 350m;
+            var strike2 = 325m;
+            var strike3 = 300m;
+
+            // Unordered and repeated strikes
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearPutLadder(canonicalOptionSymbol, strike3, strike2, strike1, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearPutLadder(canonicalOptionSymbol, strike1, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearPutLadder(canonicalOptionSymbol, strike2, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BearPutLadder(canonicalOptionSymbol, strike1, strike3, strike2, expiration));
+        }
+
+        [Test]
+        public void BuildsBearPutLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike1 = 350m;
+            var strike2 = 325m;
+            var strike3 = 300m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.BearPutLadder(canonicalOptionSymbol, strike1, strike2, strike3, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.BearPutLadder.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(3, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var highStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike1);
+            Assert.AreEqual(OptionRight.Put, highStrikeLeg.Right);
+            Assert.AreEqual(expiration, highStrikeLeg.Expiration);
+            Assert.AreEqual(1, highStrikeLeg.Quantity);
+
+            var middleStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike2);
+            Assert.AreEqual(OptionRight.Put, middleStrikeLeg.Right);
+            Assert.AreEqual(expiration, middleStrikeLeg.Expiration);
+            Assert.AreEqual(-1, middleStrikeLeg.Quantity);
+
+            var lowStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike3);
+            Assert.AreEqual(OptionRight.Put, lowStrikeLeg.Right);
+            Assert.AreEqual(expiration, lowStrikeLeg.Expiration);
+            Assert.AreEqual(-1, lowStrikeLeg.Quantity);
+        }
+        
+        [Test]
+        public void FailsBuildingBullCallLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 350m;
+
+            // Unordered and repeated strikes
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullCallLadder(canonicalOptionSymbol, strike3, strike2, strike1, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullCallLadder(canonicalOptionSymbol, strike1, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullCallLadder(canonicalOptionSymbol, strike2, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullCallLadder(canonicalOptionSymbol, strike1, strike3, strike2, expiration));
+        }
+
+        [Test]
+        public void BuildsBullCallLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike1 = 300m;
+            var strike2 = 325m;
+            var strike3 = 350m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.BullCallLadder(canonicalOptionSymbol, strike1, strike2, strike3, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.BullCallLadder.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(3, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var lowStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike1);
+            Assert.AreEqual(OptionRight.Call, lowStrikeLeg.Right);
+            Assert.AreEqual(expiration, lowStrikeLeg.Expiration);
+            Assert.AreEqual(1, lowStrikeLeg.Quantity);
+
+            var middleStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike2);
+            Assert.AreEqual(OptionRight.Call, middleStrikeLeg.Right);
+            Assert.AreEqual(expiration, middleStrikeLeg.Expiration);
+            Assert.AreEqual(-1, middleStrikeLeg.Quantity);
+
+            var highStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike3);
+            Assert.AreEqual(OptionRight.Call, highStrikeLeg.Right);
+            Assert.AreEqual(expiration, highStrikeLeg.Expiration);
+            Assert.AreEqual(-1, highStrikeLeg.Quantity);
+        }
+        
+        [Test]
+        public void FailsBuildingBullPutLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strike1 = 350m;
+            var strike2 = 325m;
+            var strike3 = 300m;
+
+            // Unordered and repeated strikes
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullPutLadder(canonicalOptionSymbol, strike3, strike2, strike1, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullPutLadder(canonicalOptionSymbol, strike1, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullPutLadder(canonicalOptionSymbol, strike2, strike1, strike3, expiration));
+            Assert.Throws<ArgumentException>(
+                () => OptionStrategies.BullPutLadder(canonicalOptionSymbol, strike1, strike3, strike2, expiration));
+        }
+
+        [Test]
+        public void BuildsBullPutLadderStrategy()
+        {
+            var canonicalOptionSymbol = Symbols.SPY_Option_Chain;
+            var underlying = Symbols.SPY;
+            var strike1 = 350m;
+            var strike2 = 325m;
+            var strike3 = 300m;
+            var expiration = new DateTime(2023, 08, 18);
+
+            var strategy = OptionStrategies.BullPutLadder(canonicalOptionSymbol, strike1, strike2, strike3, expiration);
+
+            Assert.AreEqual(OptionStrategyDefinitions.BullPutLadder.Name, strategy.Name);
+            Assert.AreEqual(underlying, strategy.Underlying);
+            Assert.AreEqual(canonicalOptionSymbol, strategy.CanonicalOption);
+
+            Assert.AreEqual(3, strategy.OptionLegs.Count);
+            Assert.AreEqual(0, strategy.UnderlyingLegs.Count);
+
+            var highStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike1);
+            Assert.AreEqual(OptionRight.Put, highStrikeLeg.Right);
+            Assert.AreEqual(expiration, highStrikeLeg.Expiration);
+            Assert.AreEqual(-1, highStrikeLeg.Quantity);
+
+            var middleStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike2);
+            Assert.AreEqual(OptionRight.Put, middleStrikeLeg.Right);
+            Assert.AreEqual(expiration, middleStrikeLeg.Expiration);
+            Assert.AreEqual(1, middleStrikeLeg.Quantity);
+
+            var lowStrikeLeg = strategy.OptionLegs.Single(x => x.Strike == strike3);
+            Assert.AreEqual(OptionRight.Put, lowStrikeLeg.Right);
+            Assert.AreEqual(expiration, lowStrikeLeg.Expiration);
+            Assert.AreEqual(1, lowStrikeLeg.Quantity);
         }
     }
 }

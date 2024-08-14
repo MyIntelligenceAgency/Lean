@@ -57,7 +57,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (universe.Underlying == null)
                 {
-                    throw new Exception("Underlying data point is null! This shouldn't happen, each OptionChainUniverse handles and should provide this");
+                    throw new RegressionTestException("Underlying data point is null! This shouldn't happen, each OptionChainUniverse handles and should provide this");
                 }
                 return universe.IncludeWeeklys()
                     .FrontMonth()
@@ -65,7 +65,7 @@ namespace QuantConnect.Algorithm.CSharp
             });
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             // if we have no changes, do nothing
             if (_changes == SecurityChanges.None ||
@@ -94,7 +94,7 @@ namespace QuantConnect.Algorithm.CSharp
                     // options added should all match prev added security
                     if (security.Symbol.Underlying != _lastEquityAdded)
                     {
-                        throw new Exception($"Unexpected symbol added {security.Symbol}");
+                        throw new RegressionTestException($"Unexpected symbol added {security.Symbol}");
                     }
 
                     _optionCount++;
@@ -106,11 +106,11 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (!config.Any())
                 {
-                    throw new Exception($"Was expecting configurations for {security.Symbol}");
+                    throw new RegressionTestException($"Was expecting configurations for {security.Symbol}");
                 }
                 if (config.Any(dataConfig => dataConfig.DataNormalizationMode != DataNormalizationMode.Raw))
                 {
-                    throw new Exception($"Was expecting DataNormalizationMode.Raw configurations for {security.Symbol}");
+                    throw new RegressionTestException($"Was expecting DataNormalizationMode.Raw configurations for {security.Symbol}");
                 }
 
                 if (security.Symbol.SecurityType == SecurityType.Equity)
@@ -118,7 +118,7 @@ namespace QuantConnect.Algorithm.CSharp
                     var expectedPrice = _rawPrices[security.Symbol.ID.Symbol];
                     if (Math.Abs(security.Price - expectedPrice) > expectedPrice * 0.1m)
                     {
-                        throw new Exception($"Unexpected raw prices for symbol {security.Symbol}");
+                        throw new RegressionTestException($"Unexpected raw prices for symbol {security.Symbol}");
                     }
                 }
             }
@@ -135,12 +135,12 @@ namespace QuantConnect.Algorithm.CSharp
             var config = SubscriptionManager.Subscriptions.ToList();
             if (config.Any(dataConfig => dataConfig.Symbol == _twx || dataConfig.Symbol.Underlying == _twx))
             {
-                throw new Exception($"Was NOT expecting any configurations for {_twx} or it's options, since coarse/fine should have deselected it");
+                throw new RegressionTestException($"Was NOT expecting any configurations for {_twx} or it's options, since coarse/fine should have deselected it");
             }
 
             if (_optionCount == 0)
             {
-                throw new Exception("Option universe chain did not add any option!");
+                throw new RegressionTestException("Option universe chain did not add any option!");
             }
         }
 
@@ -152,7 +152,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -165,18 +165,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "13"},
+            {"Total Orders", "13"},
             {"Average Win", "0.04%"},
             {"Average Loss", "-0.05%"},
             {"Compounding Annual Return", "-24.719%"},
             {"Drawdown", "0.500%"},
             {"Expectancy", "-0.685"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99766.89"},
             {"Net Profit", "-0.233%"},
             {"Sharpe Ratio", "-9.078"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "83%"},
             {"Win Rate", "17%"},
@@ -192,7 +200,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$3100000.00"},
             {"Lowest Capacity Asset", "AOL VRKS95ENLBYE|AOL R735QTJ8XC9X"},
             {"Portfolio Turnover", "17.64%"},
-            {"OrderListHash", "c2d13c2884c47af9274ecab0d0299c1f"}
+            {"OrderListHash", "a8605c1f5a9c67f60f1ddc963ec45542"}
         };
     }
 }

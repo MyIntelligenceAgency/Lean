@@ -68,14 +68,14 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (UniverseManager.Count != 3)
             {
-                throw new Exception("Unexpected universe count");
+                throw new RegressionTestException("Unexpected universe count");
             }
             if (UniverseManager.ActiveSecurities.Count != 3
                 || UniverseManager.ActiveSecurities.Keys.All(symbol => symbol.Value != "SPY")
                 || UniverseManager.ActiveSecurities.Keys.All(symbol => symbol.Value != "AAPL")
                 || UniverseManager.ActiveSecurities.Keys.All(symbol => symbol.Value != "FB"))
             {
-                throw new Exception("Unexpected active securities");
+                throw new RegressionTestException("Unexpected active securities");
             }
         }
 
@@ -87,7 +87,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -100,18 +100,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "21"},
+            {"Total Orders", "23"},
             {"Average Win", "0.00%"},
             {"Average Loss", "-0.01%"},
             {"Compounding Annual Return", "-75.275%"},
             {"Drawdown", "5.800%"},
             {"Expectancy", "-0.609"},
+            {"Start Equity", "100000"},
+            {"End Equity", "94419.21"},
             {"Net Profit", "-5.581%"},
             {"Sharpe Ratio", "-3.288"},
+            {"Sortino Ratio", "-3.828"},
             {"Probabilistic Sharpe Ratio", "5.546%"},
             {"Loss Rate", "73%"},
             {"Win Rate", "27%"},
@@ -127,7 +135,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$550000000.00"},
             {"Lowest Capacity Asset", "AAPL R735QTJ8XC9X"},
             {"Portfolio Turnover", "7.33%"},
-            {"OrderListHash", "b2ec2148ac94b67038a5bb4a2655f0a6"}
+            {"OrderListHash", "2add92a1f922c6730d8c20ff65934a46"}
         };
     }
 }

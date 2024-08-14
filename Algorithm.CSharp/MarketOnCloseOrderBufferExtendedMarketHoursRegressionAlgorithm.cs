@@ -82,25 +82,25 @@ namespace QuantConnect.Algorithm.CSharp
             // Verify that our good order filled
             if (_validOrderTicket.Status != OrderStatus.Filled)
             {
-                throw new Exception("Valid order failed to fill");
+                throw new RegressionTestException("Valid order failed to fill");
             }
 
             // Verify our order was marked invalid
             if (_invalidOrderTicket.Status != OrderStatus.Invalid)
             {
-                throw new Exception("Invalid order was not rejected");
+                throw new RegressionTestException("Invalid order was not rejected");
             }
 
             // Verify that our second good order filled
             if (_validOrderTicketExtendedMarketHours.Status != OrderStatus.Filled)
             {
-                throw new Exception("Valid order during extended market hours failed to fill");
+                throw new RegressionTestException("Valid order during extended market hours failed to fill");
             }
 
             // Verify that our third good order filled
             if (_validOrderTicketAtMidnight.Status != OrderStatus.Filled)
             {
-                throw new Exception("Valid order at midnight failed to fill");
+                throw new RegressionTestException("Valid order at midnight failed to fill");
             }
         }
 
@@ -112,7 +112,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -125,18 +125,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new()
         {
-            {"Total Trades", "3"},
+            {"Total Orders", "3"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99996.08"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -152,7 +160,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$910000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.43%"},
-            {"OrderListHash", "d1530157b4fc26346beb62bcfcfe0233"}
+            {"OrderListHash", "df8ee16902d30659c4b1411075e9fc23"}
         };
     }
 }

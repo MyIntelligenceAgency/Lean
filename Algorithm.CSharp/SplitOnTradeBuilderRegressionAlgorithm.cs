@@ -78,17 +78,17 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_split == null)
             {
-                throw new Exception("No split occurred.");
+                throw new RegressionTestException("No split occurred.");
             }
 
             if (_buyFillEvent == null)
             {
-                throw new Exception("Buy order either never filled or was never placed.");
+                throw new RegressionTestException("Buy order either never filled or was never placed.");
             }
 
             if (TradeBuilder.ClosedTrades.Count != 1)
             {
-                throw new Exception($"Expected 1 closed trade, but found {TradeBuilder.ClosedTrades.Count}");
+                throw new RegressionTestException($"Expected 1 closed trade, but found {TradeBuilder.ClosedTrades.Count}");
             }
 
             var trade = TradeBuilder.ClosedTrades[0];
@@ -96,13 +96,13 @@ namespace QuantConnect.Algorithm.CSharp
             var expectedEntryPrice = _buyFillEvent.FillPrice * _split.SplitFactor;
             if (trade.EntryPrice != expectedEntryPrice)
             {
-                throw new Exception($"Expected closed trade entry price of {expectedEntryPrice}, but found {trade.EntryPrice}");
+                throw new RegressionTestException($"Expected closed trade entry price of {expectedEntryPrice}, but found {trade.EntryPrice}");
             }
 
             var expectedTradeQuantity = (int)(_buyFillEvent.FillQuantity / _split.SplitFactor);
             if (trade.Quantity != expectedTradeQuantity)
             {
-                throw new Exception($"Expected closed trade quantity of {expectedTradeQuantity}, but found {trade.Quantity}");
+                throw new RegressionTestException($"Expected closed trade quantity of {expectedTradeQuantity}, but found {trade.Quantity}");
             }
         }
 
@@ -114,7 +114,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -127,18 +127,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0.09%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "6.103%"},
             {"Drawdown", "0.400%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100092.01"},
             {"Net Profit", "0.092%"},
             {"Sharpe Ratio", "7.379"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "95.713%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "100%"},
@@ -154,7 +162,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$61000000.00"},
             {"Lowest Capacity Asset", "AAPL R735QTJ8XC9X"},
             {"Portfolio Turnover", "21.61%"},
-            {"OrderListHash", "f115e450ccea39c92165b3a3ca0d14c1"}
+            {"OrderListHash", "859e58c90d9e044632326db8d128ea98"}
         };
     }
 }

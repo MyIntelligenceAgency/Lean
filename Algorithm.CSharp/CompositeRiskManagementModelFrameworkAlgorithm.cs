@@ -58,7 +58,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -71,18 +71,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "7"},
+            {"Total Orders", "7"},
             {"Average Win", "1.05%"},
             {"Average Loss", "-1.01%"},
             {"Compounding Annual Return", "227.385%"},
             {"Drawdown", "2.200%"},
             {"Expectancy", "0.361"},
+            {"Start Equity", "100000"},
+            {"End Equity", "101527.86"},
             {"Net Profit", "1.528%"},
             {"Sharpe Ratio", "7.572"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "65.639%"},
             {"Loss Rate", "33%"},
             {"Win Rate", "67%"},
@@ -98,7 +106,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$23000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "139.03%"},
-            {"OrderListHash", "d8704e090c1196673b5fdb67493184cc"}
+            {"OrderListHash", "fa7c51aaf284cdc29cb4c0ac8ebd5356"}
         };
     }
 }

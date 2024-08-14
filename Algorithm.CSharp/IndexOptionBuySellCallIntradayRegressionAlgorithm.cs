@@ -70,16 +70,16 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (spxOptions.Count != 2)
             {
-                throw new Exception($"Expected 2 index options symbols from chain provider, found {spxOptions.Count}");
+                throw new RegressionTestException($"Expected 2 index options symbols from chain provider, found {spxOptions.Count}");
             }
 
             if (spxOptions[0] != expectedContract3700)
             {
-                throw new Exception($"Contract {expectedContract3700} was not found in the chain, found instead: {spxOptions[0]}");
+                throw new RegressionTestException($"Contract {expectedContract3700} was not found in the chain, found instead: {spxOptions[0]}");
             }
             if (spxOptions[1] != expectedContract3800)
             {
-                throw new Exception($"Contract {expectedContract3800} was not found in the chain, found instead: {spxOptions[1]}");
+                throw new RegressionTestException($"Contract {expectedContract3800} was not found in the chain, found instead: {spxOptions[1]}");
             }
 
             Schedule.On(DateRules.Tomorrow, TimeRules.AfterMarketOpen(spx, 1), () =>
@@ -96,12 +96,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Ran at the end of the algorithm to ensure the algorithm has no holdings
         /// </summary>
-        /// <exception cref="Exception">The algorithm has holdings</exception>
+        /// <exception cref="RegressionTestException">The algorithm has holdings</exception>
         public override void OnEndOfAlgorithm()
         {
             if (Portfolio.Invested)
             {
-                throw new Exception($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
+                throw new RegressionTestException($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
             }
         }
 
@@ -113,12 +113,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 31858;
+        public long DataPoints => 32143;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -126,18 +126,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "4"},
+            {"Total Orders", "4"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.08%"},
             {"Compounding Annual Return", "-2.251%"},
             {"Drawdown", "0.200%"},
             {"Expectancy", "-1"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99840"},
             {"Net Profit", "-0.160%"},
             {"Sharpe Ratio", "-3.642"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0.427%"},
             {"Loss Rate", "100%"},
             {"Win Rate", "0%"},
@@ -153,7 +161,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "SPX XL80P3HB5O6M|SPX 31"},
             {"Portfolio Turnover", "0.51%"},
-            {"OrderListHash", "c7f4971e361ceac5a394dd86105fbc7c"}
+            {"OrderListHash", "a2727181076b3e50ec8bb46becc6e365"}
         };
     }
 }

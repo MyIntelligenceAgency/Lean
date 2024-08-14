@@ -43,6 +43,7 @@ namespace QuantConnect.Securities.Future
                 12,
                 new FuturesListingCycles(new[] { 3, 5, 9 }, 9),
                 new FuturesListingCycles(new[] { 7, 12 }, 8)) },
+            { "ZN", t => QuarterlyContracts(_zt, t, 3) },
             { "ZS", t => MonthlyContractListings(
                 _zs,
                 t,

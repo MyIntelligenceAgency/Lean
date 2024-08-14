@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using QuantConnect.Python;
 using Python.Runtime;
 using QuantConnect.Data.UniverseSelection;
+using QuantConnect.Data.Auxiliary;
 
 namespace QuantConnect.Algorithm
 {
@@ -259,6 +260,81 @@ namespace QuantConnect.Algorithm
         {
             return History(Securities.Keys, periods, resolution, fillForward, extendedMarketHours, dataMappingMode, dataNormalizationMode,
                 contractDepthOffset).Memoize();
+        }
+
+        /// <summary>
+        /// Get the history for all configured securities over the requested span.
+        /// This will use the resolution and other subscription settings for each security.
+        /// The symbols must exist in the Securities collection.
+        /// </summary>
+        /// <param name="universe">The universe to fetch the data for</param>
+        /// <param name="periods">The number of bars to request</param>
+        /// <param name="resolution">The resolution to request</param>
+        /// <param name="fillForward">True to fill forward missing data, false otherwise</param>
+        /// <param name="extendedMarketHours">True to include extended market hours data, false otherwise</param>
+        /// <param name="dataMappingMode">The contract mapping mode to use for the security history request</param>
+        /// <param name="dataNormalizationMode">The price scaling mode to use for the securities history</param>
+        /// <param name="contractDepthOffset">The continuous contract desired offset from the current front month.
+        /// For example, 0 will use the front month, 1 will use the back month contract</param>
+        /// <returns>An enumerable of slice containing data over the most recent span for all configured securities</returns>
+        [DocumentationAttribute(HistoricalData)]
+        public IEnumerable<BaseDataCollection> History(Universe universe, int periods, Resolution? resolution = null, bool? fillForward = null, bool? extendedMarketHours = null,
+            DataMappingMode? dataMappingMode = null, DataNormalizationMode? dataNormalizationMode = null, int? contractDepthOffset = null)
+        {
+            var symbols = new[] { universe.Configuration.Symbol };
+            resolution ??= universe.Configuration.Resolution;
+            CheckPeriodBasedHistoryRequestResolution(symbols, resolution, universe.Configuration.Type);
+            var requests = CreateBarCountHistoryRequests(symbols, universe.Configuration.Type, periods, resolution, fillForward, extendedMarketHours, dataMappingMode,
+                dataNormalizationMode, contractDepthOffset);
+            return GetDataTypedHistory<BaseDataCollection>(requests).Select(x => x.Values.Single());
+        }
+
+        /// <summary>
+        /// Gets the historical data for all symbols of the requested type over the requested span.
+        /// The symbol's configured values for resolution and fill forward behavior will be used
+        /// The symbols must exist in the Securities collection.
+        /// </summary>
+        /// <param name="universe">The universe to fetch the data for</param>
+        /// <param name="span">The span over which to request data. This is a calendar span, so take into consideration weekends and such</param>
+        /// <param name="resolution">The resolution to request</param>
+        /// <param name="fillForward">True to fill forward missing data, false otherwise</param>
+        /// <param name="extendedMarketHours">True to include extended market hours data, false otherwise</param>
+        /// <param name="dataMappingMode">The contract mapping mode to use for the security history request</param>
+        /// <param name="dataNormalizationMode">The price scaling mode to use for the securities history</param>
+        /// <param name="contractDepthOffset">The continuous contract desired offset from the current front month.
+        /// For example, 0 will use the front month, 1 will use the back month contract</param>
+        /// <returns>An enumerable of slice containing the requested historical data</returns>
+        [DocumentationAttribute(HistoricalData)]
+        public IEnumerable<BaseDataCollection> History(Universe universe, TimeSpan span, Resolution? resolution = null, bool? fillForward = null,
+            bool? extendedMarketHours = null, DataMappingMode? dataMappingMode = null, DataNormalizationMode? dataNormalizationMode = null,
+            int? contractDepthOffset = null)
+        {
+            return History(universe, Time - span, Time, resolution, fillForward, extendedMarketHours, dataMappingMode, dataNormalizationMode, contractDepthOffset);
+        }
+
+        /// <summary>
+        /// Gets the historical data for the specified symbols between the specified dates. The symbols must exist in the Securities collection.
+        /// </summary>
+        /// <param name="universe">The universe to fetch the data for</param>
+        /// <param name="start">The start time in the algorithm's time zone</param>
+        /// <param name="end">The end time in the algorithm's time zone</param>
+        /// <param name="resolution">The resolution to request</param>
+        /// <param name="fillForward">True to fill forward missing data, false otherwise</param>
+        /// <param name="extendedMarketHours">True to include extended market hours data, false otherwise</param>
+        /// <param name="dataMappingMode">The contract mapping mode to use for the security history request</param>
+        /// <param name="dataNormalizationMode">The price scaling mode to use for the securities history</param>
+        /// <param name="contractDepthOffset">The continuous contract desired offset from the current front month.
+        /// For example, 0 will use the front month, 1 will use the back month contract</param>
+        /// <returns>An enumerable of slice containing the requested historical data</returns>
+        [DocumentationAttribute(HistoricalData)]
+        public IEnumerable<BaseDataCollection> History(Universe universe, DateTime start, DateTime end, Resolution? resolution = null,
+            bool? fillForward = null, bool? extendedMarketHours = null, DataMappingMode? dataMappingMode = null,
+            DataNormalizationMode? dataNormalizationMode = null, int? contractDepthOffset = null)
+        {
+            resolution ??= universe.Configuration.Resolution;
+            var requests = CreateDateRangeHistoryRequests(new[] { universe.Symbol }, universe.DataType, start, end, resolution, fillForward, extendedMarketHours,
+                dataMappingMode, dataNormalizationMode, contractDepthOffset);
+            return GetDataTypedHistory<BaseDataCollection>(requests).Select(x => x.Values.Single());
         }
 
         /// <summary>
@@ -779,7 +855,7 @@ namespace QuantConnect.Algorithm
         /// <remarks>
         /// This method will check for Python custom data types in order to call the right Slice.Get dynamic method
         /// </remarks>
-        private IEnumerable<DataDictionary<T>> GetDataTypedHistory<T>(IEnumerable<HistoryRequest> requests)
+        protected IEnumerable<DataDictionary<T>> GetDataTypedHistory<T>(IEnumerable<HistoryRequest> requests)
             where T : IBaseData
         {
             var historyRequests = requests.Where(x => x != null).ToList();
@@ -798,7 +874,15 @@ namespace QuantConnect.Algorithm
                     _dataDictionaryTickWarningSent = true;
                     Debug("Warning: Multiple symbols Tick history will return the last tick per timestep. To access all ticks remove the 'Tick' type to use the History() returning Slice, all ticks can be accessed with Slice.Ticks.");
                 }
-                result = slices.Get<T>();
+
+                if (typeof(T) == typeof(BaseDataCollection) && historyRequests[0].DataType != typeof(BaseDataCollection))
+                {
+                    result = (IEnumerable<DataDictionary<T>>)slices.GetUniverseData();
+                }
+                else
+                {
+                    result = slices.Get<T>();
+                }
             }
 
             return result.Memoize();
@@ -864,7 +948,8 @@ namespace QuantConnect.Algorithm
             Resolution? resolution = null, bool? fillForward = null, bool? extendedMarketHours = null, DataMappingMode? dataMappingMode = null,
             DataNormalizationMode? dataNormalizationMode = null, int? contractDepthOffset = null)
         {
-            return CreateDateRangeHistoryRequests(symbols, typeof(BaseData), startAlgoTz, endAlgoTz, resolution, fillForward, extendedMarketHours,
+            symbols = symbols.ToArray();
+            return CreateDateRangeHistoryRequests(symbols, GetCustomDataTypeFromSymbols((Symbol[])symbols) ?? typeof(BaseData), startAlgoTz, endAlgoTz, resolution, fillForward, extendedMarketHours,
                 dataMappingMode, dataNormalizationMode, contractDepthOffset);
         }
 
@@ -875,7 +960,7 @@ namespace QuantConnect.Algorithm
             Resolution? resolution = null, bool? fillForward = null, bool? extendedMarketHours = null, DataMappingMode? dataMappingMode = null,
             DataNormalizationMode? dataNormalizationMode = null, int? contractDepthOffset = null)
         {
-            return GetSymbolsForType(symbols, requestedType).Where(HistoryRequestValid).SelectMany(x =>
+            return symbols.Where(HistoryRequestValid).SelectMany(x =>
             {
                 var requests = new List<HistoryRequest>();
 
@@ -908,7 +993,7 @@ namespace QuantConnect.Algorithm
             Resolution? resolution = null, bool? fillForward = null, bool? extendedMarketHours = null, DataMappingMode? dataMappingMode = null,
             DataNormalizationMode? dataNormalizationMode = null, int? contractDepthOffset = null)
         {
-            return GetSymbolsForType(symbols, requestedType).Where(HistoryRequestValid).SelectMany(symbol =>
+            return symbols.Where(HistoryRequestValid).SelectMany(symbol =>
             {
                 var res = GetResolution(symbol, resolution, requestedType);
                 var exchange = GetExchangeHours(symbol, requestedType);
@@ -924,16 +1009,6 @@ namespace QuantConnect.Algorithm
                 return configs.Select(config => _historyRequestFactory.CreateHistoryRequest(config, start, end, exchange, res, fillForward,
                     extendedMarketHours, dataMappingMode, dataNormalizationMode, contractDepthOffset));
             });
-        }
-
-        private IEnumerable<Symbol> GetSymbolsForType(IEnumerable<Symbol> symbols, Type requestedType)
-        {
-            if (requestedType.IsAssignableTo(typeof(BaseDataCollection)))
-            {
-                var instance = requestedType.GetBaseDataInstance();
-                return new [] { ((BaseDataCollection)instance).UniverseSymbol() };
-            }
-            return symbols;
         }
 
         private int GetTickTypeOrder(SecurityType securityType, TickType tickType)
@@ -992,6 +1067,12 @@ namespace QuantConnect.Algorithm
                     return configs.Where(s => s.TickType != TickType.Quote);
                 }
 
+                if (symbol.IsCanonical() && configs.Count > 1)
+                {
+                    // option/future (canonicals) might add in a ZipEntryName auxiliary data type used for selection, we filter it out from history requests by default
+                    return configs.Where(s => s.Type != typeof(ZipEntryName));
+                }
+
                 return configs;
             }
             else
@@ -1032,7 +1113,9 @@ namespace QuantConnect.Algorithm
                         false,
                         x.Item2,
                         true,
-                        UniverseSettings.GetUniverseNormalizationModeOrDefault(symbol.SecurityType)));
+                        UniverseSettings.GetUniverseNormalizationModeOrDefault(symbol.SecurityType)))
+                    // lets make sure to respect the order of the data types, if used on a history request will affect outcome when using pushthrough for example
+                    .OrderByDescending(config => GetTickTypeOrder(config.SecurityType, config.TickType));
             }
         }
 
@@ -1072,33 +1155,32 @@ namespace QuantConnect.Algorithm
 
         private Resolution GetResolution(Symbol symbol, Resolution? resolution, Type type)
         {
-            Security security;
-            if (Securities.TryGetValue(symbol, out security))
+            if (resolution != null)
             {
-                if (resolution != null)
-                {
-                    return resolution.Value;
-                }
+                return resolution.Value;
+            }
 
-                Resolution? result = null;
-                var hasNonInternal = false;
-                foreach (var config in SubscriptionManager.SubscriptionDataConfigService
-                    .GetSubscriptionDataConfigs(symbol, includeInternalConfigs: true)
-                    // we process non internal configs first
-                    .OrderBy(config => config.IsInternalFeed ? 1 : 0))
+            Resolution? result = null;
+            var hasNonInternal = false;
+            foreach (var config in SubscriptionManager.SubscriptionDataConfigService
+                .GetSubscriptionDataConfigs(symbol, includeInternalConfigs: true)
+                // we process non internal configs first
+                .OrderBy(config => config.IsInternalFeed ? 1 : 0))
+            {
+                if (!config.IsInternalFeed || !hasNonInternal)
                 {
-                    if (!config.IsInternalFeed || !hasNonInternal)
+                    // once we find a non internal config we ignore internals
+                    hasNonInternal |= !config.IsInternalFeed;
+                    if (!result.HasValue || config.Resolution < result)
                     {
-                        // once we find a non internal config we ignore internals
-                        hasNonInternal |= !config.IsInternalFeed;
-                        if (!result.HasValue || config.Resolution < result)
-                        {
-                            result = config.Resolution;
-                        }
+                        result = config.Resolution;
                     }
                 }
+            }
 
-                return result ?? UniverseSettings.Resolution;
+            if (result != null)
+            {
+                return (Resolution)result;
             }
             else
             {
@@ -1132,7 +1214,7 @@ namespace QuantConnect.Algorithm
         /// </summary>
         private bool HistoryRequestValid(Symbol symbol)
         {
-            return symbol.SecurityType == SecurityType.Future || !UniverseManager.ContainsKey(symbol) && !symbol.IsCanonical();
+            return symbol.SecurityType == SecurityType.Future || !symbol.IsCanonical();
         }
 
         /// <summary>
@@ -1169,7 +1251,7 @@ namespace QuantConnect.Algorithm
         /// <remarks>
         /// This method is only used for Python algorithms, specially for those requesting custom data type history.
         /// The reason for using this method is that custom data type Python history calls to
-        /// <see cref="History{T}(QuantConnect.Symbol, int, Resolution?)"/> will always use <see cref="PythonData"/> (the custom data base class)
+        /// <see cref="History{T}(QuantConnect.Symbol, int, Resolution?, bool?, bool?, DataMappingMode?, DataNormalizationMode?, int?)"/> will always use <see cref="PythonData"/> (the custom data base class)
         /// as the T argument, because the custom data class is a Python type, which will cause the history data in the slices to not be matched
         /// to the actual requested type, resulting in an empty list of slices.
         /// </remarks>

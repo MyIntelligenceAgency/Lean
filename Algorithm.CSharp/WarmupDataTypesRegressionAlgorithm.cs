@@ -48,16 +48,16 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             Debug($"[{Time}] Warmup: {IsWarmingUp}. Invested: {Portfolio.Invested} {string.Join(",", Securities.Select(pair => $"{pair.Key.Value}:{pair.Value.Price}"))}");
             if (IsWarmingUp)
             {
-                _equityGotTradeBars |= data.Bars.ContainsKey("SPY");
-                _equityGotQuoteBars |= data.QuoteBars.ContainsKey("SPY");
+                _equityGotTradeBars |= slice.Bars.ContainsKey("SPY");
+                _equityGotQuoteBars |= slice.QuoteBars.ContainsKey("SPY");
 
-                _cryptoGotTradeBars |= data.Bars.ContainsKey("BTCUSD");
+                _cryptoGotTradeBars |= slice.Bars.ContainsKey("BTCUSD");
             }
             else
             {
@@ -73,16 +73,16 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!_equityGotTradeBars || !_cryptoGotTradeBars)
             {
-                throw new Exception("Did not get any TradeBar during warmup");
+                throw new RegressionTestException("Did not get any TradeBar during warmup");
             }
             // we don't have quote bars for equity in daily/hour resolutions
             if (!_equityGotQuoteBars && !Settings.WarmupResolution.HasValue)
             {
-                throw new Exception("Did not get any QuoteBar during warmup");
+                throw new RegressionTestException("Did not get any QuoteBar during warmup");
             }
             if (Securities["AAPL"].Price == 0)
             {
-                throw new Exception("Security added after warmup didn't get any data!");
+                throw new RegressionTestException("Security added after warmup didn't get any data!");
             }
         }
 
@@ -94,7 +94,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -107,18 +107,26 @@ namespace QuantConnect.Algorithm.CSharp
         public virtual int AlgorithmHistoryDataPoints => 41;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "106.090%"},
             {"Drawdown", "0.600%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000.0"},
+            {"End Equity", "100596.13"},
             {"Net Profit", "0.596%"},
             {"Sharpe Ratio", "123.324"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -134,7 +142,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$3000.00"},
             {"Lowest Capacity Asset", "BTCUSD E3"},
             {"Portfolio Turnover", "9.97%"},
-            {"OrderListHash", "e83fc5d971be84b66e571d8ae36d4c67"}
+            {"OrderListHash", "98661718a82110916cdeceed756c5d37"}
         };
     }
 }

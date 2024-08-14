@@ -12,6 +12,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
     <Description>QuantConnect LEAN Engine: Indicators Project - A collection of financial indicators</Description>
+    <NoWarn>CA1062</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugType>full</DebugType>
@@ -31,7 +32,7 @@
     <Message Text="SelectedOptimization $(SelectedOptimization)" Importance="high" />
   </Target>
   <ItemGroup>
-    <PackageReference Include="QuantConnect.pythonnet" Version="2.0.25" />
+    <PackageReference Include="QuantConnect.pythonnet" Version="2.0.38" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>

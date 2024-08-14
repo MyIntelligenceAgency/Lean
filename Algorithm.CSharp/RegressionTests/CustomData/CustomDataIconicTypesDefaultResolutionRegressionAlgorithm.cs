@@ -48,13 +48,13 @@ namespace QuantConnect.Algorithm.CSharp
                     .GetSubscriptionDataConfigs(custom.Symbol)
                     .Any(config => config.Resolution != Resolution.Daily))
                 {
-                    throw new Exception("Was expecting resolution to be set to Daily");
+                    throw new RegressionTestException("Was expecting resolution to be set to Daily");
                 }
 
                 try
                 {
                     AddData(type, spy, Resolution.Tick);
-                    throw new Exception("Was expecting an ArgumentException to be thrown");
+                    throw new RegressionTestException("Was expecting an ArgumentException to be thrown");
                 }
                 catch (ArgumentException)
                 {
@@ -66,14 +66,14 @@ namespace QuantConnect.Algorithm.CSharp
             if (SubscriptionManager.SubscriptionDataConfigService.GetSubscriptionDataConfigs(security.Symbol)
                 .Any(config => config.Resolution != Resolution.Hour))
             {
-                throw new Exception("Was expecting resolution to be set to Hour");
+                throw new RegressionTestException("Was expecting resolution to be set to Hour");
             }
 
             var option = AddOption("AAPL");
             if (SubscriptionManager.SubscriptionDataConfigService.GetSubscriptionDataConfigs(option.Symbol)
                 .Any(config => config.Resolution != Resolution.Minute))
             {
-                throw new Exception("Was expecting resolution to be set to Minute");
+                throw new RegressionTestException("Was expecting resolution to be set to Minute");
             }
         }
 
@@ -109,7 +109,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -122,18 +122,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

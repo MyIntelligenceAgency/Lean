@@ -33,36 +33,39 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (ticket.Status != OrderStatus.Invalid)
             {
-                throw new Exception($"Unexpected order status {ticket.Status} for symbol {ticket.Symbol} and quantity {ticket.Quantity}");
+                throw new RegressionTestException($"Unexpected order status {ticket.Status} for symbol {ticket.Symbol} and quantity {ticket.Quantity}");
             }
             if (Portfolio.Positions.Groups.Count != 0)
             {
-                throw new Exception($"Unexpected position group count {Portfolio.Positions.Groups.Count} for symbol {ticket.Symbol} and quantity {ticket.Quantity}");
+                throw new RegressionTestException($"Unexpected position group count {Portfolio.Positions.Groups.Count} for symbol {ticket.Symbol} and quantity {ticket.Quantity}");
             }
             if (Portfolio.TotalMarginUsed != 0)
             {
-                throw new Exception($"Unexpected margin used {Portfolio.TotalMarginUsed} for symbol {ticket.Symbol} and quantity {ticket.Quantity}");
+                throw new RegressionTestException($"Unexpected margin used {Portfolio.TotalMarginUsed} for symbol {ticket.Symbol} and quantity {ticket.Quantity}");
             }
         }
 
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public override Language[] Languages { get; } = { Language.CSharp };
+        public override List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public override Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "10000"},
+            {"End Equity", "10000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -78,7 +81,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", ""},
             {"Portfolio Turnover", "0%"},
-            {"OrderListHash", "2c50d5dba71820a101e55e61236b5caa"}
+            {"OrderListHash", "2d5054cdc5dd7701845823749255ce1c"}
         };
     }
 }

@@ -481,6 +481,18 @@ namespace QuantConnect
         }
 
         /// <summary>
+        /// Define an enumerable date time range using the given time step
+        /// </summary>
+        /// <param name="from">DateTime start date time</param>
+        /// <param name="thru">DateTime end date time</param>
+        /// <returns>Enumerable date time range</returns>
+        public static IEnumerable<DateTime> DateTimeRange(DateTime from, DateTime thru, TimeSpan step)
+        {
+            for (var dateTime = from; dateTime <= thru; dateTime = dateTime.Add(step))
+                yield return dateTime;
+        }
+
+        /// <summary>
         /// Define an enumerable date range and return each date as a datetime object in the date range
         /// </summary>
         /// <param name="from">DateTime start date</param>
@@ -488,8 +500,7 @@ namespace QuantConnect
         /// <returns>Enumerable date range</returns>
         public static IEnumerable<DateTime> EachDay(DateTime from, DateTime thru)
         {
-            for (var day = from.Date; day.Date <= thru.Date; day = day.AddDays(1))
-                yield return day;
+            return DateTimeRange(from.Date, thru.Date, TimeSpan.FromDays(1));
         }
 
 
@@ -518,12 +529,12 @@ namespace QuantConnect
         /// <param name="security">The security to get tradeable dates for</param>
         /// <param name="from">Start date</param>
         /// <param name="thru">End date</param>
+        /// <param name="extendedMarketHours">True to include days with extended market hours only, like sunday for futures</param>
         /// <returns>Enumerable date range</returns>
-        public static IEnumerable<DateTime> EachTradeableDay(Security security, DateTime from, DateTime thru)
+        public static IEnumerable<DateTime> EachTradeableDay(Security security, DateTime from, DateTime thru, bool extendedMarketHours = false)
         {
-            return EachTradeableDay(security.Exchange.Hours, from, thru);
+            return EachTradeableDay(security.Exchange.Hours, from, thru, extendedMarketHours);
         }
-
 
         /// <summary>
         /// Define an enumerable date range of tradeable dates - skip the holidays and weekends when securities in this algorithm don't trade.
@@ -531,12 +542,13 @@ namespace QuantConnect
         /// <param name="exchange">The security to get tradeable dates for</param>
         /// <param name="from">Start date</param>
         /// <param name="thru">End date</param>
+        /// <param name="extendedMarketHours">True to include days with extended market hours only, like sunday for futures</param>
         /// <returns>Enumerable date range</returns>
-        public static IEnumerable<DateTime> EachTradeableDay(SecurityExchangeHours exchange, DateTime from, DateTime thru)
+        public static IEnumerable<DateTime> EachTradeableDay(SecurityExchangeHours exchange, DateTime from, DateTime thru, bool extendedMarketHours = false)
         {
             for (var day = from.Date; day.Date <= thru.Date; day = day.AddDays(1))
             {
-                if (exchange.IsDateOpen(day))
+                if (exchange.IsDateOpen(day, extendedMarketHours))
                 {
                     yield return day;
                 }

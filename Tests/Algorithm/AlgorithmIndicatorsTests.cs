@@ -14,22 +14,18 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Linq.Expressions;
-
 using Moq;
 using NUnit.Framework;
-
+using Python.Runtime;
 using QuantConnect.Algorithm;
 using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Indicators;
-using QuantConnect.Interfaces;
 using QuantConnect.Lean.Engine.DataFeeds;
 using QuantConnect.Lean.Engine.HistoricalData;
 using QuantConnect.Tests.Engine.DataFeeds;
+using QuantConnect.Tests.Research;
 
 namespace QuantConnect.Tests.Algorithm
 {
@@ -37,22 +33,24 @@ namespace QuantConnect.Tests.Algorithm
     public class AlgorithmIndicatorsTests
     {
         private QCAlgorithm _algorithm;
+        private Symbol _equity;
+        private Symbol _option;
 
         [SetUp]
         public void Setup()
         {
-            _algorithm = new QCAlgorithm();
-            _algorithm.SubscriptionManager.SetDataManager(new DataManagerStub(_algorithm));
-
+            _algorithm = new AlgorithmStub();
             var historyProvider = new SubscriptionDataReaderHistoryProvider();
             historyProvider.Initialize(new HistoryProviderInitializeParameters(null, null,
                 TestGlobals.DataProvider, TestGlobals.DataCacheProvider, TestGlobals.MapFileProvider, TestGlobals.FactorFileProvider,
-                null, true, new DataPermissionManager(), _algorithm.ObjectStore));
+                null, true, new DataPermissionManager(), _algorithm.ObjectStore, _algorithm.Settings));
             _algorithm.SetHistoryProvider(historyProvider);
 
             _algorithm.SetDateTime(new DateTime(2013, 10, 11, 15, 0, 0));
-            _algorithm.AddEquity("SPY");
-            _algorithm.EnableAutomaticIndicatorWarmUp = true;
+            _equity = _algorithm.AddEquity("SPY").Symbol;
+            _option = Symbol.CreateOption("SPY", Market.USA, OptionStyle.American, OptionRight.Call, 450m, new DateTime(2023, 9, 1));
+            _algorithm.AddOptionContract(_option);
+            _algorithm.Settings.AutomaticIndicatorWarmUp = true;
         }
 
         [Test]
@@ -92,6 +90,314 @@ namespace QuantConnect.Tests.Algorithm
 
             // Our interest rate provider should have been called once
             interestRateProviderMock.Verify(x => x.GetInterestRate(reference), Times.Once);
+        }
+
+        [TestCase("Span", Language.CSharp)]
+        [TestCase("Count", Language.CSharp)]
+        [TestCase("StartAndEndDate", Language.CSharp)]
+        [TestCase("Span", Language.Python)]
+        [TestCase("Count", Language.Python)]
+        [TestCase("StartAndEndDate", Language.Python)]
+        public void IndicatorsDataPoint(string testCase, Language language)
+        {
+            var period = 10;
+            var indicator = new BollingerBands(period, 2);
+            _algorithm.SetDateTime(new DateTime(2013, 10, 11));
+
+            int dataCount;
+
+            IndicatorHistory indicatorValues;
+            if (language == Language.CSharp)
+            {
+                if (testCase == "StartAndEndDate")
+                {
+                    indicatorValues = _algorithm.IndicatorHistory(indicator, _equity, new DateTime(2013, 10, 07), new DateTime(2013, 10, 11), Resolution.Minute);
+                }
+                else if (testCase == "Span")
+                {
+                    indicatorValues = _algorithm.IndicatorHistory(indicator, _equity, TimeSpan.FromDays(5), Resolution.Minute);
+                }
+                else
+                {
+                    indicatorValues = _algorithm.IndicatorHistory(indicator, _equity, (int)(4 * 60 * 6.5), Resolution.Minute);
+                }
+                // BollingerBands, upper, lower, mid bands, std, band width, percentB, price
+                Assert.AreEqual(8, indicatorValues.First().GetStorageDictionary().Count);
+                dataCount = indicatorValues.ToList().Count;
+            }
+            else
+            {
+                using (Py.GIL())
+                {
+                    if (testCase == "StartAndEndDate")
+                    {
+                        indicatorValues = _algorithm.IndicatorHistory(indicator.ToPython(), _equity.ToPython(), new DateTime(2013, 10, 07), new DateTime(2013, 10, 11), Resolution.Minute);
+                    }
+                    else if (testCase == "Span")
+                    {
+                        indicatorValues = _algorithm.IndicatorHistory(indicator.ToPython(), _equity.ToPython(), TimeSpan.FromDays(5), Resolution.Minute);
+                    }
+                    else
+                    {
+                        indicatorValues = _algorithm.IndicatorHistory(indicator.ToPython(), _equity.ToPython(), (int)(4 * 60 * 6.5), Resolution.Minute);
+                    }
+                    dataCount = QuantBookIndicatorsTests.GetDataFrameLength(indicatorValues.DataFrame);
+                }
+            }
+
+            // the historical indicator current values
+            Assert.AreEqual(1550 + period, indicatorValues.Current.Count);
+            Assert.AreEqual(1550 + period, indicatorValues["current"].Count);
+            Assert.AreEqual(indicatorValues.Current, indicatorValues["current"]);
+            Assert.IsNull(indicatorValues["NonExisting"]);
+
+            Assert.IsTrue(indicator.IsReady);
+            Assert.AreEqual(1550 + period, dataCount);
+
+            var lastData = indicatorValues.Current.Last();
+            Assert.AreEqual(new DateTime(2013, 10, 10, 16, 0, 0), lastData.EndTime);
+            Assert.AreEqual(lastData.EndTime, indicatorValues.Last().EndTime);
+        }
+
+        [TestCase("Span", Language.CSharp)]
+        [TestCase("Count", Language.CSharp)]
+        [TestCase("StartAndEndDate", Language.CSharp)]
+        [TestCase("Span", Language.Python)]
+        [TestCase("Count", Language.Python)]
+        [TestCase("StartAndEndDate", Language.Python)]
+        public void IndicatorsBar(string testCase, Language language)
+        {
+            var period = 10;
+            var indicator = new AverageTrueRange(period);
+            _algorithm.SetDateTime(new DateTime(2013, 10, 11));
+
+            IndicatorHistory indicatorValues;
+            int dataCount;
+            if (language == Language.CSharp)
+            {
+                if (testCase == "StartAndEndDate")
+                {
+                    indicatorValues = _algorithm.IndicatorHistory(indicator, _equity, new DateTime(2013, 10, 07), new DateTime(2013, 10, 11), Resolution.Minute);
+                }
+                else if (testCase == "Span")
+                {
+                    indicatorValues = _algorithm.IndicatorHistory(indicator, _equity, TimeSpan.FromDays(5), Resolution.Minute);
+                }
+                else
+                {
+                    indicatorValues = _algorithm.IndicatorHistory(indicator, _equity, (int)(4 * 60 * 6.5), Resolution.Minute);
+                }
+                // the TrueRange & the AVGTrueRange
+                Assert.AreEqual(2, indicatorValues.First().GetStorageDictionary().Count);
+                dataCount = indicatorValues.ToList().Count;
+            }
+            else
+            {
+                using (Py.GIL())
+                {
+                    if (testCase == "StartAndEndDate")
+                    {
+                        indicatorValues = _algorithm.IndicatorHistory(indicator.ToPython(), _equity.ToPython(), new DateTime(2013, 10, 07), new DateTime(2013, 10, 11), Resolution.Minute);
+                    }
+                    else if (testCase == "Span")
+                    {
+                        indicatorValues = _algorithm.IndicatorHistory(indicator.ToPython(), _equity.ToPython(), TimeSpan.FromDays(5), Resolution.Minute);
+                    }
+                    else
+                    {
+                        indicatorValues = _algorithm.IndicatorHistory(indicator.ToPython(), _equity.ToPython(), (int)(4 * 60 * 6.5), Resolution.Minute);
+                    }
+                    dataCount = QuantBookIndicatorsTests.GetDataFrameLength(indicatorValues.DataFrame);
+                }
+            }
+
+            // the historical indicator current values
+            Assert.AreEqual(1550 + period, indicatorValues.Current.Count);
+            Assert.AreEqual(1550 + period, indicatorValues["current"].Count);
+            Assert.AreEqual(indicatorValues.Current, indicatorValues["current"]);
+            Assert.IsNull(indicatorValues["NonExisting"]);
+
+            Assert.IsTrue(indicator.IsReady);
+            Assert.AreEqual(1550 + period, dataCount);
+
+            var lastData = indicatorValues.Current.Last();
+            Assert.AreEqual(new DateTime(2013, 10, 10, 16, 0, 0), lastData.EndTime);
+            Assert.AreEqual(lastData.EndTime, indicatorValues.Last().EndTime);
+        }
+
+        [TestCase(Language.Python)]
+        [TestCase(Language.CSharp)]
+        public void IndicatorMultiSymbol(Language language)
+        {
+            var referenceSymbol = Symbol.Create("IBM", SecurityType.Equity, Market.USA);
+            var indicator = new Beta(_equity, referenceSymbol, 10);
+            _algorithm.SetDateTime(new DateTime(2013, 10, 11));
+
+            int dataCount;
+            IndicatorHistory indicatorValues;
+            if (language == Language.CSharp)
+            {
+                indicatorValues = _algorithm.IndicatorHistory(indicator, new[] { _equity, referenceSymbol }, TimeSpan.FromDays(5));
+                Assert.AreEqual(1, indicatorValues.First().GetStorageDictionary().Count);
+                dataCount = indicatorValues.ToList().Count;
+            }
+            else
+            {
+                using (Py.GIL())
+                {
+                    indicatorValues = _algorithm.IndicatorHistory(indicator.ToPython(), (new[] { _equity, referenceSymbol }).ToPython(), TimeSpan.FromDays(5));
+                    dataCount = QuantBookIndicatorsTests.GetDataFrameLength(indicatorValues.DataFrame);
+                }
+            }
+
+            // the historical indicator current values
+            Assert.AreEqual(1560, indicatorValues.Current.Count);
+            Assert.AreEqual(1560, indicatorValues["current"].Count);
+            Assert.AreEqual(indicatorValues.Current, indicatorValues["current"]);
+            Assert.IsNull(indicatorValues["NonExisting"]);
+
+            Assert.AreEqual(1560, dataCount);
+            Assert.IsTrue(indicator.IsReady);
+        }
+
+        [Test]
+        public void BetaCalculation()
+        {
+            var referenceSymbol = Symbol.Create("IBM", SecurityType.Equity, Market.USA);
+            var indicator = new Beta(_equity, referenceSymbol, 10);
+            _algorithm.SetDateTime(new DateTime(2013, 10, 11));
+
+            var indicatorValues = _algorithm.IndicatorHistory(indicator, new[] { _equity, referenceSymbol }, TimeSpan.FromDays(50), Resolution.Daily);
+            Assert.AreEqual(0.676480102032563m, indicatorValues.Last().Price);
+            Assert.AreEqual(0.676480102032563m, indicatorValues.Last().Current.Value);
+        }
+
+        [TestCase(Language.Python)]
+        [TestCase(Language.CSharp)]
+        public void IndicatorsPassingHistory(Language language)
+        {
+            var referenceSymbol = Symbol.Create("IBM", SecurityType.Equity, Market.USA);
+            var indicator = new Beta(_equity, referenceSymbol, 10);
+            _algorithm.SetDateTime(new DateTime(2013, 10, 11));
+
+            var history = _algorithm.History(new[] { _equity, referenceSymbol }, TimeSpan.FromDays(5), Resolution.Minute);
+            int dataCount;
+            if (language == Language.CSharp)
+            {
+                var indicatorValues = _algorithm.IndicatorHistory(indicator, history);
+                Assert.AreEqual(1, indicatorValues.First().GetStorageDictionary().Count);
+                dataCount = indicatorValues.Count;
+            }
+            else
+            {
+                using (Py.GIL())
+                {
+                    var pandasFrame = _algorithm.IndicatorHistory(indicator.ToPython(), history);
+                    dataCount = QuantBookIndicatorsTests.GetDataFrameLength(pandasFrame.DataFrame);
+                }
+            }
+            Assert.AreEqual(1549, dataCount);
+            Assert.IsTrue(indicator.IsReady);
+        }
+
+        [TestCase("count")]
+        [TestCase("StartAndEndDate")]
+        public void IndicatorUpdatedWithSymbol(string testCase)
+        {
+            var time = new DateTime(2014, 06, 07);
+
+            var put = Symbols.CreateOptionSymbol("AAPL", OptionRight.Call, 250m, new DateTime(2016, 01, 15));
+            var call = Symbols.CreateOptionSymbol("AAPL", OptionRight.Put, 250m, new DateTime(2016, 01, 15));
+            var indicator = new Delta(option: put, mirrorOption: call, optionModel: OptionPricingModelType.BlackScholes, ivModel: OptionPricingModelType.BlackScholes);
+            _algorithm.SetDateTime(time);
+
+            IndicatorHistory indicatorValues;
+            if (testCase == "count")
+            {
+                indicatorValues = _algorithm.IndicatorHistory(indicator, new[] { put, call, put.Underlying }, 60 * 10, resolution: Resolution.Minute);
+            }
+            else
+            {
+                indicatorValues = _algorithm.IndicatorHistory(indicator, new[] { put, call, put.Underlying }, TimeSpan.FromMinutes(60 * (10 + 2)), resolution: Resolution.Minute);
+            }
+
+            Assert.IsTrue(indicator.IsReady);
+            Assert.AreEqual(0.994298416889621m, indicator.Current.Value);
+            Assert.AreEqual(0.351654399192164m, indicator.ImpliedVolatility.Current.Value);
+            Assert.AreEqual(389, indicatorValues.Count);
+
+            var lastData = indicatorValues.Current.Last();
+            Assert.AreEqual(new DateTime(2014, 6, 6, 16, 0, 0), lastData.EndTime);
+            Assert.AreEqual(lastData.EndTime, indicatorValues.Last().EndTime);
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        public void PythonCustomIndicator(int testCases)
+        {
+            _algorithm.SetDateTime(new DateTime(2013, 10, 11));
+            using (Py.GIL())
+            {
+                PyModule module;
+                if (testCases == 1)
+                {
+                    module = PyModule.FromString("PythonCustomIndicator",
+                        @"
+from AlgorithmImports import *
+class GoodCustomIndicator(PythonIndicator):
+    def __init__(self):
+        self.Value = 0
+    def Update(self, input):
+        self.Value = input.Value
+        return True");
+                }
+                else
+                {
+                    module = PyModule.FromString("PythonCustomIndicator",
+                        @"
+from AlgorithmImports import *
+class GoodCustomIndicator:
+    def __init__(self):
+        self.IsReady = True
+        self.Value = 0
+    def Update(self, input):
+        self.Value = input.Value
+        return True");
+                }
+
+                var goodIndicator = module.GetAttr("GoodCustomIndicator").Invoke();
+                var pandasFrame = _algorithm.IndicatorHistory(goodIndicator, _equity.ToPython(), TimeSpan.FromDays(5), Resolution.Minute);
+                var dataCount = QuantBookIndicatorsTests.GetDataFrameLength(pandasFrame.DataFrame);
+
+                Assert.IsTrue((bool)((dynamic)goodIndicator).IsReady);
+                Assert.AreEqual(1559, dataCount);
+            }
+        }
+
+        [Test]
+        public void SpecificTTypeIndicator()
+        {
+            _algorithm.SetDateTime(new DateTime(2013, 10, 11));
+            var referenceSymbol = Symbol.Create("IBM", SecurityType.Equity, Market.USA);
+            var indicator = new CustomIndicator();
+            var result = _algorithm.IndicatorHistory(indicator, referenceSymbol, TimeSpan.FromDays(1), Resolution.Minute).ToList();
+            Assert.AreEqual(390, result.Count);
+            Assert.IsTrue(indicator.IsReady);
+        }
+
+
+        private class CustomIndicator : IndicatorBase<QuoteBar>, IIndicatorWarmUpPeriodProvider
+        {
+            private bool _isReady;
+            public int WarmUpPeriod => 1;
+            public override bool IsReady => _isReady;
+            public CustomIndicator() : base("Pepe")
+            { }
+            protected override decimal ComputeNextValue(QuoteBar input)
+            {
+                _isReady = true;
+                return input.Ask.High;
+            }
         }
     }
 }

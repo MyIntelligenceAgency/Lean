@@ -43,24 +43,24 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (history.Count == 0)
             {
-                throw new Exception("History request returned no data");
+                throw new RegressionTestException("History request returned no data");
             }
 
             var history2 = History<CustomDataType>(new[] { _symbol }, 48, Resolution.Hour).ToList();
 
             if (history2.Count != history.Count)
             {
-                throw new Exception("History requests returned different data");
+                throw new RegressionTestException("History requests returned different data");
             }
 
         }
 
         public class CustomDataType : DynamicData
         {
-            public decimal Open;
-            public decimal High;
-            public decimal Low;
-            public decimal Close;
+            public decimal Open { get; set; }
+            public decimal High { get; set; }
+            public decimal Low { get; set; }
+            public decimal Close { get; set; }
 
             public override SubscriptionDataSource GetSource(SubscriptionDataConfig config, DateTime date, bool isLiveMode)
             {
@@ -106,7 +106,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -119,18 +119,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 54;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

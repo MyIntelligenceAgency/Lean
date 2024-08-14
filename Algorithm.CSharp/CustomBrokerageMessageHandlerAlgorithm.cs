@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
  *
@@ -15,6 +15,7 @@
 
 using System;
 using QuantConnect.Brokerages;
+using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Interfaces;
 
@@ -39,7 +40,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetBrokerageMessageHandler(new CustomBrokerageMessageHandler(this));
         }
 
-        public void OnData(TradeBars data)
+        public override void OnData(Slice slice)
         {
             if (Portfolio.HoldStock) return;
             Order("SPY", 100);
@@ -59,11 +60,21 @@ namespace QuantConnect.Algorithm.CSharp
         /// Process the brokerage message event. Trigger any actions in the algorithm or notifications system required.
         /// </summary>
         /// <param name="message">Message object</param>
-        public void Handle(BrokerageMessageEvent message)
+        public void HandleMessage(BrokerageMessageEvent message)
         {
             var toLog = $"{_algo.Time.ToStringInvariant("o")} Event: {message.Message}";
             _algo.Debug(toLog);
             _algo.Log(toLog);
+        }
+
+        /// <summary>
+        /// Handles a new order placed manually in the brokerage side
+        /// </summary>
+        /// <param name="eventArgs">The new order event</param>
+        /// <returns>Whether the order should be added to the transaction handler</returns>
+        public bool HandleOrder(NewBrokerageOrderNotificationEventArgs eventArgs)
+        {
+            return true;
         }
     }
 }

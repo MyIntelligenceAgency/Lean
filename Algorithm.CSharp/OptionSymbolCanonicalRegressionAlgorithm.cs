@@ -50,7 +50,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!ReferenceEquals(_canonicalOptionContract, _optionContract.Canonical))
             {
-                throw new Exception("Canonical Symbol reference changed!");
+                throw new RegressionTestException("Canonical Symbol reference changed!");
             }
 
             _canonicalOptionContract = _optionContract.Canonical;
@@ -72,7 +72,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -85,18 +85,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-11.148%"},
             {"Drawdown", "0.200%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99849"},
             {"Net Profit", "-0.151%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -112,7 +120,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$5700000.00"},
             {"Lowest Capacity Asset", "AOL VRKS95ENLBYE|AOL R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.59%"},
-            {"OrderListHash", "e7c90c76823c54ede77003007816c209"}
+            {"OrderListHash", "cf5752ad13afe5294a9a8aad660d015a"}
         };
     }
 }

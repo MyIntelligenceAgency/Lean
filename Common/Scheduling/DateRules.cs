@@ -26,20 +26,17 @@ namespace QuantConnect.Scheduling
     /// <summary>
     /// Helper class used to provide better syntax when defining date rules
     /// </summary>
-    public class DateRules
+    public class DateRules : BaseScheduleRules
     {
-        private DateTimeZone _timeZone;
-        private readonly SecurityManager _securities;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="DateRules"/> helper class
         /// </summary>
         /// <param name="securities">The security manager</param>
         /// <param name="timeZone">The algorithm's default time zone</param>
-        public DateRules(SecurityManager securities, DateTimeZone timeZone)
+        /// <param name="marketHoursDatabase">The market hours database instance to use</param>
+        public DateRules(SecurityManager securities, DateTimeZone timeZone, MarketHoursDatabase marketHoursDatabase)
+            : base(securities, timeZone, marketHoursDatabase)
         {
-            _timeZone = timeZone;
-            _securities = securities;
         }
 
         /// <summary>
@@ -48,7 +45,7 @@ namespace QuantConnect.Scheduling
         /// <param name="timeZone">The time zone to use for helper methods that can't resolve a time zone</param>
         public void SetDefaultTimeZone(DateTimeZone timeZone)
         {
-            _timeZone = timeZone;
+            TimeZone = timeZone;
         }
 
         /// <summary>
@@ -62,7 +59,7 @@ namespace QuantConnect.Scheduling
         {
             // make sure they're date objects
             var dates = new[] {new DateTime(year, month, day)};
-            return new FuncDateRule(string.Join(",", dates.Select(x => x.ToShortDateString())), (start, end) => dates);
+            return new FuncDateRule(string.Join(",", dates.Select(x => x.ToShortDateString())), (start, end) => dates.Where(x => x >= start && x <= end));
         }
 
         /// <summary>
@@ -73,7 +70,7 @@ namespace QuantConnect.Scheduling
         {
             // make sure they're date objects
             dates = dates.Select(x => x.Date).ToArray();
-            return new FuncDateRule(string.Join(",", dates.Select(x => x.ToShortDateString())), (start, end) => dates);
+            return new FuncDateRule(string.Join(",", dates.Select(x => x.ToShortDateString())), (start, end) => dates.Where(x => x >= start && x <= end));
         }
 
         /// <summary>
@@ -82,7 +79,7 @@ namespace QuantConnect.Scheduling
         /// </summary>
         public IDateRule Today => new FuncDateRule("TodayOnly",
             (start, e) => {
-                return new[] { _securities.UtcTime.ConvertFromUtc(_timeZone).Date };
+                return new[] { Securities.UtcTime.ConvertFromUtc(TimeZone).Date };
             }
         );
 
@@ -91,7 +88,7 @@ namespace QuantConnect.Scheduling
         /// using _securities.UtcTime instead of 'start' since ScheduleManager backs it up a day
         /// </summary>
         public IDateRule Tomorrow => new FuncDateRule("TomorrowOnly",
-            (start, e) => new[] {_securities.UtcTime.ConvertFromUtc(_timeZone).Date.AddDays(1)}
+            (start, e) => new[] {Securities.UtcTime.ConvertFromUtc(TimeZone).Date.AddDays(1)}
         );
 
         /// <summary>
@@ -125,11 +122,81 @@ namespace QuantConnect.Scheduling
         /// Specifies an event should fire every day the symbol is trading
         /// </summary>
         /// <param name="symbol">The symbol whose exchange is used to determine tradable dates</param>
+        /// <param name="extendedMarketHours">True to include days with extended market hours only, like sunday for futures</param>
         /// <returns>A date rule that fires every day the specified symbol trades</returns>
-        public IDateRule EveryDay(Symbol symbol)
+        public IDateRule EveryDay(Symbol symbol, bool extendedMarketHours = false)
         {
-            var securitySchedule = GetSecuritySchedule(symbol);
-            return new FuncDateRule($"{symbol.Value}: EveryDay", (start, end) => Time.EachTradeableDay(securitySchedule, start, end));
+            var securitySchedule = GetSecurityExchangeHours(symbol);
+            return new FuncDateRule($"{symbol.Value}: EveryDay", (start, end) => Time.EachTradeableDay(securitySchedule, start, end, extendedMarketHours));
+        }
+
+        /// <summary>
+        /// Specifies an event should fire on the first of each year + offset
+        /// </summary>
+        /// <param name="daysOffset"> The amount of days to offset the schedule by; must be between 0 and 365.</param>
+        /// <returns>A date rule that fires on the first of each year + offset</returns>
+        public IDateRule YearStart(int daysOffset = 0)
+        {
+            return YearStart(null, daysOffset);
+        }
+
+        /// <summary>
+        /// Specifies an event should fire on the first tradable date + offset for the specified symbol of each year
+        /// </summary>
+        /// <param name="symbol">The symbol whose exchange is used to determine the first tradable date of the year</param>
+        /// <param name="daysOffset"> The amount of tradable days to offset the schedule by; must be between 0 and 365</param>
+        /// <returns>A date rule that fires on the first tradable date + offset for the
+        /// specified security each year</returns>
+        public IDateRule YearStart(Symbol symbol, int daysOffset = 0)
+        {
+            // Check that our offset is allowed
+            if (daysOffset < 0 || 365 < daysOffset)
+            {
+                throw new ArgumentOutOfRangeException(nameof(daysOffset), "DateRules.YearStart() : Offset must be between 0 and 365");
+            }
+
+            SecurityExchangeHours securityExchangeHours = null;
+            if (symbol != null)
+            {
+                securityExchangeHours = GetSecurityExchangeHours(symbol);
+            }
+
+            // Create the new DateRule and return it
+            return new FuncDateRule(GetName(symbol, "YearStart", daysOffset), (start, end) => YearIterator(securityExchangeHours, start, end, daysOffset, true));
+        }
+
+        /// <summary>
+        /// Specifies an event should fire on the last of each year
+        /// </summary>
+        /// <param name="daysOffset"> The amount of days to offset the schedule by; must be between 0 and 365</param>
+        /// <returns>A date rule that fires on the last of each year - offset</returns>
+        public IDateRule YearEnd(int daysOffset = 0)
+        {
+            return YearEnd(null, daysOffset);
+        }
+
+        /// <summary>
+        /// Specifies an event should fire on the last tradable date - offset for the specified symbol of each year
+        /// </summary>
+        /// <param name="symbol">The symbol whose exchange is used to determine the last tradable date of the year</param>
+        /// <param name="daysOffset">The amount of tradable days to offset the schedule by; must be between 0 and 365.</param>
+        /// <returns>A date rule that fires on the last tradable date - offset for the specified security each year</returns>
+        public IDateRule YearEnd(Symbol symbol, int daysOffset = 0)
+        {
+            // Check that our offset is allowed
+            if (daysOffset < 0 || 365 < daysOffset)
+            {
+                throw new ArgumentOutOfRangeException(nameof(daysOffset), "DateRules.YearEnd() : Offset must be between 0 and 365");
+            }
+
+            SecurityExchangeHours securityExchangeHours = null;
+            if (symbol != null)
+            {
+                securityExchangeHours = GetSecurityExchangeHours(symbol);
+            }
+
+            // Create the new DateRule and return it
+            return new FuncDateRule(GetName(symbol, "YearEnd", -daysOffset), (start, end) => YearIterator(securityExchangeHours, start, end, daysOffset, false));
         }
 
         /// <summary>
@@ -158,7 +225,7 @@ namespace QuantConnect.Scheduling
             }
 
             // Create the new DateRule and return it
-            return new FuncDateRule(GetName(symbol, "MonthStart", daysOffset), (start, end) => MonthIterator(GetSecuritySchedule(symbol), start, end, daysOffset, true));
+            return new FuncDateRule(GetName(symbol, "MonthStart", daysOffset), (start, end) => MonthIterator(GetSecurityExchangeHours(symbol), start, end, daysOffset, true));
         }
 
         /// <summary>
@@ -186,7 +253,7 @@ namespace QuantConnect.Scheduling
             }
 
             // Create the new DateRule and return it
-            return new FuncDateRule(GetName(symbol, "MonthEnd", -daysOffset), (start, end) => MonthIterator(GetSecuritySchedule(symbol), start, end, daysOffset, false));
+            return new FuncDateRule(GetName(symbol, "MonthEnd", -daysOffset), (start, end) => MonthIterator(GetSecurityExchangeHours(symbol), start, end, daysOffset, false));
         }
 
         /// <summary>
@@ -216,7 +283,7 @@ namespace QuantConnect.Scheduling
         /// security each week</returns>
         public IDateRule WeekStart(Symbol symbol, int daysOffset = 0)
         {
-            var securitySchedule = GetSecuritySchedule(symbol);
+            var securitySchedule = GetSecurityExchangeHours(symbol);
             var tradingDays = securitySchedule.MarketHours.Values
                 .Where(x => x.IsClosedAllDay == false).OrderBy(x => x.DayOfWeek).ToList();
 
@@ -258,7 +325,7 @@ namespace QuantConnect.Scheduling
         /// <returns>A date rule that fires on the last - offset tradable date for the specified security each week</returns>
         public IDateRule WeekEnd(Symbol symbol, int daysOffset = 0)
         {
-            var securitySchedule = GetSecuritySchedule(symbol);
+            var securitySchedule = GetSecurityExchangeHours(symbol);
             var tradingDays = securitySchedule.MarketHours.Values
                 .Where(x => x.IsClosedAllDay == false).OrderBy(x => x.DayOfWeek).ToList();
 
@@ -272,21 +339,6 @@ namespace QuantConnect.Scheduling
 
             // Create the new DateRule and return it
             return new FuncDateRule(GetName(symbol, "WeekEnd", -daysOffset), (start, end) => WeekIterator(securitySchedule, start, end, daysOffset, false));
-        }
-
-        /// <summary>
-        /// Gets the security with the specified symbol, or throws an exception if the symbol is not found
-        /// </summary>
-        /// <param name="symbol">The security's symbol to search for</param>
-        /// <returns>The security object matching the given symbol</returns>
-        private SecurityExchangeHours GetSecuritySchedule(Symbol symbol)
-        {
-            Security security;
-            if (!_securities.TryGetValue(symbol, out security))
-            {
-                throw new KeyNotFoundException(symbol.Value + " not found in portfolio. Request this data when initializing the algorithm.");
-            }
-            return security.Exchange.Hours;
         }
 
         /// <summary>
@@ -321,7 +373,7 @@ namespace QuantConnect.Scheduling
             var scheduledDate = baseDay;
 
             // If its not open on this day find the next trading day by searching in the given direction
-            if (!securityExchangeHours.IsDateOpen(scheduledDate))
+            if (!securityExchangeHours.IsDateOpen(scheduledDate, extendedMarketHours: true))
             {
                 scheduledDate = searchForward
                     ? securityExchangeHours.GetNextTradingDay(scheduledDate)
@@ -357,7 +409,16 @@ namespace QuantConnect.Scheduling
             return scheduledDate;
         }
 
-        private static IEnumerable<DateTime> MonthIterator(SecurityExchangeHours securitySchedule, DateTime start, DateTime end, int offset, bool searchForward)
+        private static IEnumerable<DateTime> BaseIterator(
+            SecurityExchangeHours securitySchedule,
+            DateTime start,
+            DateTime end,
+            int offset,
+            bool searchForward,
+            DateTime periodBegin,
+            DateTime periodEnd,
+            Func<DateTime, DateTime> baseDateFunc,
+            Func<DateTime, DateTime> boundaryDateFunc)
         {
             // No schedule means no security, set to open everyday
             if (securitySchedule == null)
@@ -365,21 +426,12 @@ namespace QuantConnect.Scheduling
                 securitySchedule = SecurityExchangeHours.AlwaysOpen(TimeZones.NewYork);
             }
 
-            // Iterate all days between the beginning of "start" month, through end of "end" month.
-            // Necessary to ensure we schedule events in the month we start and end.
-            var beginningOfStartMonth = new DateTime(start.Year, start.Month, 1);
-            var endOfEndMonth = new DateTime(end.Year, end.Month, DateTime.DaysInMonth(end.Year, end.Month));
-
-            foreach (var date in Time.EachDay(beginningOfStartMonth, endOfEndMonth))
+            foreach (var date in Time.EachDay(periodBegin, periodEnd))
             {
-                var daysInMonth = DateTime.DaysInMonth(date.Year, date.Month);
+                var baseDate = baseDateFunc(date);
+                var boundaryDate = boundaryDateFunc(date);
 
-                // Searching forward the first of the month is baseDay, with boundary being the last
-                // Searching backward the last of the month is baseDay, with boundary being the first
-                var baseDate = searchForward? new DateTime(date.Year, date.Month, 1) : new DateTime(date.Year, date.Month, daysInMonth);
-                var boundaryDate = searchForward ? new DateTime(date.Year, date.Month, daysInMonth) : new DateTime(date.Year, date.Month, 1);
-
-                // Determine the scheduled day for this month
+                // Determine the scheduled day for this period
                 if (date == baseDate)
                 {
                     var scheduledDay = GetScheduledDay(securitySchedule, baseDate, offset, searchForward, boundaryDate);
@@ -391,6 +443,36 @@ namespace QuantConnect.Scheduling
                     }
                 }
             }
+        }
+
+        private static IEnumerable<DateTime> MonthIterator(SecurityExchangeHours securitySchedule, DateTime start, DateTime end, int offset, bool searchForward)
+        {
+            // Iterate all days between the beginning of "start" month, through end of "end" month.
+            // Necessary to ensure we schedule events in the month we start and end.
+            var beginningOfStartMonth = new DateTime(start.Year, start.Month, 1);
+            var endOfEndMonth = new DateTime(end.Year, end.Month, DateTime.DaysInMonth(end.Year, end.Month));
+
+            // Searching forward the first of the month is baseDay, with boundary being the last
+            // Searching backward the last of the month is baseDay, with boundary being the first
+            Func<DateTime, DateTime> baseDateFunc = date => searchForward ? new DateTime(date.Year, date.Month, 1) : new DateTime(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
+            Func<DateTime, DateTime> boundaryDateFunc = date => searchForward ? new DateTime(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month)) : new DateTime(date.Year, date.Month, 1);
+
+            return BaseIterator(securitySchedule, start, end, offset, searchForward, beginningOfStartMonth, endOfEndMonth, baseDateFunc, boundaryDateFunc);
+        }
+
+        private static IEnumerable<DateTime> YearIterator(SecurityExchangeHours securitySchedule, DateTime start, DateTime end, int offset, bool searchForward)
+        {
+            // Iterate all days between the beginning of "start" year, through end of "end" year
+            // Necessary to ensure we schedule events in the year we start and end.
+            var beginningOfStartOfYear = new DateTime(start.Year, start.Month, 1);
+            var endOfEndYear = new DateTime(end.Year, end.Month, DateTime.DaysInMonth(end.Year, end.Month));
+
+            // Searching forward the first of the year is baseDay, with boundary being the last
+            // Searching backward the last of the year is baseDay, with boundary being the first
+            Func<DateTime, DateTime> baseDateFunc = date => searchForward ? new DateTime(date.Year, 1, 1) : new DateTime(date.Year, 12, 31);
+            Func<DateTime, DateTime> boundaryDateFunc = date => searchForward ? new DateTime(date.Year, 12, 31) : new DateTime(date.Year, 1, 1);
+
+            return BaseIterator(securitySchedule, start, end, offset, searchForward, beginningOfStartOfYear, endOfEndYear, baseDateFunc, boundaryDateFunc);
         }
 
         private static IEnumerable<DateTime> WeekIterator(SecurityExchangeHours securitySchedule, DateTime start, DateTime end, int offset, bool searchForward)

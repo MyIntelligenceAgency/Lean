@@ -18,6 +18,7 @@ using QuantConnect.Data.Market;
 using QuantConnect.Indicators;
 using QuantConnect.Parameters;
 using QuantConnect.Interfaces;
+using QuantConnect.Data;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -32,13 +33,13 @@ namespace QuantConnect.Algorithm.CSharp
         // their values from the job. The values 100 and 200 are just default values that
         // are only used if the parameters do not exist.
         [Parameter("ema-fast")]
-        public int FastPeriod = 100;
+        private int _fastPeriod = 100;
 
         [Parameter("ema-slow")]
-        public int SlowPeriod = 200;
+        private int _slowPeriod = 200;
 
-        public ExponentialMovingAverage Fast;
-        public ExponentialMovingAverage Slow;
+        private ExponentialMovingAverage _fast;
+        private ExponentialMovingAverage _slow;
 
         public override void Initialize()
         {
@@ -48,20 +49,20 @@ namespace QuantConnect.Algorithm.CSharp
 
             AddSecurity(SecurityType.Equity, "SPY");
 
-            Fast = EMA("SPY", FastPeriod);
-            Slow = EMA("SPY", SlowPeriod);
+            _fast = EMA("SPY", _fastPeriod);
+            _slow = EMA("SPY", _slowPeriod);
         }
 
-        public void OnData(TradeBars data)
+        public override void OnData(Slice data)
         {
             // wait for our indicators to ready
-            if (!Fast.IsReady || !Slow.IsReady) return;
+            if (!_fast.IsReady || !_slow.IsReady) return;
 
-            if (Fast > Slow*1.001m)
+            if (_fast > _slow*1.001m)
             {
                 SetHoldings("SPY", 1);
             }
-            else if (Fast < Slow*0.999m)
+            else if (_fast < _slow*0.999m)
             {
                 Liquidate("SPY");
             }
@@ -75,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -88,18 +89,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "286.047%"},
             {"Drawdown", "0.300%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "101742.04"},
             {"Net Profit", "1.742%"},
             {"Sharpe Ratio", "23.023"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -115,7 +124,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$48000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "19.72%"},
-            {"OrderListHash", "c831f9d57df399e75c184d101d03fe56"}
+            {"OrderListHash", "1fd15c0ef2042df5cd6e6d590000318e"}
         };
     }
 }

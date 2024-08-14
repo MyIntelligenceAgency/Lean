@@ -32,9 +32,11 @@ namespace QuantConnect.Orders.Fees
         private readonly Dictionary<string, Func<decimal, decimal, CashAmount>> _optionFee =
             new Dictionary<string, Func<decimal, decimal, CashAmount>>();
 
+        #pragma warning disable CS1570
         /// <summary>
         /// Reference at https://www.interactivebrokers.com/en/index.php?f=commission&p=futures1
         /// </summary>
+        #pragma warning restore CS1570
         private readonly Dictionary<string, Func<Security, CashAmount>> _futureFee =
             //                                                               IB fee + exchange fee
             new()
@@ -165,6 +167,20 @@ namespace QuantConnect.Orders.Fees
                     feeCurrency = equityFee.Currency;
                     //Always return a positive fee.
                     feeResult = Math.Abs(tradeFee);
+                    break;
+
+                case SecurityType.Cfd:
+                    var value = Math.Abs(order.GetValue(security));
+                    feeResult = 0.00002m * value; // 0.002%
+                    feeCurrency = security.QuoteCurrency.Symbol;
+
+                    var minimumFee = security.QuoteCurrency.Symbol switch
+                    {
+                        "JPY" => 40.0m,
+                        "HKD" => 10.0m,
+                        _ => 1.0m
+                    };
+                    feeResult = Math.Max(feeResult, minimumFee);
                     break;
 
                 default:

@@ -68,7 +68,7 @@ namespace QuantConnect.Algorithm.CSharp
             // Just making sure we don't get big jumps on volatility
             if (Securities[_aapl].VolatilityModel.Volatility > 0.6m)
             {
-                throw new Exception(
+                throw new RegressionTestException(
                     "Expected volatility to stay less than 0.6 (not big jumps due to price discontinuities on splits and dividends), " +
                     $"but got {Securities[_aapl].VolatilityModel.Volatility}");
             }
@@ -78,7 +78,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_splitsCount == 0 || _dividendsCount == 0)
             {
-                throw new Exception($"Expected to receive at least one split and one dividend, but got {_splitsCount} splits and {_dividendsCount} dividends");
+                throw new RegressionTestException($"Expected to receive at least one split and one dividend, but got {_splitsCount} splits and {_dividendsCount} dividends");
             }
         }
 
@@ -90,7 +90,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -103,18 +103,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 40;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

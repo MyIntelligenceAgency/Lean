@@ -52,15 +52,15 @@ namespace QuantConnect.Algorithm.CSharp
             _spy = AddEquity("SPY", Resolution.Daily);
             if (!(_spy.BuyingPowerModel is SecurityMarginModel))
             {
-                throw new Exception("This regression algorithm is expected to test the SecurityMarginModel");
+                throw new RegressionTestException("This regression algorithm is expected to test the SecurityMarginModel");
             }
         }
 
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             Log($"OnData(): Current execution step: {_step}");
             switch (_step)
@@ -111,7 +111,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (Portfolio.CashBook["EUR"].Amount != _initialCapital)
             {
-                throw new Exception($"Unexpected EUR ending cash amount: {Portfolio.CashBook["EUR"].Amount}.");
+                throw new RegressionTestException($"Unexpected EUR ending cash amount: {Portfolio.CashBook["EUR"].Amount}.");
             }
             var expectedAmount = Portfolio.CashBook.Convert(Portfolio.TotalProfit, "EUR", "USD")
                 - Portfolio.CashBook.Convert(Portfolio.TotalFees, "EUR", "USD");
@@ -120,7 +120,7 @@ namespace QuantConnect.Algorithm.CSharp
             // leave 1% for error
             if (Math.Abs(expectedAmount - amount) > Math.Abs(expectedAmount) * 0.01m)
             {
-                throw new Exception($"Unexpected USD ending cash amount: {amount}. Expected {expectedAmount}");
+                throw new RegressionTestException($"Unexpected USD ending cash amount: {amount}. Expected {expectedAmount}");
             }
         }
 
@@ -132,7 +132,7 @@ namespace QuantConnect.Algorithm.CSharp
                 // leave 1 unit as error in expected value
                 if (Math.Abs(orderEvent.FillQuantity - _expectedOrderQuantity) > 2)
                 {
-                    throw new Exception($"Unexpected order event fill quantity: {orderEvent.FillQuantity}. " +
+                    throw new RegressionTestException($"Unexpected order event fill quantity: {orderEvent.FillQuantity}. " +
                         $"Expected {_expectedOrderQuantity}");
                 }
 
@@ -142,7 +142,7 @@ namespace QuantConnect.Algorithm.CSharp
                     // leave 0.00001m as error in expected fee value
                     || Math.Abs(expectedOrderFee - orderFeeInAccountCurrency) > 0.00001m)
                 {
-                    throw new Exception($"Unexpected order fee: {orderFeeInAccountCurrency}. " +
+                    throw new RegressionTestException($"Unexpected order fee: {orderFeeInAccountCurrency}. " +
                         $"Expected {expectedOrderFee}");
                 }
 
@@ -157,7 +157,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                     if (Math.Abs(expectedProfitLoss - lastTrade.ProfitLoss) > 1)
                     {
-                        throw new Exception($"Unexpected last trade ProfitLoss: {lastTrade.ProfitLoss}. " +
+                        throw new RegressionTestException($"Unexpected last trade ProfitLoss: {lastTrade.ProfitLoss}. " +
                             $"Expected {expectedProfitLoss}");
                     }
 
@@ -170,7 +170,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                     if (Math.Abs(_spy.Holdings.LastTradeProfit - expectedProfitLoss) > 1)
                     {
-                        throw new Exception($"Unexpected Holdings.NetProfit: {_spy.Holdings.LastTradeProfit}. " +
+                        throw new RegressionTestException($"Unexpected Holdings.NetProfit: {_spy.Holdings.LastTradeProfit}. " +
                             $"Expected {expectedProfitLoss}");
                     }
                 }
@@ -188,7 +188,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -201,18 +201,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 60;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "6"},
+            {"Total Orders", "6"},
             {"Average Win", "0.41%"},
             {"Average Loss", "-0.85%"},
             {"Compounding Annual Return", "-15.350%"},
             {"Drawdown", "1.200%"},
             {"Expectancy", "-0.260"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99552.05"},
             {"Net Profit", "-0.448%"},
             {"Sharpe Ratio", "-1.457"},
+            {"Sortino Ratio", "-2.62"},
             {"Probabilistic Sharpe Ratio", "33.743%"},
             {"Loss Rate", "50%"},
             {"Win Rate", "50%"},
@@ -228,7 +236,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "€310000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "40.08%"},
-            {"OrderListHash", "d113dd64084d956c3c3aeb5d21c1f253"}
+            {"OrderListHash", "3928dff130532ed7e110a40d447c71ad"}
         };
     }
 }

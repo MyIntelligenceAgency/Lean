@@ -78,8 +78,8 @@ namespace QuantConnect.Tests.Report
                 Symbol.CreateOption("AAPL", Market.USA, OptionStyle.American, OptionRight.Call, 120m, new DateTime(2020, 5, 21)),
                 Symbol.Create("EURUSD", SecurityType.Forex, Market.Oanda),
                 Symbol.Create("XAUUSD", SecurityType.Cfd, Market.Oanda),
-                Symbol.CreateFuture(Futures.Energies.CrudeOilWTI, Market.NYMEX, new DateTime(2020, 5, 21)),
-                Symbol.Create("BTCUSD", SecurityType.Crypto, Market.GDAX)
+                Symbol.CreateFuture(Futures.Energy.CrudeOilWTI, Market.NYMEX, new DateTime(2020, 5, 21)),
+                Symbol.Create("BTCUSD", SecurityType.Crypto, Market.Coinbase)
             }.Select(s => new MarketOrder(s, 1m, new DateTime(2020, 1, 1))).ToList();
 
             var algorithm = CreateAlgorithm(orders);
@@ -95,8 +95,8 @@ namespace QuantConnect.Tests.Report
                 Symbol.CreateOption("AAPL", Market.USA, OptionStyle.American, OptionRight.Call, 120m, new DateTime(2020, 5, 21)),
                 Symbol.Create("EURUSD", SecurityType.Forex, Market.Oanda),
                 Symbol.Create("XAUUSD", SecurityType.Cfd, Market.Oanda),
-                Symbol.CreateFuture(Futures.Energies.CrudeOilWTI, Market.NYMEX, new DateTime(2020, 5, 21)),
-                Symbol.Create("BTCUSD", SecurityType.Crypto, Market.GDAX)
+                Symbol.CreateFuture(Futures.Energy.CrudeOilWTI, Market.NYMEX, new DateTime(2020, 5, 21)),
+                Symbol.Create("BTCUSD", SecurityType.Crypto, Market.Coinbase)
             }.Select(s => new MarketOrder(s, 1m, new DateTime(2020, 1, 1)));
 
             var algorithm = CreateAlgorithm(orders);
@@ -110,12 +110,13 @@ namespace QuantConnect.Tests.Report
         }
 
         [TestCase("BTC", BrokerageName.Binance, AccountType.Cash)]
-        [TestCase("USDT", BrokerageName.GDAX, AccountType.Cash)]
+        [TestCase("USDT", BrokerageName.Coinbase, AccountType.Cash)]
         [TestCase("EUR", BrokerageName.Bitfinex, AccountType.Margin)]
         public void SetsTheRightAlgorithmConfiguration(string currency, BrokerageName brokerageName, AccountType accountType)
         {
             var algorithm = CreateAlgorithm(new List<Order>(),
-                new AlgorithmConfiguration(currency, brokerageName, accountType, new Dictionary<string, string>(), DateTime.MinValue, DateTime.MinValue, null));
+                new AlgorithmConfiguration("AlgorightmName", new HashSet<string>(), currency, brokerageName, accountType,
+                    new Dictionary<string, string>(), DateTime.MinValue, DateTime.MinValue, null));
             algorithm.Initialize();
 
             Assert.AreEqual(currency, algorithm.AccountCurrency);

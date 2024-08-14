@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
  * 
@@ -26,33 +26,28 @@ namespace QuantConnect.Packets
         /// <summary>
         /// String debug message to send to the users console
         /// </summary>
-        [JsonProperty(PropertyName = "sMessage")]
-        public string Message;
+        public string Message { get; set; }
 
         /// <summary>
         /// Associated algorithm Id.
         /// </summary>
-        [JsonProperty(PropertyName = "sAlgorithmID")]
-        public string AlgorithmId;
+        public string AlgorithmId { get; set; }
 
         /// <summary>
         /// Compile id of the algorithm sending this message
         /// </summary>
-        [JsonProperty(PropertyName = "sCompileID")]
-        public string CompileId;
+        public string CompileId { get; set; }
 
         /// <summary>
         /// Project Id for this message
         /// </summary>
-        [JsonProperty(PropertyName = "iProjectID")]
-        public int ProjectId;
+        public int ProjectId { get; set; }
 
         /// <summary>
         /// True to emit message as a popup notification (toast),
         /// false to emit message in console as text
         /// </summary>
-        [JsonProperty(PropertyName = "bToast")]
-        public bool Toast;
+        public bool Toast { get; set; }
 
         /// <summary>
         /// Default constructor for JSON

@@ -23,6 +23,209 @@ namespace QuantConnect.Tests.Python
     [TestFixture, Category("TravisExclude")]
     public class PythonPackagesTests
     {
+        [Test]
+        public void Peft()
+        {
+            AssertCode(@"
+def RunTest():
+    from transformers import AutoModelForSeq2SeqLM
+    from peft import get_peft_config, get_peft_model, LoraConfig, TaskType
+    model_name_or_path = ""bigscience/mt0-large""
+    tokenizer_name_or_path = ""bigscience/mt0-large""
+
+    peft_config = LoraConfig(
+        task_type=TaskType.SEQ_2_SEQ_LM, inference_mode=False, r=8, lora_alpha=32, lora_dropout=0.1
+    )");
+        }
+
+        [Test]
+        public void Accelerator()
+        {
+            AssertCode(@"
+def RunTest():
+	import torch
+	import torch.nn.functional as F
+	from datasets import load_dataset
+	from accelerate import Accelerator
+
+	accelerator = Accelerator()
+	device = accelerator.device
+
+	model = torch.nn.Transformer().to(device)
+	optimizer = torch.optim.Adam(model.parameters())
+");
+        }
+
+        [Test, Explicit("ASD")]
+        public void alibi_detect()
+        {
+            AssertCode(@"
+def RunTest():
+	from alibi_detect.datasets import fetch_cifar10c
+
+	corruption = ['gaussian_noise', 'motion_blur', 'brightness', 'pixelate']
+	X, y = fetch_cifar10c(corruption=corruption, severity=5, return_X_y=True)");
+        }
+
+        [Test]
+        public void PytorchTabnet()
+        {
+            AssertCode(@"
+def RunTest():
+    from pytorch_tabnet.tab_model import TabNetClassifier, TabNetRegressor
+
+    clf = TabNetClassifier()");
+        }
+
+        [Test]
+        public void FeatureEngine()
+        {
+            AssertCode(@"
+def RunTest():
+	import pandas as pd
+	from feature_engine.encoding import RareLabelEncoder
+
+	data = {'var_A': ['A'] * 10 + ['B'] * 10 + ['C'] * 2 + ['D'] * 1}
+	data = pd.DataFrame(data)
+	data['var_A'].value_counts()
+	rare_encoder = RareLabelEncoder(tol=0.10, n_categories=3)
+	data_encoded = rare_encoder.fit_transform(data)
+	data_encoded['var_A'].value_counts()");
+        }
+
+        [Test]
+        public void Nolds()
+        {
+            AssertCode(@"
+def RunTest():
+    import nolds
+    import numpy as np
+
+    rwalk = np.cumsum(np.random.random(1000))
+    h = nolds.dfa(rwalk)");
+        }
+
+        [Test]
+        public void Pgmpy()
+        {
+            AssertCode(@"
+def RunTest():
+    from pgmpy.base import DAG
+    G = DAG()
+    G.add_node(node='a')
+    G.add_nodes_from(nodes=['a', 'b'])");
+        }
+
+        [Test]
+        public void Control()
+        {
+            AssertCode(@"
+def RunTest():
+    import numpy as np
+    import control
+
+    num1 = np.array([2])
+    den1 = np.array([1, 0])
+    num2 = np.array([3])
+    den2 = np.array([4, 1])
+    H1 = control.tf(num1, den1)
+    H2 = control.tf(num2, den2)
+
+    H = control.series(H1, H2)");
+        }
+
+        [Test]
+        public void PyCaret()
+        {
+            AssertCode(@"
+from pycaret.datasets import get_data
+from pycaret.classification import setup
+
+def RunTest():
+    data = get_data('diabetes')
+    s = setup(data, target = 'Class variable', session_id = 123)");
+        }
+
+        [Test]
+        public void NGBoost()
+        {
+            AssertCode(@"
+def RunTest():
+	from ngboost import NGBClassifier
+	from ngboost.distns import k_categorical, Bernoulli
+	from sklearn.datasets import load_breast_cancer
+	from sklearn.model_selection import train_test_split
+
+	X, y = load_breast_cancer(return_X_y=True)
+	y[0:15] = 2 # artificially make this a 3-class problem instead of a 2-class problem
+	X_cls_train, X_cls_test, Y_cls_train, Y_cls_test = train_test_split(X, y, test_size=0.2)
+
+	ngb_cat = NGBClassifier(Dist=k_categorical(3), verbose=False) # tell ngboost that there are 3 possible outcomes
+	_ = ngb_cat.fit(X_cls_train, Y_cls_train) # Y should have only 3 values: {0,1,2}");
+        }
+
+        [Test]
+        public void MLFlow()
+        {
+            AssertCode(@"
+def RunTest():
+    import mlflow
+    from mlflow.models import infer_signature
+
+    import pandas as pd
+    from sklearn import datasets
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+
+    # Load the Iris dataset
+    X, y = datasets.load_iris(return_X_y=True)
+
+    # Split the data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Define the model hyperparameters
+    params = {
+        ""solver"": ""lbfgs"",
+        ""max_iter"": 1000,
+        ""multi_class"": ""auto"",
+        ""random_state"": 8888,
+    }
+
+    # Train the model
+    lr = LogisticRegression(**params)
+    lr.fit(X_train, y_train)
+
+    # Predict on the test set
+    y_pred = lr.predict(X_test)
+
+    # Calculate metrics
+    accuracy = accuracy_score(y_test, y_pred)");
+        }
+
+        [Test]
+        public void TPOT()
+        {
+            AssertCode(@"
+def RunTest():
+    from tpot import TPOTClassifier
+    from sklearn.datasets import load_digits
+    from sklearn.model_selection import train_test_split
+
+    digits = load_digits()
+    X_train, X_test, y_train, y_test = train_test_split(digits.data, digits.target,
+                                                        train_size=0.75, test_size=0.25)
+
+    pipeline_optimizer = TPOTClassifier(generations=5, population_size=2, cv=5,
+                                        random_state=42, verbosity=2)
+    pipeline_optimizer.fit(X_train, y_train)
+    print(pipeline_optimizer.score(X_test, y_test))
+    pipeline_optimizer.export('tpot_exported_pipeline.py')");
+        }
+
         [Test, Explicit("Needs to be run by itself to avoid hanging")]
         public void XTransformers()
         {
@@ -60,14 +263,14 @@ def RunTest():
                 @"
 import polars as pl
 from functime.cross_validation import train_test_split
-from functime.feature_extraction import add_fourier_terms
+from functime.seasonality import add_fourier_terms
 from functime.forecasting import linear_model
 from functime.preprocessing import scale
 from functime.metrics import mase
 
 def RunTest():
     # Load commodities price data
-    y = pl.read_parquet(""https://github.com/descendant-ai/functime/raw/main/data/commodities.parquet"")
+    y = pl.read_parquet(""https://github.com/functime-org/functime/raw/main/data/commodities.parquet"")
     entity_col, time_col = y.columns[:2]
 
     # Time series split
@@ -201,31 +404,6 @@ def RunTest():
         }
 
         [Test]
-        public void Tick()
-        {
-            AssertCode(
-                @"
-import numpy as np
-
-from tick.dataset import fetch_hawkes_bund_data
-from tick.hawkes import HawkesConditionalLaw
-from tick.plot import plot_hawkes_kernel_norms
-
-def RunTest():
-    timestamps_list = fetch_hawkes_bund_data()
-
-    kernel_discretization = np.hstack((0, np.logspace(-5, 0, 50)))
-    hawkes_learner = HawkesConditionalLaw(
-        claw_method=""log"", delta_lag=0.1, min_lag=5e-4, max_lag=500,
-        quad_method=""log"", n_quad=10, min_support=1e-4, max_support=1, n_threads=4)
-
-    hawkes_learner.fit(timestamps_list)
-
-    plot_hawkes_kernel_norms(hawkes_learner,
-                             node_names=[""P_u"", ""P_d"", ""T_a"", ""T_b""])");
-        }
-
-        [Test]
         public void FixedEffectModel()
         {
             AssertCode(
@@ -275,8 +453,8 @@ def RunTest():
     schools_code = """"""
     data {
       int<lower=0> J;         // number of schools
-      real y[J];              // estimated treatment effects
-      real<lower=0> sigma[J]; // standard error of effect estimates
+      array[J] real y;              // estimated treatment effects
+      array[J] real<lower=0> sigma; // standard error of effect estimates
     }
     parameters {
       real mu;                // population treatment effect
@@ -580,7 +758,7 @@ def RunTest():
             );
         }
 
-        [Test]
+        [Test, Explicit("Should be run by itself to avoid matplotlib defaulting to use non existing latex")]
         public void ShapTest()
         {
             AssertCode(
@@ -680,7 +858,7 @@ def RunTest():
 import ignite
 
 def RunTest():
-    assert(ignite.__version__ == '0.4.12')"
+    assert(ignite.__version__ == '0.4.13')"
             );
         }
 
@@ -1294,7 +1472,7 @@ def RunTest():
 	print('Number of variables =', solver.NumVariables())");
         }
 
-        [Test]
+        [Test, Explicit("Requires old version of TF, addons are winding down")]
         public void TensorflowAddons()
         {
             AssertCode(
@@ -1499,7 +1677,7 @@ def RunTest():
     print(sorted(Counter(y_resampled).items()))");
         }
 
-        [Test, Explicit("Has issues when run along side the other tests")]
+        [Test, Explicit("Requires keras < 3")]
         public void ScikerasTest()
         {
             AssertCode(
@@ -1558,22 +1736,6 @@ def RunTest():
 
     clf = LazyClassifier(verbose=0,ignore_warnings=True, custom_metric=None)
     models,predictions = clf.fit(X_train, X_test, y_train, y_test)");
-        }
-
-        [Test]
-        public void Fracdiff()
-        {
-            AssertCode(
-                @"
-import numpy as np
-from fracdiff import fdiff
-
-def RunTest():
-    a = np.array([1, 2, 4, 7, 0])
-    fdiff(a, 0.5)
-    # array([ 1.       ,  1.5      ,  2.875    ,  4.6875   , -4.1640625])
-    np.array_equal(fdiff(a, n=1), np.diff(a, n=1))
-    # True");
         }
 
         [Test]
@@ -1766,34 +1928,6 @@ def RunTest():
     tfidf = models.TfidfModel(corpus)
     vec = [(0, 1), (4, 1)]
     return f'{tfidf[vec]}'"
-            );
-        }
-
-        [Test]
-        public void ScikitMultiflowTest()
-        {
-            AssertCode(
-                @"
-from skmultiflow.data import WaveformGenerator
-from skmultiflow.trees import HoeffdingTree
-from skmultiflow.evaluation import EvaluatePrequential
-
-def RunTest():
-    # 1. Create a stream
-    stream = WaveformGenerator()
-    stream.prepare_for_use()
-
-    # 2. Instantiate the HoeffdingTree classifier
-    ht = HoeffdingTree()
-
-    # 3. Setup the evaluator
-    evaluator = EvaluatePrequential(show_plot=False,
-                                    pretrain_size=200,
-                                    max_samples=20000)
-
-    # 4. Run evaluation
-    evaluator.evaluate(stream=stream, model=ht)
-    return 'Test passed, module exists'"
             );
         }
 
@@ -2101,39 +2235,6 @@ def RunTest():
             );
         }
 
-        [Test]
-        public void Tigramite()
-        {
-            AssertCode(@"
-import numpy as np
-from tigramite.pcmci import PCMCI
-from tigramite.independence_tests.parcorr import ParCorr
-import tigramite.data_processing as pp
-from tigramite.toymodels import structural_causal_processes as toys
-
-def RunTest():
-    # Example process to play around with
-    # Each key refers to a variable and the incoming links are supplied
-    # as a list of format [((var, -lag), coeff, function), ...]
-    def lin_f(x): return x
-    links = {0: [((0, -1), 0.9, lin_f)],
-             1: [((1, -1), 0.8, lin_f), ((0, -1), 0.8, lin_f)],
-             2: [((2, -1), 0.7, lin_f), ((1, 0), 0.6, lin_f)],
-             3: [((3, -1), 0.7, lin_f), ((2, 0), -0.5, lin_f)],
-             }
-    data, nonstat = toys.structural_causal_process(links,
-                        T=1000, seed=7)
-    # Data must be array of shape (time, variables)
-    print (data.shape)
-    (1000, 4)
-    dataframe = pp.DataFrame(data)
-    cond_ind_test = ParCorr()
-    pcmci = PCMCI(dataframe=dataframe, cond_ind_test=cond_ind_test)
-    results = pcmci.run_pcmciplus(tau_min=0, tau_max=2, pc_alpha=0.01)
-    pcmci.print_results(results, alpha_level=0.01)
-");
-        }
-
         [Test, Explicit("Sometimes hangs when run along side the other tests")]
         public void AxPlatformTest()
         {
@@ -2202,37 +2303,38 @@ def RunTest():
         /// </summary>
         /// <param name="module">The module we are testing</param>
         /// <param name="version">The module version</param>
-        [TestCase("pulp", "2.7.0", "VERSION")]
-        [TestCase("pymc", "5.6.1", "__version__")]
+        [TestCase("pulp", "2.8.0", "VERSION")]
+        [TestCase("pymc", "5.10.4", "__version__")]
         [TestCase("pypfopt", "pypfopt", "__name__")]
-        [TestCase("wrapt", "1.14.1", "__version__")]
-        [TestCase("tslearn", "0.6.2", "__version__")]
+        [TestCase("wrapt", "1.16.0", "__version__")]
+        [TestCase("tslearn", "0.6.3", "__version__")]
         [TestCase("tweepy", "4.14.0", "__version__")]
-        [TestCase("pywt", "1.4.1", "__version__")]
-        [TestCase("umap", "0.5.3", "__version__")]
-        [TestCase("dtw", "1.3.0", "__version__")]
+        [TestCase("pywt", "1.5.0", "__version__")]
+        [TestCase("umap", "0.5.5", "__version__")]
+        [TestCase("dtw", "1.3.1", "__version__")]
         [TestCase("mplfinance", "0.12.10b0", "__version__")]
         [TestCase("cufflinks", "0.17.3", "__version__")]
-        [TestCase("ipywidgets", "8.1.1", "__version__")]
-        [TestCase("astropy", "5.2.2", "__version__")]
-        [TestCase("gluonts", "0.13.7", "__version__")]
+        [TestCase("ipywidgets", "8.1.2", "__version__")]
+        [TestCase("astropy", "6.0.0", "__version__")]
+        [TestCase("gluonts", "0.14.4", "__version__")]
         [TestCase("gplearn", "0.4.2", "__version__")]
-        [TestCase("featuretools", "1.27.0", "__version__")]
-        [TestCase("pennylane", "0.32.0", "version()")]
+        [TestCase("featuretools", "1.30.0", "__version__")]
+        [TestCase("pennylane", "0.35.1", "version()")]
         [TestCase("pyfolio", "0.9.5", "__version__")]
-        [TestCase("altair", "5.1.2", "__version__")]
-        [TestCase("modin", "0.22.3", "__version__")]
-        [TestCase("persim", "0.3.1", "__version__")]
-        [TestCase("pydmd", "0.4.1.post2308", "__version__")]
+        [TestCase("altair", "5.2.0", "__version__")]
+        [TestCase("modin", "0.26.1", "__version__")]
+        [TestCase("persim", "0.3.5", "__version__")]
+        [TestCase("pydmd", "1.0.0", "__version__")]
         [TestCase("pandas_ta", "0.3.14b0", "__version__")]
         [TestCase("tensortrade", "1.0.3", "__version__")]
         [TestCase("quantstats", "0.0.62", "__version__")]
-        [TestCase("autokeras", "1.1.0", "__version__")]
-        [TestCase("panel", "1.2.3", "__version__")]
+        [TestCase("panel", "1.3.8", "__version__")]
         [TestCase("pyheat", "pyheat", "__name__")]
-        [TestCase("tensorflow_decision_forests", "1.5.0", "__version__")]
-        [TestCase("tensorflow_ranking", "0.5.3.dev", "__version__")]
-        [TestCase("pomegranate", "1.0.3", "__version__")]
+        [TestCase("tensorflow_decision_forests", "1.9.0", "__version__")]
+        [TestCase("pomegranate", "1.0.4", "__version__")]
+        [TestCase("cv2", "4.9.0", "__version__")]
+        [TestCase("ot", "0.9.3", "__version__")]
+        [TestCase("datasets", "2.17.1", "__version__")]
         public void ModuleVersionTest(string module, string value, string attribute)
         {
             AssertCode(

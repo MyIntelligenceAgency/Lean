@@ -41,13 +41,13 @@ namespace QuantConnect.Algorithm.CSharp
             _symbol = aapl.Symbol;
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             // Compare our previous slice time to this slice
             // Because of issues with Delisting data we have to let Auxiliary data pass through GH #5207
-            if (Time.Ticks - _lastSliceTime.Ticks < 1000 && data.Values.Any(x => x.DataType != MarketDataType.Auxiliary))
+            if (Time.Ticks - _lastSliceTime.Ticks < 1000 && slice.Values.Any(x => x.DataType != MarketDataType.Auxiliary))
             {
-                throw new Exception($"Emitted two slices within 1000 ticks of each other.");
+                throw new RegressionTestException($"Emitted two slices within 1000 ticks of each other.");
             }
 
             // Store our slice time
@@ -69,7 +69,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_optionSymbol == null)
             {
-                throw new Exception("No option symbol was added!");
+                throw new RegressionTestException("No option symbol was added!");
             }
         }
 
@@ -81,12 +81,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 7435;
+        public long DataPoints => 7437;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -94,18 +94,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

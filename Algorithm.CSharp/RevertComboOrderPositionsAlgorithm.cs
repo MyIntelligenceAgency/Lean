@@ -100,11 +100,11 @@ namespace QuantConnect.Algorithm.CSharp
                 var expectedQuantity = multiplier * _comboQuantity * _orderLegs.Where(leg => leg.Symbol == orderEvent.Symbol).Single().Quantity;
                 if (orderEvent.Quantity != expectedQuantity)
                 {
-                    throw new Exception($"Order event quantity {orderEvent.Quantity} does not match expected quantity {expectedQuantity}");
+                    throw new RegressionTestException($"Order event quantity {orderEvent.Quantity} does not match expected quantity {expectedQuantity}");
                 }
                 if (orderEvent.FillQuantity != expectedQuantity)
                 {
-                    throw new Exception(
+                    throw new RegressionTestException(
                         $"Order event fill quantity {orderEvent.FillQuantity} does not match expected fill quantity {expectedQuantity}");
                 }
             }
@@ -114,17 +114,17 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (Portfolio.Invested)
             {
-                throw new Exception("Portfolio should not be invested at the end of the algorithm.");
+                throw new RegressionTestException("Portfolio should not be invested at the end of the algorithm.");
             }
 
             if (_entryOrderTickets.Count == 0 || _entryOrderTickets.Any(ticket => ticket.Status != OrderStatus.Filled))
             {
-                throw new Exception("Entry order was not filled");
+                throw new RegressionTestException("Entry order was not filled");
             }
 
             if (_exitOrderTickets.Count == 0 || _exitOrderTickets.Any(ticket => ticket.Status != OrderStatus.Filled))
             {
-                throw new Exception("Exit order was not filled");
+                throw new RegressionTestException("Exit order was not filled");
             }
 
             for (var i = 0; i < _orderLegs.Count; i++)
@@ -136,7 +136,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var expectedEntryQuantity = leg.Quantity * _comboQuantity;
                 if (entryOrderTicket.Quantity != expectedEntryQuantity || entryOrderTicket.QuantityFilled != expectedEntryQuantity)
                 {
-                    throw new Exception($@"Entry order ticket quantity and filled quantity do not match expected quantity for leg {i
+                    throw new RegressionTestException($@"Entry order ticket quantity and filled quantity do not match expected quantity for leg {i
                         }. Expected: {expectedEntryQuantity}. Actual quantity: {entryOrderTicket.Quantity}. Actual filled quantity: {
                         entryOrderTicket.QuantityFilled}");
                 }
@@ -144,7 +144,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var expectedExitQuantity = -expectedEntryQuantity;
                 if (exitOrderTicket.Quantity != expectedExitQuantity || exitOrderTicket.QuantityFilled != expectedExitQuantity)
                 {
-                    throw new Exception($@"Exit order ticket quantity and filled quantity do not match expected quantity for leg {i
+                    throw new RegressionTestException($@"Exit order ticket quantity and filled quantity do not match expected quantity for leg {i
                         }. Expected: {expectedExitQuantity}. Actual quantity: {exitOrderTicket.Quantity}. Actual filled quantity: {
                         exitOrderTicket.QuantityFilled}");
                 }
@@ -168,12 +168,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 475788;
+        public long DataPoints => 471135;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -181,18 +181,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "6"},
+            {"Total Orders", "6"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "10000"},
+            {"End Equity", "5764"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -208,7 +216,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$16000.00"},
             {"Lowest Capacity Asset", "GOOCV W78ZERHAOVVQ|GOOCV VP83T1ZUHROL"},
             {"Portfolio Turnover", "2088.83%"},
-            {"OrderListHash", "28d2da503142331e4129ea11cd36857a"}
+            {"OrderListHash", "52947bba687287a189cee038daec6918"}
         };
     }
 }

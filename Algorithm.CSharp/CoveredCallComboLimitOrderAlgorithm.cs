@@ -73,7 +73,7 @@ namespace QuantConnect.Algorithm.CSharp
                     if(comboPrice < 734m)
                     {
                         // just to make sure the price makes sense
-                        throw new Exception($"Unexpected combo price {comboPrice}");
+                        throw new RegressionTestException($"Unexpected combo price {comboPrice}");
                     }
                     // place order slightly bellow price
                     ComboLimitOrder(legs, 6, comboPrice - 0.5m);
@@ -89,7 +89,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (orderEvent.Status.IsFill() && (Time - _submittionTime) < TimeSpan.FromMinutes(10))
             {
                 // we want to make sure we fill because the price moved and hit our limit price
-                throw new Exception($"Unexpected fill time {Time} submittion time {_submittionTime}");
+                throw new RegressionTestException($"Unexpected fill time {Time} submittion time {_submittionTime}");
             }
         }
 
@@ -101,12 +101,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 465320;
+        public long DataPoints => 463141;
 
         /// </summary>
         /// Data Points count of the algorithm history
@@ -114,18 +114,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "200000"},
+            {"End Equity", "200671.1"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -141,7 +149,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$8000.00"},
             {"Lowest Capacity Asset", "GOOCV W78ZFMEBBB2E|GOOCV VP83T1ZUHROL"},
             {"Portfolio Turnover", "227.27%"},
-            {"OrderListHash", "5d9434c81e36c12d3e34b0d2c39468b2"}
+            {"OrderListHash", "94a9ae926f68c23d06d32af2b5a25fea"}
         };
     }
 }

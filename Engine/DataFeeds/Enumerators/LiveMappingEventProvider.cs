@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
  *
@@ -28,6 +28,9 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
     /// <remarks>Only special behavior is that it will refresh map file on each new tradable date event</remarks>
     public class LiveMappingEventProvider : MappingEventProvider
     {
+        /// <summary>
+        /// Check for new mappings
+        /// </summary>
         public override IEnumerable<BaseData> GetEvents(NewTradableDateEventArgs eventArgs)
         {
             var currentInstance = MapFile;
@@ -35,7 +38,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
             InitializeMapFile();
             var newInstance = MapFile;
 
-            Log.Trace($"LiveMappingEventProvider({Config}): new tradable date {eventArgs.Date}. " +
+            Log.Trace($"LiveMappingEventProvider({Config}): new tradable date {eventArgs.Date:yyyyMMdd}. " +
                 $"New MapFile: {!ReferenceEquals(currentInstance, newInstance)}. " +
                 $"MapFile.Count Old: {currentInstance?.Count()} New: {newInstance?.Count()}");
 

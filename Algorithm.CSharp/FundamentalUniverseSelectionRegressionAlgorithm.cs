@@ -35,7 +35,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             UniverseSettings.Resolution = Resolution.Daily;
 
-            SetStartDate(2014, 03, 25);
+            SetStartDate(2014, 03, 26);
             SetEndDate(2014, 04, 07);
 
             AddEquity("SPY");
@@ -97,5 +97,10 @@ namespace QuantConnect.Algorithm.CSharp
         /// Data Points count of the algorithm history
         /// </summary>
         public override int AlgorithmHistoryDataPoints => 0;
+
+        /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
     }
 }

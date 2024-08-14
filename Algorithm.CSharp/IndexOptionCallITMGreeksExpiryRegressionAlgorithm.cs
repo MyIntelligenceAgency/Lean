@@ -56,11 +56,11 @@ namespace QuantConnect.Algorithm.CSharp
             _expectedOptionContract = QuantConnect.Symbol.CreateOption(_spx, Market.USA, OptionStyle.European, OptionRight.Call, 3200m, new DateTime(2021, 1, 15));
             if (_spxOption.Symbol != _expectedOptionContract)
             {
-                throw new Exception($"Contract {_expectedOptionContract} was not found in the chain");
+                throw new RegressionTestException($"Contract {_expectedOptionContract} was not found in the chain");
             }
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             // Let the algo warmup, but without using SetWarmup. Otherwise, we get
             // no contracts in the option chain
@@ -69,26 +69,26 @@ namespace QuantConnect.Algorithm.CSharp
                 return;
             }
 
-            if (data.OptionChains.Count == 0)
+            if (slice.OptionChains.Count == 0)
             {
                 return;
             }
-            if (data.OptionChains.Values.All(o => o.Contracts.Values.Any(c => !data.ContainsKey(c.Symbol))))
+            if (slice.OptionChains.Values.All(o => o.Contracts.Values.Any(c => !slice.ContainsKey(c.Symbol))))
             {
                 return;
             }
-            if (data.OptionChains.Values.First().Contracts.Count == 0)
+            if (slice.OptionChains.Values.First().Contracts.Count == 0)
             {
-                throw new Exception($"No contracts found in the option {data.OptionChains.Keys.First()}");
+                throw new RegressionTestException($"No contracts found in the option {slice.OptionChains.Keys.First()}");
             }
 
-            var deltas = data.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Delta).ToList();
-            var gammas = data.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Gamma).ToList();
-            var lambda = data.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Lambda).ToList();
-            var rho = data.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Rho).ToList();
-            var theta = data.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Theta).ToList();
-            var impliedVol = data.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.ImpliedVolatility).ToList();
-            var vega = data.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Vega).ToList();
+            var deltas = slice.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Delta).ToList();
+            var gammas = slice.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Gamma).ToList();
+            var lambda = slice.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Lambda).ToList();
+            var rho = slice.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Rho).ToList();
+            var theta = slice.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Theta).ToList();
+            var impliedVol = slice.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.ImpliedVolatility).ToList();
+            var vega = slice.OptionChains.Values.OrderByDescending(y => y.Contracts.Values.Sum(x => x.Volume)).First().Contracts.Values.Select(x => x.Greeks.Vega).ToList();
 
             // The commented out test cases all return zero.
             // This is because of failure to evaluate the greeks in the option pricing model, most likely
@@ -122,7 +122,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (!_invested)
             {
-                SetHoldings(data.OptionChains.Values.First().Contracts.Values.First().Symbol, 1);
+                SetHoldings(slice.OptionChains.Values.First().Contracts.Values.First().Symbol, 1);
                 _invested = true;
             }
         }
@@ -130,16 +130,16 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Ran at the end of the algorithm to ensure the algorithm has no holdings
         /// </summary>
-        /// <exception cref="Exception">The algorithm has holdings</exception>
+        /// <exception cref="RegressionTestException">The algorithm has holdings</exception>
         public override void OnEndOfAlgorithm()
         {
             if (Portfolio.Invested)
             {
-                throw new Exception($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
+                throw new RegressionTestException($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
             }
             if (!_invested)
             {
-                throw new Exception($"Never checked greeks, maybe we have no option data?");
+                throw new RegressionTestException($"Never checked greeks, maybe we have no option data?");
             }
         }
 
@@ -151,12 +151,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 19623;
+        public long DataPoints => 19908;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -164,34 +164,42 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "-54.58%"},
-            {"Compounding Annual Return", "101.333%"},
+            {"Compounding Annual Return", "99.378%"},
             {"Drawdown", "7.600%"},
             {"Expectancy", "0"},
-            {"Net Profit", "5.044%"},
-            {"Sharpe Ratio", "5.248"},
-            {"Probabilistic Sharpe Ratio", "89.867%"},
+            {"Start Equity", "100000"},
+            {"End Equity", "104974"},
+            {"Net Profit", "4.974%"},
+            {"Sharpe Ratio", "5.19"},
+            {"Sortino Ratio", "0"},
+            {"Probabilistic Sharpe Ratio", "89.439%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "100%"},
             {"Profit-Loss Ratio", "0"},
-            {"Alpha", "1.692"},
+            {"Alpha", "1.674"},
             {"Beta", "-0.205"},
             {"Annual Standard Deviation", "0.321"},
             {"Annual Variance", "0.103"},
-            {"Information Ratio", "4.556"},
+            {"Information Ratio", "4.505"},
             {"Tracking Error", "0.36"},
-            {"Treynor Ratio", "-8.226"},
+            {"Treynor Ratio", "-8.141"},
             {"Total Fees", "$0.00"},
             {"Estimated Strategy Capacity", "$59000000.00"},
             {"Lowest Capacity Asset", "SPX XL80P3GHDZXQ|SPX 31"},
             {"Portfolio Turnover", "2.19%"},
-            {"OrderListHash", "3172b209a86f52b2ec7a2609b851f072"}
+            {"OrderListHash", "025b99be4e9008421548aa498fece11e"}
         };
     }
 }

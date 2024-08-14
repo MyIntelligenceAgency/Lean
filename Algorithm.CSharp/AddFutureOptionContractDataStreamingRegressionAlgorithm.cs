@@ -66,9 +66,9 @@ namespace QuantConnect.Algorithm.CSharp
             }
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
-            if (!data.HasData)
+            if (!slice.HasData)
             {
                 return;
             }
@@ -76,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
             _onDataReached = true;
 
             var hasOptionQuoteBars = false;
-            foreach (var qb in data.QuoteBars.Values)
+            foreach (var qb in slice.QuoteBars.Values)
             {
                 if (qb.Symbol.SecurityType != SecurityType.FutureOption)
                 {
@@ -99,7 +99,7 @@ namespace QuantConnect.Algorithm.CSharp
                 return;
             }
 
-            if (data.ContainsKey(_es20h20) && data.ContainsKey(_es19m20))
+            if (slice.ContainsKey(_es20h20) && slice.ContainsKey(_es19m20))
             {
                 SetHoldings(_es20h20, 0.2);
                 SetHoldings(_es19m20, 0.2);
@@ -114,7 +114,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (!_onDataReached)
             {
-                throw new Exception("OnData() was never called.");
+                throw new RegressionTestException("OnData() was never called.");
             }
             if (_symbolsReceived.Count != _expectedSymbolsReceived.Count)
             {
@@ -132,7 +132,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (missingSymbols.Count > 0)
             {
-                throw new Exception($"Symbols: \"{string.Join(", ", missingSymbols)}\" were not found in OnData");
+                throw new RegressionTestException($"Symbols: \"{string.Join(", ", missingSymbols)}\" were not found in OnData");
             }
 
             foreach (var expectedSymbol in _expectedSymbolsReceived)
@@ -146,7 +146,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 if (nonDupeDataCount < 1000)
                 {
-                    throw new Exception($"Received too few data points. Expected >=1000, found {nonDupeDataCount} for {expectedSymbol}");
+                    throw new RegressionTestException($"Received too few data points. Expected >=1000, found {nonDupeDataCount} for {expectedSymbol}");
                 }
             }
         }
@@ -159,7 +159,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -172,18 +172,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "5512.811%"},
             {"Drawdown", "1.000%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "105332.8"},
             {"Net Profit", "5.333%"},
             {"Sharpe Ratio", "64.084"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "95.977%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -199,7 +207,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$22000000.00"},
             {"Lowest Capacity Asset", "ES XFH59UK0MYO1"},
             {"Portfolio Turnover", "122.11%"},
-            {"OrderListHash", "679692e30a7cf3b54b09af766589df80"}
+            {"OrderListHash", "d744fa8beaa60546c84924ed68d945d9"}
         };
     }
 }

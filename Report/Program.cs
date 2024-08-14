@@ -14,13 +14,15 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using Newtonsoft.Json;
-using QuantConnect.Configuration;
+using QuantConnect.Util;
+using System.Diagnostics;
 using QuantConnect.Logging;
 using QuantConnect.Packets;
+using QuantConnect.Lean.Engine;
+using System.Collections.Generic;
+using QuantConnect.Configuration;
 
 namespace QuantConnect.Report
 {
@@ -36,6 +38,9 @@ namespace QuantConnect.Report
             {
                 Config.MergeCommandLineArgumentsWithConfiguration(ReportArgumentParser.ParseArguments(args));
             }
+
+            // initialize required lean handlers
+            LeanEngineAlgorithmHandlers.FromConfiguration(Composer.Instance);
             var name = Config.Get("strategy-name");
             var description = Config.Get("strategy-description");
             var version = Config.Get("strategy-version");
@@ -57,7 +62,7 @@ namespace QuantConnect.Report
             var backtest = JsonConvert.DeserializeObject<BacktestResult>(File.ReadAllText(backtestDataFile), backtestSettings);
             LiveResult live = null;
 
-            if (liveDataFile != string.Empty)
+            if (!string.IsNullOrEmpty(liveDataFile))
             {
                 var settings = new JsonSerializerSettings
                 {
@@ -106,7 +111,7 @@ namespace QuantConnect.Report
             report.Compile(out html, out _);
 
             //Write it to target destination.
-            if (destination != string.Empty)
+            if (!string.IsNullOrEmpty(destination))
             {
                 Log.Trace($"QuantConnect.Report.Main(): Writing content to file {destination}");
                 File.WriteAllText(destination, html);
@@ -159,7 +164,7 @@ namespace QuantConnect.Report
 
             Log.Trace("QuantConnect.Report.Main(): Completed.");
 
-            if (!Console.IsInputRedirected)
+            if (!Console.IsInputRedirected && !Config.GetBool("close-automatically"))
             {
                 Console.ReadKey();
             }

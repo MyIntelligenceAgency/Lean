@@ -19,6 +19,7 @@ using System.Threading;
 using QuantConnect.Data;
 using System.Collections.Generic;
 using QuantConnect.Algorithm.CSharp;
+using QuantConnect.Statistics;
 
 namespace QuantConnect.Tests.Common.Data.UniverseSelection
 {
@@ -31,7 +32,7 @@ namespace QuantConnect.Tests.Common.Data.UniverseSelection
             // allow the system to stabilize
             Thread.Sleep(1000);
             var results = AlgorithmRunner.RunLocalBacktest(nameof(TestUserDefinedUniverseAlgorithm),
-                new Dictionary<string, string> { { "Total Trades", "1" } },
+                new Dictionary<string, string> { { PerformanceMetrics.TotalOrders, "1" } },
                 Language.CSharp,
                 AlgorithmStatus.Completed,
                 algorithmLocation: "QuantConnect.Tests.dll");
@@ -52,6 +53,7 @@ namespace QuantConnect.Tests.Common.Data.UniverseSelection
             SetStartDate(2013, 10, 07);
             SetEndDate(2013, 10, 11);
 
+#pragma warning disable CS0618
             var spy = AddEquity("SPY", Resolution.Minute, dataNormalizationMode: DataNormalizationMode.Raw).Symbol;
 
             _thread = new Thread(() =>
@@ -73,6 +75,7 @@ namespace QuantConnect.Tests.Common.Data.UniverseSelection
                         else
                         {
                             AddEquity("AAPL");
+#pragma warning restore CS0618
                         }
                         if (currentCount % 25 == 0)
                         {

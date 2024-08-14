@@ -259,20 +259,20 @@ namespace QuantConnect.Securities
         }
 
         /// <summary>
-        /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the Symbol objects of the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// Gets an <see cref="System.Collections.Generic.ICollection{T}"/> containing the Symbol objects of the <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </summary>
         /// <remarks>Excludes non active or delisted securities</remarks>
         /// <returns>
-        /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the Symbol objects of the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// An <see cref="System.Collections.Generic.ICollection{T}"/> containing the Symbol objects of the object that implements <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </returns>
         protected override IEnumerable<Symbol> GetKeys => Keys;
 
         /// <summary>
-        /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// Gets an <see cref="System.Collections.Generic.ICollection{T}"/> containing the values in the <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </summary>
         /// <remarks>Excludes non active or delisted securities</remarks>
         /// <returns>
-        /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// An <see cref="System.Collections.Generic.ICollection{T}"/> containing the values in the object that implements <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.
         /// </returns>
         protected override IEnumerable<Security> GetValues => Values;
 
@@ -434,6 +434,14 @@ namespace QuantConnect.Securities
             )
         {
             return _securityService.CreateSecurity(symbol, subscriptionDataConfig, leverage, addToSymbolCache, underlying);
+        }
+
+        /// <summary>
+        /// Creates a new benchmark security
+        /// </summary>
+        public Security CreateBenchmarkSecurity(Symbol symbol)
+        {
+            return _securityService.CreateBenchmarkSecurity(symbol);
         }
 
         /// <summary>

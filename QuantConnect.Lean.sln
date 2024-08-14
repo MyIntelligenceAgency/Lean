@@ -54,6 +54,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuantConnect.Optimizer", "O
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuantConnect.Optimizer.Launcher", "Optimizer.Launcher\QuantConnect.Optimizer.Launcher.csproj", "{D46D2A8D-340C-4B40-8EE6-6BAA7B1198AB}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuantConnect.DownloaderDataProvider.Launcher", "DownloaderDataProvider\QuantConnect.DownloaderDataProvider.Launcher.csproj", "{D139191E-50D5-4284-AC9C-247ED60950F4}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyIA.Trading.Converter", "MyIA.Trading.Converter\MyIA.Trading.Converter.csproj", "{2560FD39-1802-4115-9284-891966D0099D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyIA.Trading.Backtester", "MyIA.Trading.Backtester\MyIA.Trading.Backtester.csproj", "{DB93326D-C058-40E5-933F-3BBA0E8630C5}"
@@ -150,6 +152,10 @@ Global
 		{D46D2A8D-340C-4B40-8EE6-6BAA7B1198AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D46D2A8D-340C-4B40-8EE6-6BAA7B1198AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D46D2A8D-340C-4B40-8EE6-6BAA7B1198AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D139191E-50D5-4284-AC9C-247ED60950F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D139191E-50D5-4284-AC9C-247ED60950F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D139191E-50D5-4284-AC9C-247ED60950F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D139191E-50D5-4284-AC9C-247ED60950F4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2560FD39-1802-4115-9284-891966D0099D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2560FD39-1802-4115-9284-891966D0099D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2560FD39-1802-4115-9284-891966D0099D}.Release|Any CPU.ActiveCfg = Release|Any CPU

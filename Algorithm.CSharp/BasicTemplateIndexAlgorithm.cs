@@ -30,8 +30,8 @@ namespace QuantConnect.Algorithm.CSharp
     /// <meta name="tag" content="indexes" />
     public class BasicTemplateIndexAlgorithm : QCAlgorithm, IRegressionAlgorithmDefinition
     {
-        protected Symbol Spx;
-        protected Symbol SpxOption;
+        protected Symbol Spx { get; set; }
+        protected Symbol SpxOption { get; set; }
         private ExponentialMovingAverage _emaSlow;
         private ExponentialMovingAverage _emaFast;
 
@@ -63,6 +63,8 @@ namespace QuantConnect.Algorithm.CSharp
 
             _emaSlow = EMA(Spx, 80);
             _emaFast = EMA(Spx, 200);
+
+            Settings.DailyPreciseEndTime = true;
         }
 
         /// <summary>
@@ -95,7 +97,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (Portfolio[Spx].TotalSaleVolume > 0)
             {
-                throw new Exception("Index is not tradable.");
+                throw new RegressionTestException("Index is not tradable.");
             }
         }
 
@@ -107,12 +109,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public virtual Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public virtual List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public virtual long DataPoints => 16049;
+        public virtual long DataPoints => 16199;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -120,34 +122,42 @@ namespace QuantConnect.Algorithm.CSharp
         public virtual int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "3"},
-            {"Average Win", "6.15%"},
+            {"Total Orders", "3"},
+            {"Average Win", "7.08%"},
             {"Average Loss", "0%"},
-            {"Compounding Annual Return", "435.569%"},
+            {"Compounding Annual Return", "603.355%"},
             {"Drawdown", "3.400%"},
             {"Expectancy", "0"},
-            {"Net Profit", "5.516%"},
-            {"Sharpe Ratio", "-6.336"},
-            {"Probabilistic Sharpe Ratio", "0.011%"},
+            {"Start Equity", "1000000"},
+            {"End Equity", "1064395"},
+            {"Net Profit", "6.440%"},
+            {"Sharpe Ratio", "-4.563"},
+            {"Sortino Ratio", "0"},
+            {"Probabilistic Sharpe Ratio", "0.781%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "100%"},
             {"Profit-Loss Ratio", "0"},
-            {"Alpha", "-0.226"},
-            {"Beta", "0.02"},
-            {"Annual Standard Deviation", "0.034"},
+            {"Alpha", "-0.169"},
+            {"Beta", "0.073"},
+            {"Annual Standard Deviation", "0.028"},
             {"Annual Variance", "0.001"},
-            {"Information Ratio", "-7.032"},
-            {"Tracking Error", "0.107"},
-            {"Treynor Ratio", "-10.906"},
+            {"Information Ratio", "-6.684"},
+            {"Tracking Error", "0.099"},
+            {"Treynor Ratio", "-1.771"},
             {"Total Fees", "$0.00"},
             {"Estimated Strategy Capacity", "$3000.00"},
             {"Lowest Capacity Asset", "SPX XL80P3GHDZXQ|SPX 31"},
-            {"Portfolio Turnover", "24.07%"},
-            {"OrderListHash", "d1987f604e6d61584838ccc94adf7256"}
+            {"Portfolio Turnover", "23.97%"},
+            {"OrderListHash", "51f1bc2ea080df79748dc66c2520b782"}
         };
     }
 }

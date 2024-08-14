@@ -27,12 +27,9 @@ namespace QuantConnect.Securities
     /// Used by OptionFilterUniverse and FutureFilterUniverse
     /// </summary>
     public abstract class ContractSecurityFilterUniverse<T> : IDerivativeSecurityFilterUniverse
-    where T: ContractSecurityFilterUniverse<T>
+        where T: ContractSecurityFilterUniverse<T>
     {
-        /// <summary>
-        /// Mark this filter to be applied only on market open, even if it's dynamic
-        /// </summary>
-        private bool _onlyApplyOnMarketOpen;
+        private bool _alreadyAppliedTypeFilters;
 
         /// <summary>
         /// Defines listed contract types with Flags attribute
@@ -55,7 +52,7 @@ namespace QuantConnect.Securities
         /// Expiration Types allowed through the filter
         /// Standards only by default
         /// </summary>
-        protected ContractExpirationType Type = ContractExpirationType.Standard;
+        protected ContractExpirationType Type { get; set; } = ContractExpirationType.Standard;
 
         /// <summary>
         /// The local exchange current time
@@ -67,17 +64,6 @@ namespace QuantConnect.Securities
         /// Marked internal for use by extensions
         /// </summary>
         internal IEnumerable<Symbol> AllSymbols;
-
-        /// <summary>
-        /// Mark this filter dynamic for regular reapplying
-        /// Marked internal for use by extensions
-        /// </summary>
-        internal bool IsDynamicInternal;
-
-        /// <summary>
-        /// True if the universe is dynamic and filter needs to be reapplied
-        /// </summary>
-        public bool IsDynamic => IsDynamicInternal && !_onlyApplyOnMarketOpen;
 
         /// <summary>
         /// Constructs ContractSecurityFilterUniverse
@@ -94,7 +80,6 @@ namespace QuantConnect.Securities
             AllSymbols = allSymbols;
             LocalTime = localTime;
             Type = ContractExpirationType.Standard;
-            IsDynamicInternal = false;
         }
 
         /// <summary>
@@ -109,6 +94,11 @@ namespace QuantConnect.Securities
         /// <returns>Universe with filter applied</returns>
         internal T ApplyTypesFilter()
         {
+            if (_alreadyAppliedTypeFilters)
+            {
+                return (T) this;
+            }
+
             // memoization map for ApplyTypesFilter()
             var memoizedMap = new Dictionary<DateTime, bool>();
 
@@ -140,6 +130,7 @@ namespace QuantConnect.Securities
                 }
             }).ToList();
 
+            _alreadyAppliedTypeFilters = true;
             return (T) this;
         }
 
@@ -153,8 +144,7 @@ namespace QuantConnect.Securities
             AllSymbols = allSymbols;
             LocalTime = localTime;
             Type = ContractExpirationType.Standard;
-            IsDynamicInternal = false;
-            _onlyApplyOnMarketOpen = false;
+            _alreadyAppliedTypeFilters = false;
         }
 
         /// <summary>
@@ -164,6 +154,12 @@ namespace QuantConnect.Securities
         /// <returns>Universe with filter applied</returns>
         public T StandardsOnly()
         {
+            if (_alreadyAppliedTypeFilters)
+            {
+                throw new InvalidOperationException("Type filters have already been applied, " +
+                    "please call StandardsOnly() before applying other filters such as FrontMonth() or BackMonths()");
+            }
+
             Type = ContractExpirationType.Standard;
             return (T)this;
         }
@@ -174,6 +170,12 @@ namespace QuantConnect.Securities
         /// <returns>Universe with filter applied</returns>
         public T IncludeWeeklys()
         {
+            if (_alreadyAppliedTypeFilters)
+            {
+                throw new InvalidOperationException("Type filters have already been applied, " +
+                    "please call IncludeWeeklys() before applying other filters such as FrontMonth() or BackMonths()");
+            }
+
             Type |= ContractExpirationType.Weekly;
             return (T)this;
         }
@@ -194,6 +196,7 @@ namespace QuantConnect.Securities
         /// <returns>Universe with filter applied</returns>
         public virtual T FrontMonth()
         {
+            ApplyTypesFilter();
             var ordered = this.OrderBy(x => x.ID.Date).ToList();
             if (ordered.Count == 0) return (T) this;
             var frontMonth = ordered.TakeWhile(x => ordered[0].ID.Date == x.ID.Date);
@@ -208,6 +211,7 @@ namespace QuantConnect.Securities
         /// <returns>Universe with filter applied</returns>
         public virtual T BackMonths()
         {
+            ApplyTypesFilter();
             var ordered = this.OrderBy(x => x.ID.Date).ToList();
             if (ordered.Count == 0) return (T) this;
             var backMonths = ordered.SkipWhile(x => ordered[0].ID.Date == x.ID.Date);
@@ -306,9 +310,10 @@ namespace QuantConnect.Securities
         /// Instructs the engine to only filter contracts on the first time step of each market day.
         /// </summary>
         /// <returns>Universe with filter applied</returns>
+        /// <remarks>Deprecated since filters are always non-dynamic now</remarks>
+        [Obsolete("Deprecated as of 2023-12-13. Filters are always non-dynamic as of now, which means they will only bee applied daily.")]
         public T OnlyApplyFilterAtMarketOpen()
         {
-            _onlyApplyOnMarketOpen = true;
             return (T) this;
         }
 

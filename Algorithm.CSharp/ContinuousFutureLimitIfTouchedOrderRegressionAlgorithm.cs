@@ -48,8 +48,8 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
             if (_ticket == null)
             {
@@ -61,7 +61,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_ticket == null || _ticket.Status != OrderStatus.Filled)
             {
-                throw new Exception("Order ticket was not placed or filled!");
+                throw new RegressionTestException("Order ticket was not placed or filled!");
             }
         }
 
@@ -73,12 +73,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 19876;
+        public long DataPoints => 19886;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -86,18 +86,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-99.258%"},
             {"Drawdown", "6.300%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "93870.7"},
             {"Net Profit", "-6.129%"},
             {"Sharpe Ratio", "-2.199"},
+            {"Sortino Ratio", "-2.305"},
             {"Probabilistic Sharpe Ratio", "5.175%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -113,7 +121,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$2600000000.00"},
             {"Lowest Capacity Asset", "ES VMKLFZIH2MTD"},
             {"Portfolio Turnover", "16.49%"},
-            {"OrderListHash", "a8b0528aa2c4c2b8f013a06104ddb1d0"}
+            {"OrderListHash", "d13f91ab95169699139d21685a5e346a"}
         };
     }
 }

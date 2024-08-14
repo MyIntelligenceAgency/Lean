@@ -53,7 +53,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (config.Resolution != Resolution.Minute)
                 {
-                    throw new Exception("Expected resolution to be set to Minute");
+                    throw new RegressionTestException("Expected resolution to be set to Minute");
                 }
             }
         }
@@ -73,7 +73,7 @@ namespace QuantConnect.Algorithm.CSharp
                     if (mappingEvent.NewSymbol != "NWSA"
                         || mappingEvent.OldSymbol != "FOXA")
                     {
-                        throw new Exception($"Unexpected mapping event {mappingEvent}");
+                        throw new RegressionTestException($"Unexpected mapping event {mappingEvent}");
                     }
                     _initialMapping = true;
                 }
@@ -82,7 +82,7 @@ namespace QuantConnect.Algorithm.CSharp
                     if (mappingEvent.NewSymbol != "FOXA"
                         || mappingEvent.OldSymbol != "NWSA")
                     {
-                        throw new Exception($"Unexpected mapping event {mappingEvent}");
+                        throw new RegressionTestException($"Unexpected mapping event {mappingEvent}");
                     }
 
                     _executionMapping = true;
@@ -98,11 +98,11 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_initialMapping)
             {
-                throw new Exception("The ticker generated the initial rename event");
+                throw new RegressionTestException("The ticker generated the initial rename event");
             }
             if (!_executionMapping)
             {
-                throw new Exception("The ticker did not rename throughout the course of its life even though it should have");
+                throw new RegressionTestException("The ticker did not rename throughout the course of its life even though it should have");
             }
         }
 
@@ -114,7 +114,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -127,18 +127,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "-99.907%"},
             {"Drawdown", "11.000%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "89657.2"},
             {"Net Profit", "-10.343%"},
             {"Sharpe Ratio", "-1.708"},
+            {"Sortino Ratio", "-1.361"},
             {"Probabilistic Sharpe Ratio", "0.009%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -154,7 +162,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "NWSA.CustomDataUsingMapping T3MO1488O0H0"},
             {"Portfolio Turnover", "16.62%"},
-            {"OrderListHash", "5e0d1db2b31926e10f09de86b7e585b9"}
+            {"OrderListHash", "a605ae85beeb854fde8d7b7eff9040ac"}
         };
 
         /// <summary>

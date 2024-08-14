@@ -54,7 +54,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var continuousContractMarketOrder = MarketOrder(_continuousContract.Mapped, 1);
                 if (futureContractMarketOrder.Status == OrderStatus.Invalid || continuousContractMarketOrder.Status == OrderStatus.Invalid)
                 {
-                    throw new Exception($"Market orders should be allowed for futures outside of regular market hours");
+                    throw new RegressionTestException($"Market orders should be allowed for futures outside of regular market hours");
                 }
             }
         }
@@ -63,7 +63,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (Transactions.GetOrders().Any(order => order.Status != OrderStatus.Filled ))
             {
-                throw new Exception("Not all orders were filled");
+                throw new RegressionTestException("Not all orders were filled");
             }
         }
 
@@ -73,7 +73,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (orderEvent.Status == OrderStatus.Filled && !Securities[orderEvent.Symbol].Exchange.DateTimeIsOpen(orderEvent.UtcTime) &&
                 (orderEvent.UtcTime.TimeOfDay >= new TimeSpan(13, 30, 0) && orderEvent.UtcTime.TimeOfDay < new TimeSpan(21, 0, 0)))
             {
-                throw new Exception($"Order should have been filled during extended market hours");
+                throw new RegressionTestException($"Order should have been filled during extended market hours");
             }
         }
 
@@ -85,12 +85,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 82366;
+        public long DataPoints => 82371;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -98,18 +98,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "113.036%"},
             {"Drawdown", "3.700%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "101041.4"},
             {"Net Profit", "1.041%"},
             {"Sharpe Ratio", "4.262"},
+            {"Sortino Ratio", "29.102"},
             {"Probabilistic Sharpe Ratio", "58.720%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -125,7 +133,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$12000000.00"},
             {"Lowest Capacity Asset", "ES VMKLFZIH2MTD"},
             {"Portfolio Turnover", "33.61%"},
-            {"OrderListHash", "ce28e52db5c43108a4c91cdfa70c7142"}
+            {"OrderListHash", "1a8899e6c1498f63634de38910878619"}
         };
     }
 }

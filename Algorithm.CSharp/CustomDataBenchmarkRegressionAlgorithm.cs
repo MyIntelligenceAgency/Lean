@@ -51,7 +51,7 @@ namespace QuantConnect.Algorithm.CSharp
             var securityBenchmark = (SecurityBenchmark)Benchmark;
             if (securityBenchmark.Security.Price == 0)
             {
-                throw new Exception("Security benchmark price was not expected to be zero");
+                throw new RegressionTestException("Security benchmark price was not expected to be zero");
             }
         }
 
@@ -63,7 +63,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -76,18 +76,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "29.610%"},
             {"Drawdown", "0.600%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100281.67"},
             {"Net Profit", "0.282%"},
             {"Sharpe Ratio", "7.023"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -103,15 +111,15 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$180000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "24.86%"},
-            {"OrderListHash", "543c39983f298dd868296de07e9b407d"}
+            {"OrderListHash", "c07a9cae88eb3f47309fbf18216bc3cf"}
         };
 
         public class ExampleCustomData : BaseData
         {
-            public decimal Open;
-            public decimal High;
-            public decimal Low;
-            public decimal Close;
+            public decimal Open { get; set; }
+            public decimal High { get; set; }
+            public decimal Low { get; set; }
+            public decimal Close { get; set; }
 
             public override SubscriptionDataSource GetSource(SubscriptionDataConfig config, DateTime date, bool isLiveMode)
             {

@@ -30,22 +30,31 @@ namespace QuantConnect.Data
         /// <summary>
         /// Identifies where to get the subscription's data from
         /// </summary>
-        public readonly string Source;
+        public string Source { get; init; }
 
         /// <summary>
         /// Identifies the format of the data within the source
         /// </summary>
-        public readonly FileFormat Format;
+        public FileFormat Format { get; init; }
 
         /// <summary>
         /// Identifies the transport medium used to access the data, such as a local or remote file, or a polling rest API
         /// </summary>
-        public readonly SubscriptionTransportMedium TransportMedium;
+        public SubscriptionTransportMedium TransportMedium { get; init; }
 
         /// <summary>
         /// Gets the header values to be used in the web request.
         /// </summary>
-        public readonly IReadOnlyList<KeyValuePair<string, string>> Headers;
+        public IReadOnlyList<KeyValuePair<string, string>> Headers { get; init; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SubscriptionDataSource"/> class.
+        /// </summary>
+        /// <param name="source">The subscription's data source location</param>
+        public SubscriptionDataSource(string source)
+            : this(source, GetDefaultSubscriptionTransportMedium(source), FileFormat.Csv)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SubscriptionDataSource"/> class.
@@ -162,6 +171,19 @@ namespace QuantConnect.Data
         public override string ToString()
         {
             return Invariant($"{TransportMedium}: {Format} {Source}");
+        }
+
+        /// <summary>
+        /// Gets the default transport medium for the specified source
+        /// </summary>
+        private static SubscriptionTransportMedium GetDefaultSubscriptionTransportMedium(string source)
+        {
+            if (source.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return SubscriptionTransportMedium.RemoteFile;
+            }
+            return SubscriptionTransportMedium.LocalFile;
         }
     }
 }

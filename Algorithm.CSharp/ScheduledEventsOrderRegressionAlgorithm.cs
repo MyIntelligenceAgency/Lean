@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using QuantConnect.Data;
 using QuantConnect.Interfaces;
+using QuantConnect.Scheduling;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -27,6 +28,7 @@ namespace QuantConnect.Algorithm.CSharp
     public class ScheduledEventsOrderRegressionAlgorithm : QCAlgorithm, IRegressionAlgorithmDefinition
     {
         private int _scheduledEventCount;
+        private int _afterMarketOpenEventCount;
         private Symbol _spy;
         private DateTime _lastTime = DateTime.MinValue;
 
@@ -47,6 +49,9 @@ namespace QuantConnect.Algorithm.CSharp
             var bEventCount = 0;
             var cEventCount = 0;
 
+            var symbol = QuantConnect.Symbol.Create("AAPL", SecurityType.Equity, Market.USA);
+            Schedule.On(DateRules.WeekStart(symbol), TimeRules.AfterMarketOpen(symbol), AfterMarketOpen);
+
             // we add each twice and assert the order in which they are added is also respected for events at the same time
             for (var i = 0; i < 2; i++)
             {
@@ -56,7 +61,7 @@ namespace QuantConnect.Algorithm.CSharp
                     // for id 0 event count should always be 0, for id 1 should be 1
                     if (aEventCount != id)
                     {
-                        throw new Exception($"Scheduled event triggered out of order: {Time} expected id {id} but was {aEventCount}");
+                        throw new RegressionTestException($"Scheduled event triggered out of order: {Time} expected id {id} but was {aEventCount}");
                     }
                     aEventCount++;
                     // goes from 0 to 1
@@ -69,7 +74,7 @@ namespace QuantConnect.Algorithm.CSharp
                     // for id 0 event count should always be 0, for id 1 should be 1
                     if (bEventCount != id)
                     {
-                        throw new Exception($"Scheduled event triggered out of order: {Time} expected id {id} but was {bEventCount}");
+                        throw new RegressionTestException($"Scheduled event triggered out of order: {Time} expected id {id} but was {bEventCount}");
                     }
                     bEventCount++;
                     // goes from 0 to 1
@@ -82,7 +87,7 @@ namespace QuantConnect.Algorithm.CSharp
                     // for id 0 event count should always be 0, for id 1 should be 1
                     if (cEventCount != id)
                     {
-                        throw new Exception($"Scheduled event triggered out of order: {Time} expected id {id} but was {cEventCount}");
+                        throw new RegressionTestException($"Scheduled event triggered out of order: {Time} expected id {id} but was {cEventCount}");
                     }
                     cEventCount++;
                     // goes from 0 to 1
@@ -97,17 +102,30 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_lastTime > Time)
             {
-                throw new Exception($"Scheduled event time shouldn't go backwards, last time {_lastTime}, current {Time}");
+                throw new RegressionTestException($"Scheduled event time shouldn't go backwards, last time {_lastTime}, current {Time}");
             }
             _lastTime = Time;
             _scheduledEventCount++;
+        }
+
+        private void AfterMarketOpen()
+        {
+            _afterMarketOpenEventCount++;
+            if (Time.TimeOfDay != TimeSpan.FromHours(9.5))
+            {
+                throw new RegressionTestException($"AfterMarketOpen unexpected event time: {Time}");
+            }
         }
 
         public override void OnEndOfAlgorithm()
         {
             if (_scheduledEventCount != 28)
             {
-                throw new Exception($"OnEndOfAlgorithm expected scheduled events but was {_scheduledEventCount}");
+                throw new RegressionTestException($"OnEndOfAlgorithm expected scheduled events but was {_scheduledEventCount}");
+            }
+            if (_afterMarketOpenEventCount != 1)
+            {
+                throw new RegressionTestException($"OnEndOfAlgorithm expected after MarketOpenEvent count {_afterMarketOpenEventCount}");
             }
         }
 
@@ -115,7 +133,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!Portfolio.Invested)
             {
@@ -131,7 +149,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -144,18 +162,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "271.453%"},
             {"Drawdown", "2.200%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "101691.92"},
             {"Net Profit", "1.692%"},
             {"Sharpe Ratio", "8.854"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "67.609%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -171,7 +197,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$56000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "19.93%"},
-            {"OrderListHash", "0c0f9328786b0c9e8f88d271673d16c3"}
+            {"OrderListHash", "3da9fa60bf95b9ed148b95e02e0cfc9e"}
         };
     }
 }

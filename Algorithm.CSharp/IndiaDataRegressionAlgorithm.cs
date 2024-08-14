@@ -55,16 +55,16 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Raises the data event.
         /// </summary>
-        /// <param name="data">Data.</param>
-        public void OnData(Dividends data)
+        /// <param name="dividends">Data.</param>
+        public override void OnDividends(Dividends dividends)
         {
-            if (data.ContainsKey(_splitAndDividendSymbol))
+            if (dividends.ContainsKey(_splitAndDividendSymbol))
             {
-                var dividend = data[_splitAndDividendSymbol];
+                var dividend = dividends[_splitAndDividendSymbol];
                 if (Time.Date == new DateTime(2010, 06, 15) &&
                     (dividend.Price != 0.5m || dividend.ReferencePrice != 88.8m || dividend.Distribution != 0.5m))
                 {
-                    throw new Exception("Did not receive expected dividend values");
+                    throw new RegressionTestException("Did not receive expected dividend values");
                 }
             }
         }
@@ -72,12 +72,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Raises the data event.
         /// </summary>
-        /// <param name="data">Data.</param>
-        public void OnData(Splits data)
+        /// <param name="splits">Splits.</param>
+        public override void OnSplits(Splits splits)
         {
-            if (data.ContainsKey(_splitAndDividendSymbol))
+            if (splits.ContainsKey(_splitAndDividendSymbol))
             {
-                var split = data[_splitAndDividendSymbol];
+                var split = splits[_splitAndDividendSymbol];
                 if (split.Type == SplitType.Warning)
                 {
                     _receivedWarningEvent = true;
@@ -87,7 +87,7 @@ namespace QuantConnect.Algorithm.CSharp
                     _receivedOccurredEvent = true;
                     if (split.Price != 421m || split.ReferencePrice != 421m || split.SplitFactor != 0.2m)
                     {
-                        throw new Exception("Did not receive expected split values");
+                        throw new RegressionTestException("Did not receive expected split values");
                     }
                 }
             }
@@ -96,11 +96,11 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Checks the symbol change event
         /// </summary>
-        public override void OnData(Slice slice)
+        public override void OnSymbolChangedEvents(SymbolChangedEvents symbolsChanged)
         {
-            if (slice.SymbolChangedEvents.ContainsKey(_mappingSymbol))
+            if (symbolsChanged.ContainsKey(_mappingSymbol))
             {
-                var mappingEvent = slice.SymbolChangedEvents.Single(x => x.Key.SecurityType == SecurityType.Equity).Value;
+                var mappingEvent = symbolsChanged.Single(x => x.Key.SecurityType == SecurityType.Equity).Value;
                 Log($"{Time} - Ticker changed from: {mappingEvent.OldSymbol} to {mappingEvent.NewSymbol}");
                 if (Time.Date == new DateTime(1999, 01, 01))
                 {
@@ -124,19 +124,19 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_initialMapping)
             {
-                throw new Exception("The ticker generated the initial rename event");
+                throw new RegressionTestException("The ticker generated the initial rename event");
             }
             if (!_executionMapping)
             {
-                throw new Exception("The ticker did not rename throughout the course of its life even though it should have");
+                throw new RegressionTestException("The ticker did not rename throughout the course of its life even though it should have");
             }
             if (!_receivedOccurredEvent)
             {
-                throw new Exception("Did not receive expected split event");
+                throw new RegressionTestException("Did not receive expected split event");
             }
             if (!_receivedWarningEvent)
             {
-                throw new Exception("Did not receive expected split warning event");
+                throw new RegressionTestException("Did not receive expected split warning event");
             }
         }
 
@@ -148,7 +148,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -161,18 +161,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

@@ -54,7 +54,7 @@ namespace QuantConnect.Algorithm.CSharp
             var data = order.OrderSubmissionData;
             if (data == null || data.AskPrice == 0 || data.BidPrice == 0 || data.LastPrice == 0)
             {
-                throw new Exception("Invalid Order Submission data detected");
+                throw new RegressionTestException("Invalid Order Submission data detected");
             }
 
             if (_orderSubmissionData.ContainsKey(ticker))
@@ -62,7 +62,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var previous = _orderSubmissionData[ticker];
                 if (previous.AskPrice == data.AskPrice || previous.BidPrice == data.BidPrice || previous.LastPrice == data.LastPrice)
                 {
-                    throw new Exception("Order Submission data didn't change");
+                    throw new RegressionTestException("Order Submission data didn't change");
                 }
             }
             _orderSubmissionData[ticker] = data;
@@ -76,7 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -89,18 +89,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 60;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "18"},
+            {"Total Orders", "18"},
             {"Average Win", "0.83%"},
             {"Average Loss", "-0.90%"},
             {"Compounding Annual Return", "273.871%"},
             {"Drawdown", "3.200%"},
             {"Expectancy", "0.203"},
+            {"Start Equity", "100000.00"},
+            {"End Equity", "101715.67"},
             {"Net Profit", "1.716%"},
             {"Sharpe Ratio", "11.391"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "67.016%"},
             {"Loss Rate", "38%"},
             {"Win Rate", "62%"},
@@ -116,7 +124,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$20000000.00"},
             {"Lowest Capacity Asset", "EURUSD 8G"},
             {"Portfolio Turnover", "264.72%"},
-            {"OrderListHash", "9f795575d1cbbdb7b433a9d2a201c53d"}
+            {"OrderListHash", "705cad7cbcf7fc0d38367dbaad3556f5"}
         };
     }
 }

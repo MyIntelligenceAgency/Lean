@@ -27,6 +27,9 @@ namespace QuantConnect
         /// </summary>
         public static class OptimizerObjectivesCommon
         {
+            /// <summary>
+            /// String message saying the backtest result can not be null or empty
+            /// </summary>
             public static string NullOrEmptyBacktestResult = "Backtest result can not be null or empty.";
         }
 
@@ -35,6 +38,9 @@ namespace QuantConnect
         /// </summary>
         public static class Constraint
         {
+            /// <summary>
+            /// String message saying the constraint target value is not specified
+            /// </summary>
             public static string ConstraintTargetValueNotSpecified = "Constraint target value is not specified";
         }
 
@@ -43,6 +49,9 @@ namespace QuantConnect
         /// </summary>
         public static class ExtremumJsonConverter
         {
+            /// <summary>
+            /// String message saying it could not recognize target direction
+            /// </summary>
             public static string UnrecognizedTargetDirection = "Could not recognize target direction";
         }
 
@@ -51,6 +60,9 @@ namespace QuantConnect
         /// </summary>
         public static class Objective
         {
+            /// <summary>
+            /// Null or empty Objective string message
+            /// </summary>
             public static string NullOrEmptyObjective = "Objective can not be null or empty";
         }
 
@@ -59,6 +71,9 @@ namespace QuantConnect
         /// </summary>
         public static class Target
         {
+            /// <summary>
+            /// Parses a Target object into a string message
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static string ToString(Optimizer.Objectives.Target instance)
             {

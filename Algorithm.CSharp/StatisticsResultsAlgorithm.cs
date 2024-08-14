@@ -63,7 +63,7 @@ namespace QuantConnect.Algorithm.CSharp
             _slowIbmEma = EMA(_spy, 30, Resolution.Minute);
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!_slowSpyEma.IsReady) return;
 
@@ -96,7 +96,7 @@ namespace QuantConnect.Algorithm.CSharp
                 Debug($"\nStatistics after fill:\n\t{statisticsStr}");
 
                 // Access a single statistic
-                Log($"Total trades so far: {statistics[PerformanceMetrics.TotalTrades]}");
+                Log($"Total trades so far: {statistics[PerformanceMetrics.TotalOrders]}");
                 Log($"Sharpe Ratio: {statistics[PerformanceMetrics.SharpeRatio]}");
 
                 // --------
@@ -110,11 +110,11 @@ namespace QuantConnect.Algorithm.CSharp
                 {
                     if (statistics.ContainsKey(MostTradedSecurityStatistic))
                     {
-                        throw new Exception($"Statistic {MostTradedSecurityStatistic} should not be set yet");
+                        throw new RegressionTestException($"Statistic {MostTradedSecurityStatistic} should not be set yet");
                     }
                     if (statistics.ContainsKey(MostTradedSecurityTradeCountStatistic))
                     {
-                        throw new Exception($"Statistic {MostTradedSecurityTradeCountStatistic} should not be set yet");
+                        throw new RegressionTestException($"Statistic {MostTradedSecurityTradeCountStatistic} should not be set yet");
                     }
                 }
                 else
@@ -146,11 +146,11 @@ namespace QuantConnect.Algorithm.CSharp
             var statistics = Statistics.Summary;
             if (!statistics.ContainsKey(MostTradedSecurityStatistic))
             {
-                throw new Exception($"Statistic {MostTradedSecurityStatistic} should be in the summary statistics");
+                throw new RegressionTestException($"Statistic {MostTradedSecurityStatistic} should be in the summary statistics");
             }
             if (!statistics.ContainsKey(MostTradedSecurityTradeCountStatistic))
             {
-                throw new Exception($"Statistic {MostTradedSecurityTradeCountStatistic} should be in the summary statistics");
+                throw new RegressionTestException($"Statistic {MostTradedSecurityTradeCountStatistic} should be in the summary statistics");
             }
             var mostTradeSecurityKvp = _tradeCounts.MaxBy(kvp => kvp.Value);
             CheckMostTradedSecurityStatistic(statistics, mostTradeSecurityKvp.Key, mostTradeSecurityKvp.Value);
@@ -165,11 +165,11 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (mostTradedSecurityStatistic != mostTradedSecurity)
             {
-                throw new Exception($"Most traded security should be {mostTradedSecurity} but it is {mostTradedSecurityStatistic}");
+                throw new RegressionTestException($"Most traded security should be {mostTradedSecurity} but it is {mostTradedSecurityStatistic}");
             }
             if (mostTradedSecurityTradeCountStatistic != tradeCount.ToStringInvariant())
             {
-                throw new Exception($"Most traded security trade count should be {tradeCount} but it is {mostTradedSecurityTradeCountStatistic}");
+                throw new RegressionTestException($"Most traded security trade count should be {tradeCount} but it is {mostTradedSecurityTradeCountStatistic}");
             }
         }
 
@@ -181,7 +181,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -194,18 +194,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "93"},
+            {"Total Orders", "94"},
             {"Average Win", "0.09%"},
             {"Average Loss", "-0.03%"},
             {"Compounding Annual Return", "18.903%"},
             {"Drawdown", "0.800%"},
             {"Expectancy", "0.135"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100221.61"},
             {"Net Profit", "0.222%"},
             {"Sharpe Ratio", "6.406"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "69.072%"},
             {"Loss Rate", "70%"},
             {"Win Rate", "30%"},
@@ -221,9 +229,9 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$1100000.00"},
             {"Lowest Capacity Asset", "IBM R735QTJ8XC9X"},
             {"Portfolio Turnover", "549.26%"},
-            {"Most Traded Security Trade Count", "63"},
             {"Most Traded Security", "IBM"},
-            {"OrderListHash", "3555aa1d5bfc70ba8a460752f3904327"}
+            {"Most Traded Security Trade Count", "63"},
+            {"OrderListHash", "8dd77e35338a81410a5b68dc8345f402"}
         };
     }
 }

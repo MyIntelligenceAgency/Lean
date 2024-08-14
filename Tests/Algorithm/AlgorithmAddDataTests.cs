@@ -16,7 +16,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Python.Runtime;
 using Newtonsoft.Json;
 using NodaTime;
 using NUnit.Framework;
@@ -56,7 +55,7 @@ namespace QuantConnect.Tests.Algorithm
             Config.Set("security-data-feeds", "{ Forex: [\"Trade\"] }");
             var dataFeedsConfigString = Config.Get("security-data-feeds");
             Dictionary<SecurityType, List<TickType>> dataFeeds = new Dictionary<SecurityType, List<TickType>>();
-            if (dataFeedsConfigString != string.Empty)
+            if (!string.IsNullOrEmpty(dataFeedsConfigString))
             {
                 dataFeeds = JsonConvert.DeserializeObject<Dictionary<SecurityType, List<TickType>>>(dataFeedsConfigString);
             }
@@ -584,11 +583,13 @@ namespace QuantConnect.Tests.Algorithm
             // self.AddData(CustomPythonData, "IBM", Resolution.Daily)
             qcAlgorithm.Initialize();
 
-            var niftyConsolidator = new DynamicDataConsolidator(TimeSpan.FromDays(2));
+            #pragma warning disable CS0618
+            using var niftyConsolidator = new DynamicDataConsolidator(TimeSpan.FromDays(2));
             Assert.DoesNotThrow(() => qcAlgorithm.SubscriptionManager.AddConsolidator("NIFTY", niftyConsolidator));
 
-            var customDataConsolidator = new DynamicDataConsolidator(TimeSpan.FromDays(2));
+            using var customDataConsolidator = new DynamicDataConsolidator(TimeSpan.FromDays(2));
             Assert.DoesNotThrow(() => qcAlgorithm.SubscriptionManager.AddConsolidator("IBM", customDataConsolidator));
+            #pragma warning restore CS0618
         }
 
         [Test]
@@ -645,6 +646,33 @@ namespace QuantConnect.Tests.Algorithm
             Assert.AreNotSame(unlinkedData, bitcoin);
         }
 
+        [TestCase(SecurityType.Equity)]
+        [TestCase(SecurityType.Index)]
+        [TestCase(SecurityType.Future)]
+        public void AddOptionContractWithDelistedUnderlyingThrows(SecurityType underlyingSecurityType)
+        {
+            var algorithm = Algorithm();
+            algorithm.SetStartDate(2007, 05, 25);
+
+            Security underlying = underlyingSecurityType switch
+            {
+                SecurityType.Equity => algorithm.AddEquity("SPY"),
+                SecurityType.Index => algorithm.AddIndex("SPX"),
+                SecurityType.Future => algorithm.AddFuture("ES"),
+                _ => throw new ArgumentException($"Invalid test underlying security type {underlyingSecurityType}")
+            };
+
+            underlying.IsDelisted = true;
+            // let's remove the underlying since it's delisted
+            algorithm.RemoveSecurity(underlying.Symbol);
+
+            var optionContractSymbol = Symbol.CreateOption(underlying.Symbol, Market.USA, OptionStyle.American, OptionRight.Call, 100,
+                new DateTime(2007, 06, 15));
+
+            var exception = Assert.Throws<ArgumentException>(() => algorithm.AddOptionContract(optionContractSymbol));
+            Assert.IsTrue(exception.Message.Contains("is delisted"), $"Unexpected exception message: {exception.Message}");
+        }
+
         private static SubscriptionDataConfig GetMatchingSubscription(QCAlgorithm algorithm, Symbol symbol, Type type)
         {
             // find a subscription matchin the requested type with a higher resolution than requested
@@ -678,6 +706,7 @@ namespace QuantConnect.Tests.Algorithm
             {
                 var now = DateTime.UtcNow;
                 LastResolutionRequest = requests.First().Resolution;
+                #pragma warning disable CS0618
                 var tradeBar1 = new TradeBar(now, underlyingSymbol, 1, 1, 1, 1, 1, TimeSpan.FromDays(1));
                 var tradeBar2 = new TradeBar(now, underlyingSymbol2, 3, 3, 3, 3, 3, TimeSpan.FromDays(1));
                 var slice1 = new Slice(now, new List<BaseData> { tradeBar1, tradeBar2 },
@@ -687,6 +716,7 @@ namespace QuantConnect.Tests.Algorithm
                                     new Dividends(now), new Delistings(),
                                     new SymbolChangedEvents(), new MarginInterestRates(), now);
                 var tradeBar1_2 = new TradeBar(now, underlyingSymbol, 2, 2, 2, 2, 2, TimeSpan.FromDays(1));
+                #pragma warning restore CS0618
                 var slice2 = new Slice(now, new List<BaseData> { tradeBar1_2 },
                     new TradeBars(now), new QuoteBars(),
                     new Ticks(), new OptionChains(),

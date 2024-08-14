@@ -81,7 +81,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                 _mapFileProvider,
                 _factorFileProvider,
                 _cacheProvider,
-                algorithm.ObjectStore,
+                algorithm,
                 enablePriceScaling: false);
 
             IsActive = true;
@@ -165,13 +165,15 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                 enumerator = CreateEnumerator(request);
             }
 
+            enumerator = AddScheduleWrapper(request, enumerator, null);
+
             if (request.IsUniverseSubscription && request.Universe is UserDefinedUniverse)
             {
                 // for user defined universe we do not use a worker task, since calls to AddData can happen in any moment
                 // and we have to be able to inject selection data points into the enumerator
-                return SubscriptionUtils.Create(request, enumerator);
+                return SubscriptionUtils.Create(request, enumerator, _algorithm.Settings.DailyPreciseEndTime);
             }
-            return SubscriptionUtils.CreateAndScheduleWorker(request, enumerator, _factorFileProvider, true);
+            return SubscriptionUtils.CreateAndScheduleWorker(request, enumerator, _factorFileProvider, true, _algorithm.Settings.DailyPreciseEndTime);
         }
 
         /// <summary>
@@ -182,6 +184,9 @@ namespace QuantConnect.Lean.Engine.DataFeeds
         {
         }
 
+        /// <summary>
+        /// Creates a universe enumerator from the Subscription request, the underlying enumerator func and the fill forward resolution (in some cases)
+        /// </summary>
         protected IEnumerator<BaseData> CreateUniverseEnumerator(SubscriptionRequest request, Func<SubscriptionRequest, Resolution?, IEnumerator<BaseData>> createUnderlyingEnumerator, Resolution? fillForwardResolution = null)
         {
             ISubscriptionEnumeratorFactory factory = _subscriptionFactory;
@@ -196,7 +201,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                     return factory.CreateEnumerator(request, _dataProvider);
                 }
             }
-            else if (request.Configuration.Type == typeof(Fundamentals))
+            else if (request.Configuration.Type == typeof(FundamentalUniverse))
             {
                 factory = new BaseDataCollectionSubscriptionEnumeratorFactory(_algorithm.ObjectStore);
             }
@@ -210,6 +215,11 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 
                 var result = new BaseDataSubscriptionEnumeratorFactory(_algorithm.OptionChainProvider, _algorithm.FutureChainProvider)
                     .CreateEnumerator(request, _dataProvider);
+
+                if (LeanData.UseDailyStrictEndTimes(_algorithm.Settings, request, request.Configuration.Symbol, request.Configuration.Increment))
+                {
+                    result = new StrictDailyEndTimesEnumerator(result, request.ExchangeHours);
+                }
                 result = ConfigureEnumerator(request, true, result, fillForwardResolution);
                 return TryAppendUnderlyingEnumerator(request, result, createUnderlyingEnumerator, fillForwardResolution);
             }
@@ -217,6 +227,24 @@ namespace QuantConnect.Lean.Engine.DataFeeds
             // define our data enumerator
             var enumerator = factory.CreateEnumerator(request, _dataProvider);
             return enumerator;
+        }
+
+        /// <summary>
+        /// Returns a scheduled enumerator from the given arguments. It can also return the given underlying enumerator
+        /// </summary>
+        protected IEnumerator<BaseData> AddScheduleWrapper(SubscriptionRequest request, IEnumerator<BaseData> underlying, ITimeProvider timeProvider)
+        {
+            if (!request.IsUniverseSubscription || !request.Universe.UniverseSettings.Schedule.Initialized)
+            {
+                return underlying;
+            }
+
+            var schedule = request.Universe.UniverseSettings.Schedule.Get(request.StartTimeLocal, request.EndTimeLocal);
+            if (schedule != null)
+            {
+                return new ScheduledEnumerator(underlying, schedule, timeProvider, request.Configuration.ExchangeTimeZone, request.StartTimeLocal);
+            }
+            return underlying;
         }
 
         /// <summary>
@@ -309,8 +337,9 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                     fillForwardSpan = Ref.Create(fillForwardResolution.Value.ToTimeSpan());
                 }
 
-                enumerator = new FillForwardEnumerator(enumerator, request.Security.Exchange, fillForwardSpan,
-                    request.Configuration.ExtendedMarketHours, request.EndTimeLocal, request.Configuration.Resolution.ToTimeSpan(), request.Configuration.DataTimeZone);
+                var useDailyStrictEndTimes = LeanData.UseDailyStrictEndTimes(_algorithm.Settings, request, request.Configuration.Symbol, request.Configuration.Increment);
+                enumerator = new FillForwardEnumerator(enumerator, request.Security.Exchange, fillForwardSpan, request.Configuration.ExtendedMarketHours, request.EndTimeLocal,
+                    request.Configuration.Increment, request.Configuration.DataTimeZone, useDailyStrictEndTimes);
             }
 
             return enumerator;

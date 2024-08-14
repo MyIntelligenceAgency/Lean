@@ -19,6 +19,7 @@ using System.Linq;
 using QuantConnect.Data.Market;
 using QuantConnect.Data.UniverseSelection;
 using QuantConnect.Orders;
+using QuantConnect.Data;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -63,10 +64,13 @@ namespace QuantConnect.Algorithm.CSharp
             return top.Select(x => x.Symbol);
         }
 
-        //Data Event Handler: New data arrives here. "TradeBars" type is a dictionary of strings so you can access it by symbol.
-        public void OnData(TradeBars data)
+        /// <summary>
+        /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
+        /// </summary>
+        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            Log($"OnData({UtcTime:o}): Keys: {string.Join(", ", data.Keys.OrderBy(x => x))}");
+            Log($"OnData({UtcTime:o}): Keys: {string.Join(", ", slice.Keys.OrderBy(x => x))}");
 
             // if we have no changes, do nothing
             if (_changes == SecurityChanges.None) return;
@@ -96,9 +100,9 @@ namespace QuantConnect.Algorithm.CSharp
             Log($"OnSecuritiesChanged({UtcTime:o}):: {changes}");
         }
 
-        public override void OnOrderEvent(OrderEvent fill)
+        public override void OnOrderEvent(OrderEvent orderEvent)
         {
-            Log($"OnOrderEvent({UtcTime:o}):: {fill}");
+            Log($"OnOrderEvent({UtcTime:o}):: {orderEvent}");
         }
 
         /// <summary>
@@ -109,7 +113,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -122,18 +126,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "12"},
+            {"Total Orders", "12"},
             {"Average Win", "0.55%"},
             {"Average Loss", "-0.26%"},
             {"Compounding Annual Return", "16.717%"},
             {"Drawdown", "1.700%"},
             {"Expectancy", "0.850"},
+            {"Start Equity", "50000"},
+            {"End Equity", "50318.65"},
             {"Net Profit", "0.637%"},
             {"Sharpe Ratio", "1.024"},
+            {"Sortino Ratio", "2.169"},
             {"Probabilistic Sharpe Ratio", "50.223%"},
             {"Loss Rate", "40%"},
             {"Win Rate", "60%"},
@@ -149,7 +161,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$200000000.00"},
             {"Lowest Capacity Asset", "AAPL R735QTJ8XC9X"},
             {"Portfolio Turnover", "26.69%"},
-            {"OrderListHash", "0baae584118ecbce79dcf0cb001d5852"}
+            {"OrderListHash", "82ca991c660ecefbcbdf0b4cc90ddd67"}
         };
     }
 }

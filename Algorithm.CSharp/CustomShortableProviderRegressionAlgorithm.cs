@@ -55,17 +55,31 @@ namespace QuantConnect.Algorithm.CSharp
             var transactions = Transactions.OrdersCount;
             if (transactions != 1)
             {
-                throw new Exception($"Algorithm should have just 1 order, but was {transactions}");
+                throw new RegressionTestException($"Algorithm should have just 1 order, but was {transactions}");
             }
             var orderQuantity = Transactions.GetOrderById(_orderId).Quantity;
             if (orderQuantity != -1001)
             {
-                throw new Exception($"Quantity of order {_orderId} should be -1001, but was {orderQuantity}");
+                throw new RegressionTestException($"Quantity of order {_orderId} should be -1001, but was {orderQuantity}");
+            }
+            var feeRate = _spy.ShortableProvider.FeeRate(_spy.Symbol, Time);
+            if (feeRate != 0.0025m)
+            {
+                throw new RegressionTestException($"Fee rate should be 0.0025, but was {feeRate}");
+            }
+            var rebateRate = _spy.ShortableProvider.RebateRate(_spy.Symbol, Time);
+            if (rebateRate != 0.0507m)
+            {
+                throw new RegressionTestException($"Fee rate should be 0.0507, but was {rebateRate}");
             }
         }
 
         private class CustomSPYShortableProvider : IShortableProvider
         {
+            public decimal FeeRate(Symbol symbol, DateTime localTime) => 0.0025m;
+
+            public decimal RebateRate(Symbol symbol, DateTime localTime) => 0.0507m;
+
             public long? ShortableQuantity(Symbol symbol, DateTime localTime)
             {
                 if (localTime < new DateTime(2013, 10, 5))
@@ -87,7 +101,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -100,18 +114,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "10000000"},
+            {"End Equity", "10000000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -127,7 +149,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", ""},
             {"Portfolio Turnover", "0%"},
-            {"OrderListHash", "c34cd62ddcc75c256000c3c39e074281"}
+            {"OrderListHash", "65ce55aaad2f4a722858d84995fb7030"}
         };
     }
 }

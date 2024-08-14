@@ -27,6 +27,7 @@ using System.Collections.Generic;
 using QuantConnect.Securities.Future;
 using QuantConnect.Securities.FutureOption;
 using QuantConnect.Securities.FutureOption.Api;
+using System.Net.Http.Headers;
 
 namespace QuantConnect.Lean.Engine.DataFeeds
 {
@@ -43,9 +44,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 
         private const string CMESymbolReplace = "{{SYMBOL}}";
         private const string CMEProductCodeReplace = "{{PRODUCT_CODE}}";
-        private const string CMEContractCodeReplace = "{{CONTRACT_CODE}}";
         private const string CMEProductExpirationReplace = "{{PRODUCT_EXPIRATION}}";
-        private const string CMEDateTimeReplace = "{{DT_REPLACE}}";
 
         private const string CMEProductSlateURL = "https://www.cmegroup.com/CmeWS/mvc/ProductSlate/V2/List?pageNumber=1&sortAsc=false&sortField=rank&searchString=" + CMESymbolReplace + "&pageSize=5";
         private const string CMEOptionsTradeDateAndExpirations = "https://www.cmegroup.com/CmeWS/mvc/Settlements/Options/TradeDateAndExpirations/" + CMEProductCodeReplace;
@@ -64,6 +63,9 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 
             _client = new HttpClient(new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate });
             _client.DefaultRequestHeaders.Connection.Add("keep-alive");
+            _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*", 0.8));
+            _client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0");
+            _client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("en-US", 0.5));
         }
 
         /// <summary>

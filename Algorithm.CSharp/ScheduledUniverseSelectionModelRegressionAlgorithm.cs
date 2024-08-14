@@ -144,7 +144,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (tickers == null && changes.AddedSecurities.Count > 0)
             {
-                throw new Exception($"{Time}: Expected no additions: {Time.DayOfWeek}");
+                throw new RegressionTestException($"{Time}: Expected no additions: {Time.DayOfWeek}");
             }
             if (tickers == null)
             {
@@ -155,7 +155,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (changes.AddedSecurities.All(s => s.Symbol.Value != ticker))
                 {
-                    throw new Exception($"{Time}: Expected {ticker} to be added: {Time.DayOfWeek}");
+                    throw new RegressionTestException($"{Time}: Expected {ticker} to be added: {Time.DayOfWeek}");
                 }
             }
         }
@@ -164,7 +164,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (tickers == null && changes.RemovedSecurities.Count > 0)
             {
-                throw new Exception($"{Time}: Expected no removals: {Time.DayOfWeek}");
+                throw new RegressionTestException($"{Time}: Expected no removals: {Time.DayOfWeek}");
             }
 
             if (tickers == null)
@@ -176,7 +176,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (changes.RemovedSecurities.All(s => s.Symbol.Value != ticker))
                 {
-                    throw new Exception($"{Time}: Expected {ticker} to be removed: {Time.DayOfWeek}");
+                    throw new RegressionTestException($"{Time}: Expected {ticker} to be removed: {Time.DayOfWeek}");
                 }
             }
         }
@@ -189,7 +189,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -202,18 +202,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "59"},
+            {"Total Orders", "59"},
             {"Average Win", "0.28%"},
             {"Average Loss", "-0.20%"},
             {"Compounding Annual Return", "73.882%"},
             {"Drawdown", "1.100%"},
             {"Expectancy", "0.749"},
+            {"Start Equity", "100000"},
+            {"End Equity", "105049.17"},
             {"Net Profit", "5.049%"},
             {"Sharpe Ratio", "7.048"},
+            {"Sortino Ratio", "10.495"},
             {"Probabilistic Sharpe Ratio", "96.425%"},
             {"Loss Rate", "27%"},
             {"Win Rate", "73%"},
@@ -229,7 +237,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$2600000.00"},
             {"Lowest Capacity Asset", "EURUSD 8G"},
             {"Portfolio Turnover", "87.56%"},
-            {"OrderListHash", "51943e28d29985ba39326bb8b9a7adcc"}
+            {"OrderListHash", "83c4317adaf75381b4c61138091abeb1"}
         };
     }
 }

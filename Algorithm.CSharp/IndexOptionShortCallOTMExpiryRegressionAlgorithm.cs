@@ -59,7 +59,7 @@ namespace QuantConnect.Algorithm.CSharp
             _expectedContract = QuantConnect.Symbol.CreateOption(_spx, Market.USA, OptionStyle.European, OptionRight.Call, 4250m, new DateTime(2021, 1, 15));
             if (_spxOption != _expectedContract)
             {
-                throw new Exception($"Contract {_expectedContract} was not found in the chain");
+                throw new RegressionTestException($"Contract {_expectedContract} was not found in the chain");
             }
 
             Schedule.On(DateRules.Tomorrow, TimeRules.AfterMarketOpen(_spx, 1), () =>
@@ -68,24 +68,24 @@ namespace QuantConnect.Algorithm.CSharp
             });
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             // Assert delistings, so that we can make sure that we receive the delisting warnings at
             // the expected time. These assertions detect bug #4872
-            foreach (var delisting in data.Delistings.Values)
+            foreach (var delisting in slice.Delistings.Values)
             {
                 if (delisting.Type == DelistingType.Warning)
                 {
                     if (delisting.Time != new DateTime(2021, 1, 15))
                     {
-                        throw new Exception($"Delisting warning issued at unexpected date: {delisting.Time}");
+                        throw new RegressionTestException($"Delisting warning issued at unexpected date: {delisting.Time}");
                     }
                 }
                 if (delisting.Type == DelistingType.Delisted)
                 {
                     if (delisting.Time != new DateTime(2021, 1, 16))
                     {
-                        throw new Exception($"Delisting happened at unexpected date: {delisting.Time}");
+                        throw new RegressionTestException($"Delisting happened at unexpected date: {delisting.Time}");
                     }
                 }
             }
@@ -101,13 +101,13 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (!Securities.ContainsKey(orderEvent.Symbol))
             {
-                throw new Exception($"Order event Symbol not found in Securities collection: {orderEvent.Symbol}");
+                throw new RegressionTestException($"Order event Symbol not found in Securities collection: {orderEvent.Symbol}");
             }
 
             var security = Securities[orderEvent.Symbol];
             if (security.Symbol == _spx)
             {
-                throw new Exception($"Expected no order events for underlying Symbol {security.Symbol}");
+                throw new RegressionTestException($"Expected no order events for underlying Symbol {security.Symbol}");
             }
 
             if (security.Symbol == _expectedContract)
@@ -116,7 +116,7 @@ namespace QuantConnect.Algorithm.CSharp
             }
             else
             {
-                throw new Exception($"Received order event for unknown Symbol: {orderEvent.Symbol}");
+                throw new RegressionTestException($"Received order event for unknown Symbol: {orderEvent.Symbol}");
             }
 
             Log($"{orderEvent}");
@@ -126,27 +126,27 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (orderEvent.Direction == OrderDirection.Sell && optionContract.Holdings.Quantity != -1)
             {
-                throw new Exception($"No holdings were created for option contract {optionContract.Symbol}");
+                throw new RegressionTestException($"No holdings were created for option contract {optionContract.Symbol}");
             }
             if (orderEvent.Direction == OrderDirection.Buy && optionContract.Holdings.Quantity != 0)
             {
-                throw new Exception("Expected no options holdings after closing position");
+                throw new RegressionTestException("Expected no options holdings after closing position");
             }
             if (orderEvent.IsAssignment)
             {
-                throw new Exception($"Assignment was not expected for {orderEvent.Symbol}");
+                throw new RegressionTestException($"Assignment was not expected for {orderEvent.Symbol}");
             }
         }
 
         /// <summary>
         /// Ran at the end of the algorithm to ensure the algorithm has no holdings
         /// </summary>
-        /// <exception cref="Exception">The algorithm has holdings</exception>
+        /// <exception cref="RegressionTestException">The algorithm has holdings</exception>
         public override void OnEndOfAlgorithm()
         {
             if (Portfolio.Invested)
             {
-                throw new Exception($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
+                throw new RegressionTestException($"Expected no holdings at end of algorithm, but are invested in: {string.Join(", ", Portfolio.Keys)}");
             }
         }
 
@@ -158,12 +158,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 15656;
+        public long DataPoints => 15941;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -171,18 +171,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0.01%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0.142%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100010"},
             {"Net Profit", "0.010%"},
             {"Sharpe Ratio", "-6.787"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "98.983%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "100%"},
@@ -198,7 +206,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$22000.00"},
             {"Lowest Capacity Asset", "SPX XL80P59H5E6M|SPX 31"},
             {"Portfolio Turnover", "0.00%"},
-            {"OrderListHash", "1aefacf7f63f900bf7dff8b3044df51e"}
+            {"OrderListHash", "8fbc0a49b64de5da9ff2beb923c7039b"}
         };
     }
 }

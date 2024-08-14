@@ -62,7 +62,7 @@ namespace QuantConnect.Algorithm.CSharp
             var consolidatorCount = SubscriptionManager.Subscriptions.Sum(s => s.Consolidators.Count);
             if (consolidatorCount > 0)
             {
-                throw new Exception($"The number of consolidator is should be zero. Actual: {consolidatorCount}");
+                throw new RegressionTestException($"The number of consolidator is should be zero. Actual: {consolidatorCount}");
             }
         }
 
@@ -74,7 +74,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -87,18 +87,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 1008;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "6"},
+            {"Total Orders", "6"},
             {"Average Win", "0.99%"},
             {"Average Loss", "-0.84%"},
             {"Compounding Annual Return", "24.021%"},
             {"Drawdown", "0.800%"},
             {"Expectancy", "0.089"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100295.35"},
             {"Net Profit", "0.295%"},
             {"Sharpe Ratio", "4.205"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "61.706%"},
             {"Loss Rate", "50%"},
             {"Win Rate", "50%"},
@@ -114,7 +122,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$3200000.00"},
             {"Lowest Capacity Asset", "AIG R735QTJ8XC9X"},
             {"Portfolio Turnover", "80.47%"},
-            {"OrderListHash", "3df37d58fc4091990c68e133c8b10969"}
+            {"OrderListHash", "476d54ac7295563a79add3a80310a0a8"}
         };
     }
 }

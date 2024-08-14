@@ -24,6 +24,7 @@ using QuantConnect.Orders.OptionExercise;
 using QuantConnect.Orders.Slippage;
 using QuantConnect.Python;
 using QuantConnect.Securities.Interfaces;
+using QuantConnect.Util;
 using System;
 using System.Collections.Generic;
 
@@ -188,6 +189,7 @@ namespace QuantConnect.Securities.Option
             SetFilter(-1, 1, TimeSpan.Zero, TimeSpan.FromDays(35));
             Underlying = underlying;
             OptionAssignmentModel = new DefaultOptionAssignmentModel();
+            ScaledStrikePrice = StrikePrice * SymbolProperties.StrikeMultiplier;
         }
 
         // save off a strongly typed version of symbol properties
@@ -207,6 +209,15 @@ namespace QuantConnect.Securities.Option
         /// Gets the strike price
         /// </summary>
         public decimal StrikePrice => Symbol.ID.StrikePrice;
+
+        /// <summary>
+        /// Gets the strike price multiplied by the strike multiplier
+        /// </summary>
+        public decimal ScaledStrikePrice
+        {
+            get;
+            private set;
+        }
 
         /// <summary>
         /// Gets the expiration date
@@ -328,7 +339,7 @@ namespace QuantConnect.Securities.Option
         /// </summary>
         public decimal GetIntrinsicValue(decimal underlyingPrice)
         {
-            return Math.Max(0.0m, GetPayOff(underlyingPrice));
+            return OptionPayoff.GetIntrinsicValue(underlyingPrice, ScaledStrikePrice, Right);
         }
 
         /// <summary>
@@ -338,7 +349,7 @@ namespace QuantConnect.Securities.Option
         /// <returns></returns>
         public decimal GetPayOff(decimal underlyingPrice)
         {
-            return Right == OptionRight.Call ? underlyingPrice - StrikePrice : StrikePrice - underlyingPrice;
+            return OptionPayoff.GetPayOff(underlyingPrice, ScaledStrikePrice, Right);
         }
 
         /// <summary>
@@ -348,7 +359,7 @@ namespace QuantConnect.Securities.Option
         /// <returns></returns>
         public decimal OutOfTheMoneyAmount(decimal underlyingPrice)
         {
-            return Math.Max(0, Right == OptionRight.Call ? StrikePrice - underlyingPrice : underlyingPrice - StrikePrice);
+            return Math.Max(0, Right == OptionRight.Call ? ScaledStrikePrice - underlyingPrice : underlyingPrice - ScaledStrikePrice);
         }
 
         /// <summary>
@@ -656,6 +667,17 @@ namespace QuantConnect.Securities.Option
                 var result = universeFunc(optionUniverse);
                 return result.ApplyTypesFilter();
             });
+        }
+
+        /// <summary>
+        /// Updates the symbol properties of this security
+        /// </summary>
+        internal override void UpdateSymbolProperties(SymbolProperties symbolProperties)
+        {
+            if (symbolProperties != null)
+            {
+                SymbolProperties = new OptionSymbolProperties(symbolProperties);
+            }
         }
     }
 }

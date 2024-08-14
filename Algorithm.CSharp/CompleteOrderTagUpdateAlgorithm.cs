@@ -47,7 +47,7 @@ namespace QuantConnect.Algorithm.CSharp
             _spy = AddEquity("SPY", Resolution.Minute).Symbol;
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (!Portfolio.Invested)
             {
@@ -72,7 +72,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 if (orderEvent.OrderId != _limitOrderTicket.OrderId)
                 {
-                    throw new Exception("The only canceled order should have been the limit order.");
+                    throw new RegressionTestException("The only canceled order should have been the limit order.");
                 }
 
                 // update canceled order tag
@@ -83,7 +83,7 @@ namespace QuantConnect.Algorithm.CSharp
                 _marketOrderTicket = Transactions.GetOrderTickets(x => x.OrderType == OrderType.Market).Single();
                 if (orderEvent.OrderId != _marketOrderTicket.OrderId)
                 {
-                    throw new Exception("The only filled order should have been the market order.");
+                    throw new RegressionTestException("The only filled order should have been the market order.");
                 }
 
                 // try to update a field other than the tag
@@ -92,7 +92,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var response = _marketOrderTicket.Update(updateFields);
                 if (response.IsSuccess)
                 {
-                    throw new Exception("The market order quantity should not have been updated.");
+                    throw new RegressionTestException("The market order quantity should not have been updated.");
                 }
 
                 // update filled order tag
@@ -106,7 +106,7 @@ namespace QuantConnect.Algorithm.CSharp
             AssertOrderTagUpdate(_marketOrderTicket, TagAfterFill, "filled");
             if (_marketOrderTicket.Quantity != _quantity || _marketOrderTicket.QuantityFilled != _quantity)
             {
-                throw new Exception("The market order quantity should not have been updated.");
+                throw new RegressionTestException("The market order quantity should not have been updated.");
             }
 
             // check the canceled order
@@ -117,18 +117,18 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (ticket == null)
             {
-                throw new Exception($"The order ticket was not set for the {orderAction} order");
+                throw new RegressionTestException($"The order ticket was not set for the {orderAction} order");
             }
 
             if (ticket.Tag != expectedTag)
             {
-                throw new Exception($"Order ticket tag was not updated after order was {orderAction}");
+                throw new RegressionTestException($"Order ticket tag was not updated after order was {orderAction}");
             }
 
             var order = Transactions.GetOrderById(ticket.OrderId);
             if (order.Tag != expectedTag)
             {
-                throw new Exception($"Order tag was not updated after order was {orderAction}");
+                throw new RegressionTestException($"Order tag was not updated after order was {orderAction}");
             }
         }
 
@@ -140,7 +140,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             if (response.IsError)
             {
-                throw new Exception($"{errorMessagePrefix}: {response.ErrorMessage}");
+                throw new RegressionTestException($"{errorMessagePrefix}: {response.ErrorMessage}");
             }
         }
 
@@ -152,7 +152,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -165,18 +165,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "21.706%"},
             {"Drawdown", "0.300%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100251.47"},
             {"Net Profit", "0.251%"},
             {"Sharpe Ratio", "5.078"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "67.483%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -192,7 +200,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$210000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "2.89%"},
-            {"OrderListHash", "d5612bfe63ecc640a3ce702f39bc2372"}
+            {"OrderListHash", "8fba4f724843997ef421cf26ccabe51b"}
         };
     }
 }

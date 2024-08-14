@@ -49,7 +49,7 @@ namespace QuantConnect.Algorithm.CSharp
                     dataMappingMode: DataMappingMode.OpenInterest,
                     contractDepthOffset: 5
                 );
-                throw new Exception("Expected out of rage exception. We don't support that many back months");
+                throw new RegressionTestException("Expected out of rage exception. We don't support that many back months");
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -66,15 +66,15 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            if (data.Keys.Count != 1)
+            if (slice.Keys.Count != 1)
             {
-                throw new Exception($"We are getting data for more than one symbols! {string.Join(",", data.Keys.Select(symbol => symbol))}");
+                throw new RegressionTestException($"We are getting data for more than one symbols! {string.Join(",", slice.Keys.Select(symbol => symbol))}");
             }
 
-            foreach (var changedEvent in data.SymbolChangedEvents.Values)
+            foreach (var changedEvent in slice.SymbolChangedEvents.Values)
             {
                 if (changedEvent.Symbol == _continuousContract.Symbol)
                 {
@@ -86,13 +86,13 @@ namespace QuantConnect.Algorithm.CSharp
 
                     if (backMonthExpiration <= frontMonthExpiration.Date)
                     {
-                        throw new Exception($"Unexpected current mapped contract expiration {backMonthExpiration}" +
+                        throw new RegressionTestException($"Unexpected current mapped contract expiration {backMonthExpiration}" +
                             $" @ {Time} it should be AFTER front month expiration {frontMonthExpiration}");
                     }
 
                     if (_continuousContract.Mapped != changedEvent.Symbol.Underlying)
                     {
-                        throw new Exception($"Unexpected mapped continuous contract {_continuousContract.Mapped} expected {changedEvent.Symbol.Underlying}");
+                        throw new RegressionTestException($"Unexpected mapped continuous contract {_continuousContract.Mapped} expected {changedEvent.Symbol.Underlying}");
                     }
                 }
             }
@@ -119,7 +119,7 @@ namespace QuantConnect.Algorithm.CSharp
                     var response = History(new[] { _continuousContract.Symbol }, 60 * 24 * 90);
                     if (!response.Any())
                     {
-                        throw new Exception("Unexpected empty history response");
+                        throw new RegressionTestException("Unexpected empty history response");
                     }
                 }
             }
@@ -138,7 +138,7 @@ namespace QuantConnect.Algorithm.CSharp
             var expectedMappingCounts = 2;
             if (_mappings.Count != expectedMappingCounts)
             {
-                throw new Exception($"Unexpected symbol changed events: {_mappings.Count}, was expecting {expectedMappingCounts}");
+                throw new RegressionTestException($"Unexpected symbol changed events: {_mappings.Count}, was expecting {expectedMappingCounts}");
             }
         }
 
@@ -150,12 +150,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 713588;
+        public long DataPoints => 723496;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -163,18 +163,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "3"},
+            {"Total Orders", "3"},
             {"Average Win", "1.48%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "4.603%"},
             {"Drawdown", "1.600%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "102291.4"},
             {"Net Profit", "2.291%"},
             {"Sharpe Ratio", "0.892"},
+            {"Sortino Ratio", "0.312"},
             {"Probabilistic Sharpe Ratio", "55.781%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "100%"},
@@ -190,7 +198,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$230000000.00"},
             {"Lowest Capacity Asset", "ES VP274HSU1AF5"},
             {"Portfolio Turnover", "1.39%"},
-            {"OrderListHash", "97fba11f206ce0dc4d98897914e100f3"}
+            {"OrderListHash", "795bfb3ab8565e759e98e43a49b0a91d"}
         };
     }
 }

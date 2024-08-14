@@ -32,44 +32,37 @@ namespace QuantConnect.Packets
         /// <summary>
         /// User Id sending result packet
         /// </summary>
-        [JsonProperty(PropertyName = "iUserID")]
-        public int UserId = 0;
+        public int UserId { get; set; }
 
         /// <summary>
         /// Project Id of the result packet
         /// </summary>
-        [JsonProperty(PropertyName = "iProjectID")]
-        public int ProjectId = 0;
+        public int ProjectId { get; set; }
 
         /// <summary>
         /// User session Id who issued the result packet
         /// </summary>
-        [JsonProperty(PropertyName = "sSessionID")]
-        public string SessionId = "";
+        public string SessionId { get; set; } = string.Empty;
 
         /// <summary>
         /// Live Algorithm Id (DeployId) for this result packet
         /// </summary>
-        [JsonProperty(PropertyName = "sDeployID")]
-        public string DeployId = "";
+        public string DeployId { get; set; } = string.Empty;
 
         /// <summary>
         /// Compile Id algorithm which generated this result packet
         /// </summary>
-        [JsonProperty(PropertyName = "sCompileID")]
-        public string CompileId = "";
+        public string CompileId { get; set; } = string.Empty;
 
         /// <summary>
         /// Result data object for this result packet
         /// </summary>
-        [JsonProperty(PropertyName = "oResults")]
-        public LiveResult Results = new LiveResult();
+        public LiveResult Results { get; set; } = new LiveResult();
 
         /// <summary>
         /// Processing time / running time for the live algorithm.
         /// </summary>
-        [JsonProperty(PropertyName = "dProcessingTime")]
-        public double ProcessingTime = 0;
+        public double ProcessingTime { get; set; }
 
         /// <summary>
         /// Default constructor for JSON Serialization
@@ -153,8 +146,8 @@ namespace QuantConnect.Packets
         /// <summary>
         /// Holdings dictionary of algorithm holdings information
         /// </summary>
-        [JsonProperty(PropertyName = "Holdings", NullValueHandling = NullValueHandling.Ignore)]
-        public IDictionary<string, Holding> Holdings;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public IDictionary<string, Holding> Holdings { get; set; }
 
         /// <summary>
         /// Cashbook for the algorithm's live results.
@@ -179,20 +172,20 @@ namespace QuantConnect.Packets
         /// <summary>
         /// Cash for the algorithm's live results.
         /// </summary>
-        [JsonProperty(PropertyName = "Cash", NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, Cash> Cash;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, Cash> Cash { get; set; }
 
         /// <summary>
         /// The algorithm's account currency
         /// </summary>
-        [JsonProperty(PropertyName = "AccountCurrency", NullValueHandling = NullValueHandling.Ignore)]
-        public string AccountCurrency;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string AccountCurrency { get; set; }
 
         /// <summary>
         /// The algorithm's account currency
         /// </summary>
-        [JsonProperty(PropertyName = "AccountCurrencySymbol", NullValueHandling = NullValueHandling.Ignore)]
-        public string AccountCurrencySymbol;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string AccountCurrencySymbol { get; set; }
 
         /// <summary>
         /// Default Constructor
@@ -203,19 +196,10 @@ namespace QuantConnect.Packets
         /// <summary>
         /// Constructor for the result class for dictionary objects
         /// </summary>
-        public LiveResult(LiveResultParameters parameters)
+        public LiveResult(LiveResultParameters parameters) : base(parameters)
         {
-            Charts = parameters.Charts;
-            Orders = parameters.Orders;
-            ProfitLoss = parameters.ProfitLoss;
-            Statistics = parameters.Statistics;
             Holdings = parameters.Holdings;
             CashBook = parameters.CashBook;
-            RuntimeStatistics = parameters.RuntimeStatistics;
-            OrderEvents = parameters.OrderEvents;
-            ServerStatistics = parameters.ServerStatistics;
-            AlgorithmConfiguration = parameters.AlgorithmConfiguration;
-            State = parameters.State;
         }
     }
 } // End of Namespace:

@@ -51,7 +51,7 @@ namespace QuantConnect.Algorithm.CSharp
                     {
 
                         history = History<QuoteBar>(symbol, 10, Resolution.Daily).Select(bar => bar as BaseData);
-                        throw new Exception("We were expecting an argument exception to be thrown. Equity does not have daily QuoteBars!");
+                        throw new RegressionTestException("We were expecting an argument exception to be thrown. Equity does not have daily QuoteBars!");
                     }
                     catch (ArgumentException)
                     {
@@ -71,7 +71,7 @@ namespace QuantConnect.Algorithm.CSharp
                 if (duplications.Any())
                 {
                     var time = duplications.First().Key;
-                    throw new Exception($"Duplicated bars were issued for time {time}");
+                    throw new RegressionTestException($"Duplicated bars were issued for time {time}");
                 }
             }
         }
@@ -84,7 +84,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -97,18 +97,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 20;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

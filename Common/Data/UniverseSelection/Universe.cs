@@ -52,13 +52,23 @@ namespace QuantConnect.Data.UniverseSelection
         }
 
         /// <summary>
+        /// The currently selected symbol set
+        /// </summary>
+        /// <remarks>This set might be different than <see cref="Securities"/> which might hold members that are no longer selected
+        /// but have not been removed yet, this can be because they have some open position, orders, haven't completed the minimum time in universe</remarks>
+        public HashSet<Symbol> Selected
+        {
+            get; set;
+        }
+
+        /// <summary>
         /// True if this universe filter can run async in the data stack
         /// </summary>
         public virtual bool Asynchronous
         {
             get
             {
-                if(UniverseSettings.Asynchronous.HasValue)
+                if (UniverseSettings.Asynchronous.HasValue)
                 {
                     return UniverseSettings.Asynchronous.Value;
                 }
@@ -78,18 +88,22 @@ namespace QuantConnect.Data.UniverseSelection
         /// <summary>
         /// Gets the security type of this universe
         /// </summary>
-        public SecurityType SecurityType
-        {
-            get { return Configuration.SecurityType; }
-        }
+        public SecurityType SecurityType => Configuration.SecurityType;
 
         /// <summary>
         /// Gets the market of this universe
         /// </summary>
-        public string Market
-        {
-            get { return Configuration.Market; }
-        }
+        public string Market => Configuration.Market;
+
+        /// <summary>
+        /// Gets the symbol of this universe
+        /// </summary>
+        public Symbol Symbol => Configuration.Symbol;
+
+        /// <summary>
+        /// Gets the data type of this universe
+        /// </summary>
+        public Type DataType => Configuration.Type;
 
         /// <summary>
         /// Flag indicating if disposal of this universe has been requested
@@ -103,9 +117,9 @@ namespace QuantConnect.Data.UniverseSelection
         /// <summary>
         /// Gets the settings used for subscriptions added for this universe
         /// </summary>
-        public abstract UniverseSettings UniverseSettings
+        public virtual UniverseSettings UniverseSettings
         {
-            get;
+            get; set;
         }
 
         /// <summary>
@@ -407,17 +421,17 @@ namespace QuantConnect.Data.UniverseSelection
             /// <summary>
             /// DateTime when added
             /// </summary>
-            public readonly DateTime Added;
+            public DateTime Added { get; init; }
 
             /// <summary>
             /// The security that was added
             /// </summary>
-            public readonly Security Security;
+            public Security Security { get; init; }
 
             /// <summary>
             /// True if the security was added as internal by this universe
             /// </summary>
-            public readonly bool IsInternal;
+            public bool IsInternal { get; init; }
 
             /// <summary>
             /// Initialize a new member for the universe

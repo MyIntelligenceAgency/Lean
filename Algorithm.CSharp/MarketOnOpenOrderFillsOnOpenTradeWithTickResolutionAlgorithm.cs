@@ -48,21 +48,21 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 Log(orderEvent.ToString());
 
-                if (orderEvent.Message != "")
+                if (!string.IsNullOrEmpty(orderEvent.Message))
                 {
-                    throw new Exception($"OrderEvent.Message should be empty, but is '{orderEvent.Message}'");
+                    throw new RegressionTestException($"OrderEvent.Message should be empty, but is '{orderEvent.Message}'");
                 }
 
                 var order = Transactions.GetOrderById(orderEvent.OrderId);
-                if (order.Tag != "")
+                if (!string.IsNullOrEmpty(order.Tag))
                 {
-                    throw new Exception($"Order.Tag should be empty, but is '{order.Tag}'");
+                    throw new RegressionTestException($"Order.Tag should be empty, but is '{order.Tag}'");
                 }
 
                 var expectedFillPrice = orderEvent.UtcTime.Date == StartDate.Date ? 167.43m : 167.45m;
                 if (orderEvent.FillPrice != expectedFillPrice)
                 {
-                    throw new Exception(
+                    throw new RegressionTestException(
                         $"Expected {orderEvent.UtcTime.Date} order fill price to be {expectedFillPrice} but was {orderEvent.FillPrice}");
                 }
             }
@@ -76,12 +76,12 @@ namespace QuantConnect.Algorithm.CSharp
             var expectedOrdersCount = 2;
             if (orders.Count != expectedOrdersCount)
             {
-                throw new Exception($"Expected {expectedOrdersCount} orders, but found {orders.Count}");
+                throw new RegressionTestException($"Expected {expectedOrdersCount} orders, but found {orders.Count}");
             }
 
             if (orders.Any(x => x.Status != OrderStatus.Filled))
             {
-                throw new Exception(
+                throw new RegressionTestException(
                     $"Expected all orders to be filled, but found {orders.Count(x => x.Status != OrderStatus.Filled)} unfilled orders");
             }
         }
@@ -94,7 +94,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -107,18 +107,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new()
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "1000000"},
+            {"End Equity", "999995.02"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -134,7 +142,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$0"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.02%"},
-            {"OrderListHash", "f62f6e200d8851cefc43af942c797dc9"}
+            {"OrderListHash", "8940204f430a8040b372cc22d80f1399"}
         };
     }
 }

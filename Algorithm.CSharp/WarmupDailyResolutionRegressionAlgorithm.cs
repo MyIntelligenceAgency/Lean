@@ -49,18 +49,18 @@ namespace QuantConnect.Algorithm.CSharp
             Sma = SMA("SPY", 2);
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
             if (Sma.Samples <= _previousSampleCount)
             {
-                throw new Exception("Indicator was not updated!");
+                throw new RegressionTestException("Indicator was not updated!");
             }
             _previousSampleCount = Sma.Samples;
 
-            var tradeBars = data.Get<TradeBar>();
+            var tradeBars = slice.Get<TradeBar>();
             tradeBars.TryGetValue("SPY", out var trade);
 
-            var quoteBars = data.Get<QuoteBar>();
+            var quoteBars = slice.Get<QuoteBar>();
             quoteBars.TryGetValue("SPY", out var quote);
 
             var expectedPeriod = ExpectedDataSpan;
@@ -69,18 +69,18 @@ namespace QuantConnect.Algorithm.CSharp
                 expectedPeriod = ExpectedWarmupDataSpan;
                 if (trade != null && trade.IsFillForward || quote != null && quote.IsFillForward)
                 {
-                    throw new Exception("Unexpected fill forwarded data!");
+                    throw new RegressionTestException("Unexpected fill forwarded data!");
                 }
             }
 
             // let's assert the data's time are what we expect
             if (trade != null && trade.EndTime.Ticks % expectedPeriod.Ticks != 0)
             {
-                throw new Exception($"Unexpected data end time! {trade.EndTime}");
+                throw new RegressionTestException($"Unexpected data end time! {trade.EndTime}");
             }
             if (quote != null && quote.EndTime.Ticks % expectedPeriod.Ticks != 0)
             {
-                throw new Exception($"Unexpected data end time! {quote.EndTime}");
+                throw new RegressionTestException($"Unexpected data end time! {quote.EndTime}");
             }
 
             if (trade != null)
@@ -88,7 +88,7 @@ namespace QuantConnect.Algorithm.CSharp
                 _warmedUpTradeBars |= IsWarmingUp;
                 if (trade.Period != expectedPeriod)
                 {
-                    throw new Exception($"Unexpected period for trade data point {trade.Period} expected {expectedPeriod}. IsWarmingUp: {IsWarmingUp}");
+                    throw new RegressionTestException($"Unexpected period for trade data point {trade.Period} expected {expectedPeriod}. IsWarmingUp: {IsWarmingUp}");
                 }
             }
             if (quote != null)
@@ -96,7 +96,7 @@ namespace QuantConnect.Algorithm.CSharp
                 _warmedUpQuoteBars |= IsWarmingUp;
                 if (quote.Period != expectedPeriod)
                 {
-                    throw new Exception($"Unexpected period for quote data point {quote.Period} expected {expectedPeriod}. IsWarmingUp: {IsWarmingUp}");
+                    throw new RegressionTestException($"Unexpected period for quote data point {quote.Period} expected {expectedPeriod}. IsWarmingUp: {IsWarmingUp}");
                 }
             }
         }
@@ -105,19 +105,19 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!_warmedUpTradeBars)
             {
-                throw new Exception("Did not assert data during warmup!");
+                throw new RegressionTestException("Did not assert data during warmup!");
             }
 
             if (ExpectedWarmupDataSpan == QuantConnect.Time.OneDay)
             {
                 if (_warmedUpQuoteBars)
                 {
-                    throw new Exception("We should of not gotten any quote bar during warmup for daily resolution!");
+                    throw new RegressionTestException("We should of not gotten any quote bar during warmup for daily resolution!");
                 }
             }
             else if (!_warmedUpQuoteBars)
             {
-                throw new Exception("Did not assert data during warmup!");
+                throw new RegressionTestException("Did not assert data during warmup!");
             }
         }
 
@@ -129,7 +129,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -142,18 +142,26 @@ namespace QuantConnect.Algorithm.CSharp
         public virtual int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},

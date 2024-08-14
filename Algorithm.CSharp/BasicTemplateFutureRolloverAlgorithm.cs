@@ -98,10 +98,10 @@ namespace QuantConnect.Algorithm.CSharp
         {
             private QCAlgorithm _algorithm;
             private Future _future;
-            public ExponentialMovingAverage EMA;
-            public decimal Price;
-            public bool IsLong;
-            public bool IsShort;
+            public ExponentialMovingAverage EMA { get; set; }
+            public decimal Price { get; set; }
+            public bool IsLong { get; set; }
+            public bool IsShort { get; set; }
             public Symbol Symbol => _future.Symbol;
             public Symbol Mapped => _future.Mapped;
 
@@ -171,12 +171,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 1332;
+        public long DataPoints => 1325;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -184,18 +184,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 4;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "2"},
+            {"Total Orders", "2"},
             {"Average Win", "0.53%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "3.011%"},
             {"Drawdown", "0.000%"},
             {"Expectancy", "0"},
+            {"Start Equity", "1000000"},
+            {"End Equity", "1005283.2"},
             {"Net Profit", "0.528%"},
             {"Sharpe Ratio", "1.285"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "83.704%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "100%"},
@@ -211,7 +219,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$5900000000.00"},
             {"Lowest Capacity Asset", "ES VMKLFZIH2MTD"},
             {"Portfolio Turnover", "0.27%"},
-            {"OrderListHash", "9fb6d9433c29815301d818ccd7f3863f"}
+            {"OrderListHash", "90f952729deb9cb20be75867576e5b87"}
         };
     }  
 }

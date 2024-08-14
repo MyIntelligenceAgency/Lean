@@ -15,6 +15,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using QuantConnect.Util;
 
@@ -45,18 +47,18 @@ namespace QuantConnect.Notifications
         /// Optional email headers
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public Dictionary<string, string> Headers;
+        public Dictionary<string, string> Headers { get; set; }
 
         /// <summary>
         /// Send a notification message to this web address
         /// </summary>
-        public string Address;
+        public string Address { get; set; }
 
         /// <summary>
         /// Object data to send.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public object Data;
+        public object Data { get; set; }
 
         /// <summary>
         /// Constructor for sending a notification SMS to a specified phone number
@@ -80,13 +82,13 @@ namespace QuantConnect.Notifications
         /// <summary>
         /// Send a notification message to this phone number
         /// </summary>
-        public string PhoneNumber;
+        public string PhoneNumber { get; set; }
 
         /// <summary>
         /// Message to send. Limited to 160 characters
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Message;
+        public string Message { get; set; }
 
         /// <summary>
         /// Constructor for sending a notification SMS to a specified phone number
@@ -109,29 +111,29 @@ namespace QuantConnect.Notifications
         /// Optional email headers
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public Dictionary<string, string> Headers;
+        public Dictionary<string, string> Headers { get; set; }
 
         /// <summary>
         /// Send to address:
         /// </summary>
-        public string Address;
+        public string Address { get; set; }
 
         /// <summary>
         /// Email subject
         /// </summary>
-        public string Subject;
+        public string Subject { get; set; }
 
         /// <summary>
         /// Message to send.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Message;
+        public string Message { get; set; }
 
         /// <summary>
         /// Email Data
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Data;
+        public string Data { get; set; }
 
         /// <summary>
         /// Default constructor for sending an email notification
@@ -166,19 +168,19 @@ namespace QuantConnect.Notifications
         /// Send a notification message to this user on Telegram
         /// Can be either a personal ID or Group ID.
         /// </summary>
-        public string Id;
+        public string Id { get; set; }
 
         /// <summary>
         /// Message to send. Limited to 4096 characters
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Message;
+        public string Message { get; set; }
 
         /// <summary>
         /// Token to use
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Token;
+        public string Token { get; set; }
 
         /// <summary>
         /// Constructor for sending a telegram notification to a specific User ID
@@ -194,6 +196,215 @@ namespace QuantConnect.Notifications
             Id = id;
             Message = message;
             Token = token;
+        }
+    }
+
+    /// <summary>
+    /// FTP notification data
+    /// </summary>
+    public class NotificationFtp : Notification
+    {
+        private static readonly Regex HostnameProtocolRegex = new(@"^[s]?ftp\:\/\/", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private const int DefaultPort = 21;
+
+        /// <summary>
+        /// Whether to use SFTP or FTP.
+        /// </summary>
+        [JsonProperty("secure")]
+        public bool Secure { get; }
+
+        /// <summary>
+        /// The FTP server hostname.
+        /// </summary>
+        [JsonProperty("host")]
+        public string Hostname { get; }
+
+        /// <summary>
+        /// The FTP server port.
+        /// </summary>
+        [JsonProperty("port")]
+        public int Port { get; }
+
+        /// <summary>
+        /// The FTP server username.
+        /// </summary>
+        [JsonProperty("username")]
+        public string Username { get; }
+
+        /// <summary>
+        /// The FTP server password.
+        /// </summary>
+        [JsonProperty("password", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string Password { get; }
+
+        /// <summary>
+        /// The path to file on the FTP server.
+        /// </summary>
+        [JsonProperty("fileDestinationPath")]
+        public string FilePath { get; }
+
+        /// <summary>
+        /// The contents of the file to send.
+        /// </summary>
+        [JsonProperty("fileContent")]
+        public string FileContent { get; private set; }
+
+        /// <summary>
+        /// The private key to use for authentication (optional).
+        /// </summary>
+        [JsonProperty("privateKey", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string PrivateKey { get; }
+
+        /// <summary>
+        /// The passphrase for the private key (optional).
+        /// </summary>
+        [JsonProperty("passphrase", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string PrivateKeyPassphrase { get; }
+
+        private NotificationFtp(string hostname, string username, string filePath, byte[] fileContent, bool secure, int? port)
+        {
+            Hostname = NormalizeHostname(hostname);
+            Port = port ?? DefaultPort;
+            Username = username;
+            FilePath = filePath;
+            FileContent = Convert.ToBase64String(fileContent);
+            Secure = secure;
+        }
+
+        /// <summary>
+        /// Constructor for a notification to sent as a file to an FTP server using password authentication.
+        /// </summary>
+        /// <param name="hostname">FTP server hostname</param>
+        /// <param name="username">The FTP server username</param>
+        /// <param name="password">The FTP server password</param>
+        /// <param name="filePath">The path to file on the FTP server</param>
+        /// <param name="fileContent">The contents of the file</param>
+        /// <param name="secure">Whether to use SFTP or FTP. Defaults to true</param>
+        /// <param name="port">The FTP server port. Defaults to 21</param>
+        public NotificationFtp(string hostname, string username, string password, string filePath, byte[] fileContent,
+            bool secure = true, int? port = null)
+            : this(hostname, username, filePath, fileContent, secure, port)
+        {
+            if (string.IsNullOrEmpty(password))
+            {
+                throw new ArgumentException(Messages.NotificationFtp.MissingPassword);
+            }
+
+            Password = password;
+        }
+
+        /// <summary>
+        /// Constructor for a notification to sent as a file to an FTP server over SFTP using SSH keys.
+        /// </summary>
+        /// <param name="hostname">FTP server hostname</param>
+        /// <param name="username">The FTP server username</param>
+        /// <param name="privateKey">The private SSH key to use for authentication</param>
+        /// <param name="privateKeyPassphrase">The optional passphrase to decrypt the private key.
+        /// This can be empty or null if the private key is not encrypted</param>
+        /// <param name="filePath">The path to file on the FTP server</param>
+        /// <param name="fileContent">The contents of the file</param>
+        /// <param name="port">The FTP server port. Defaults to 21</param>
+        public NotificationFtp(string hostname, string username, string privateKey, string privateKeyPassphrase,
+            string filePath, byte[] fileContent, int? port = null)
+            : this(hostname, username, filePath, fileContent, true, port)
+        {
+            if (string.IsNullOrEmpty(privateKey))
+            {
+                throw new ArgumentException(Messages.NotificationFtp.MissingSSHKey);
+            }
+
+            PrivateKey = privateKey;
+            PrivateKeyPassphrase = privateKeyPassphrase;
+        }
+
+        /// <summary>
+        /// Constructor for a notification to sent as a file to an FTP server using password authentication.
+        /// </summary>
+        /// <param name="hostname">FTP server hostname</param>
+        /// <param name="username">The FTP server username</param>
+        /// <param name="password">The FTP server password</param>
+        /// <param name="filePath">The path to file on the FTP server</param>
+        /// <param name="fileContent">The contents of the file</param>
+        /// <param name="secure">Whether to use SFTP or FTP. Defaults to true</param>
+        /// <param name="port">The FTP server port. Defaults to 21</param>
+        public NotificationFtp(string hostname, string username, string password, string filePath, string fileContent,
+            bool secure = true, int? port = null)
+            : this(hostname, username, password, filePath, Encoding.ASCII.GetBytes(fileContent), secure, port)
+        {
+        }
+
+        /// <summary>
+        /// Constructor for a notification to sent as a file to an FTP server over SFTP using SSH keys.
+        /// </summary>
+        /// <param name="hostname">FTP server hostname</param>
+        /// <param name="username">The FTP server username</param>
+        /// <param name="privateKey">The private SSH key to use for authentication</param>
+        /// <param name="privateKeyPassphrase">The optional passphrase to decrypt the private key.
+        /// This can be empty or null if the private key is not encrypted</param>
+        /// <param name="filePath">The path to file on the FTP server</param>
+        /// <param name="fileContent">The contents of the file</param>
+        /// <param name="port">The FTP server port. Defaults to 21</param>
+        public NotificationFtp(string hostname, string username, string privateKey, string privateKeyPassphrase,
+            string filePath, string fileContent, int? port = null)
+            : this(hostname, username, privateKey, privateKeyPassphrase, filePath, Encoding.ASCII.GetBytes(fileContent), port)
+        {
+        }
+
+        private static string NormalizeHostname(string hostname)
+        {
+            // Remove trailing slashes
+            hostname = hostname.Trim().TrimEnd('/');
+            // Remove protocol if present
+            return HostnameProtocolRegex.Replace(hostname, "");
+        }
+
+        /// <summary>
+        /// Factory method for Json deserialization: the file contents are already encoded
+        /// </summary>
+        internal static NotificationFtp FromEncodedData(string hostname, string username, string password, string filePath, string encodedFileContent,
+            bool secure, int? port)
+        {
+            var notification = new NotificationFtp(hostname, username, password, filePath, Array.Empty<byte>(), secure, port);
+            notification.FileContent = encodedFileContent;
+            return notification;
+        }
+
+        /// <summary>
+        /// Factory method for Json deserialization: the file contents are already encoded
+        /// </summary>
+        internal static NotificationFtp FromEncodedData(string hostname, string username, string privateKey, string privateKeyPassphrase,
+            string filePath, string encodedFileContent, int? port)
+        {
+            var notification = new NotificationFtp(hostname, username, privateKey, privateKeyPassphrase, filePath, Array.Empty<byte>(), port);
+            notification.FileContent = encodedFileContent;
+            return notification;
+        }
+    }
+
+    /// <summary>
+    /// Extension methods for <see cref="Notification"/>
+    /// </summary>
+    public static class NotificationExtensions
+    {
+        /// <summary>
+        /// Check if the notification can be sent (implements the <see cref="Notification.Send"/> method)
+        /// </summary>
+        /// <param name="notification">The notification</param>
+        /// <returns>Whether the notification can be sent</returns>
+        public static bool CanSend(this Notification notification)
+        {
+            if (notification == null)
+            {
+                return false;
+            }
+
+            var type = notification.GetType();
+            return type != typeof(NotificationEmail) &&
+                type != typeof(NotificationWeb) &&
+                type != typeof(NotificationSms) &&
+                type != typeof(NotificationTelegram) &&
+                type != typeof(NotificationFtp);
         }
     }
 }

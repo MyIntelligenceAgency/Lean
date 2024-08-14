@@ -31,84 +31,71 @@ namespace QuantConnect.Optimizer
         /// <summary>
         /// User Id placing request
         /// </summary>
-        [JsonProperty(PropertyName = "userId")]
-        public int UserId;
+        public int UserId { get; set; }
 
         /// User API Token
-        [JsonProperty(PropertyName = "userToken")]
-        public string UserToken = "";
+        public string UserToken { get; set; } = string.Empty;
 
         /// <summary>
         /// Project Id of the request
         /// </summary>
-        [JsonProperty(PropertyName = "projectId")]
-        public int ProjectId;
+        public int ProjectId { get; set; }
 
         /// <summary>
         /// Unique compile id of this optimization
         /// </summary>
-        [JsonProperty(PropertyName = "compileId")]
-        public string CompileId = "";
+        public string CompileId { get; set; } = string.Empty;
 
         /// <summary>
         /// The unique optimization Id of the request
         /// </summary>
-        [JsonProperty(PropertyName = "optimizationId")]
-        public string OptimizationId = "";
+        public string OptimizationId { get; set; } = string.Empty;
 
         /// <summary>
         /// Organization Id of the request
         /// </summary>
-        [JsonProperty(PropertyName = "organizationId")]
-        public string OrganizationId = "";
+        public string OrganizationId { get; set; } = string.Empty;
 
         /// <summary>
         /// Limit for the amount of concurrent backtests being run
         /// </summary>
-        [JsonProperty(PropertyName = "maximumConcurrentBacktests")]
-        public int MaximumConcurrentBacktests;
+        public int MaximumConcurrentBacktests { get; set; }
 
         /// <summary>
         /// Optimization strategy name
         /// </summary>
-        [JsonProperty(PropertyName = "optimizationStrategy")]
-        public string OptimizationStrategy = "QuantConnect.Optimizer.Strategies.GridSearchOptimizationStrategy";
+        public string OptimizationStrategy { get; set; } = "QuantConnect.Optimizer.Strategies.GridSearchOptimizationStrategy";
 
         /// <summary>
         /// Objective settings
         /// </summary>
-        [JsonProperty(PropertyName = "criterion")]
-        public Target Criterion;
+        public Target Criterion { get; set; }
 
         /// <summary>
         /// Optimization constraints
         /// </summary>
-        [JsonProperty(PropertyName = "constraints")]
-        public IReadOnlyList<Constraint> Constraints;
+        public IReadOnlyList<Constraint> Constraints { get; set; }
 
         /// <summary>
         /// The user optimization parameters
         /// </summary>
-        [JsonProperty(PropertyName = "optimizationParameters")]
-        public HashSet<OptimizationParameter> OptimizationParameters;
+        public HashSet<OptimizationParameter> OptimizationParameters { get; set; }
 
         /// <summary>
         /// The user optimization parameters
         /// </summary>
-        [JsonProperty(PropertyName = "optimizationStrategySettings", TypeNameHandling = TypeNameHandling.All)]
-        public OptimizationStrategySettings OptimizationStrategySettings;
+        [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
+        public OptimizationStrategySettings OptimizationStrategySettings { get; set; }
 
         /// <summary>
         /// Backtest out of sample maximum end date
         /// </summary>
-        [JsonProperty(PropertyName = "outOfSampleMaxEndDate")]
-        public DateTime? OutOfSampleMaxEndDate;
+        public DateTime? OutOfSampleMaxEndDate { get; set; }
 
         /// <summary>
         /// The backtest out of sample day count
         /// </summary>
-        [JsonProperty(PropertyName = "outOfSampleDays")]
-        public int OutOfSampleDays;
+        public int OutOfSampleDays { get; set; }
 
         /// <summary>
         /// Creates a new instance

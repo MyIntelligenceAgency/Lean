@@ -48,16 +48,16 @@ namespace QuantConnect.Algorithm.CSharp
             Plot("Portfolio.TPV", "Value", Portfolio.TotalPortfolioValue);
         }
 
-        public override void OnData(Slice data)
+        public override void OnData(Slice slice)
         {
-            var current = data.Bars.FirstOrDefault().Value;
+            var current = slice.Bars.FirstOrDefault().Value;
             if (current != null)
             {
                 if (Time == new DateTime(2014, 06, 09, 4, 1, 0) && !Portfolio.Invested)
                 {
                     if (!current.IsFillForward)
                     {
-                        throw new Exception($"Was expecting a first fill forward bar {Time}");
+                        throw new RegressionTestException($"Was expecting a first fill forward bar {Time}");
                     }
 
                     // trade on the first bar after a factor price scale change. +10 so we fill ASAP. Limit so it fills in extended market hours
@@ -70,7 +70,7 @@ namespace QuantConnect.Algorithm.CSharp
                 }
                 else if (_lastRealBar.Close != current.Close)
                 {
-                    throw new Exception($"FillForwarded data point at {Time} was scaled. Actual: {current.Close}; Expected: {_lastRealBar.Close}");
+                    throw new RegressionTestException($"FillForwarded data point at {Time} was scaled. Actual: {current.Close}; Expected: {_lastRealBar.Close}");
                 }
             }
         }
@@ -79,7 +79,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_lastRealBar == null)
             {
-                throw new Exception($"Not all expected data points were received.");
+                throw new RegressionTestException($"Not all expected data points were received.");
             }
         }
 
@@ -91,7 +91,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -104,18 +104,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "45.475%"},
             {"Drawdown", "0.800%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100497.59"},
             {"Net Profit", "0.498%"},
             {"Sharpe Ratio", "9.126"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "95.977%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -131,7 +139,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$26000.00"},
             {"Lowest Capacity Asset", "AOL R735QTJ8XC9X"},
             {"Portfolio Turnover", "12.68%"},
-            {"OrderListHash", "215c8a8ac308c82fb7b0b46f3be0972e"}
+            {"OrderListHash", "607f85b69d45d427242a614b9619c502"}
         };
     }
 }

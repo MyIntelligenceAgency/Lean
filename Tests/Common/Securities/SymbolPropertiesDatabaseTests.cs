@@ -20,6 +20,7 @@ using System.Net;
 using System.Text;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using QuantConnect.Configuration;
 using QuantConnect.Logging;
 using QuantConnect.Securities;
 
@@ -59,15 +60,15 @@ namespace QuantConnect.Tests.Common.Securities
             var binanceSymbol = Symbol.Create("BTCEUR", SecurityType.Crypto, Market.Binance);
             var binanceSymbolProperties = db.GetSymbolProperties(binanceSymbol.ID.Market, binanceSymbol, binanceSymbol.SecurityType, "EUR");
 
-            var gdaxSymbol = Symbol.Create("BTCGBP", SecurityType.Crypto, Market.GDAX);
-            var gdaxSymbolProperties = db.GetSymbolProperties(gdaxSymbol.ID.Market, gdaxSymbol, gdaxSymbol.SecurityType, "GBP");
+            var coinbaseSymbol = Symbol.Create("BTCGBP", SecurityType.Crypto, Market.Coinbase);
+            var coinbaseSymbolProperties = db.GetSymbolProperties(coinbaseSymbol.ID.Market, coinbaseSymbol, coinbaseSymbol.SecurityType, "GBP");
 
             var krakenSymbol = Symbol.Create("BTCCAD", SecurityType.Crypto, Market.Kraken);
             var krakenSymbolProperties = db.GetSymbolProperties(krakenSymbol.ID.Market, krakenSymbol, krakenSymbol.SecurityType, "CAD");
 
             Assert.AreEqual(bitfinexSymbolProperties.MinimumOrderSize, 0.00006m);
             Assert.AreEqual(binanceSymbolProperties.MinimumOrderSize, 5m); // in quote currency, MIN_NOTIONAL
-            Assert.AreEqual(gdaxSymbolProperties.MinimumOrderSize, 0.000015m);
+            Assert.AreEqual(coinbaseSymbolProperties.MinimumOrderSize, 0.000015m);
             Assert.AreEqual(krakenSymbolProperties.MinimumOrderSize, 0.0001m);
         }
 
@@ -110,7 +111,7 @@ namespace QuantConnect.Tests.Common.Securities
 
         [TestCase(Market.FXCM, SecurityType.Forex)]
         [TestCase(Market.Oanda, SecurityType.Forex)]
-        [TestCase(Market.GDAX, SecurityType.Crypto)]
+        [TestCase(Market.Coinbase, SecurityType.Crypto)]
         [TestCase(Market.Bitfinex, SecurityType.Crypto)]
         public void BaseCurrencyIsNotEqualToQuoteCurrency(string market, SecurityType securityType)
         {
@@ -139,8 +140,61 @@ namespace QuantConnect.Tests.Common.Securities
             Assert.IsTrue(database.SetEntry(Market.USA, ticker, SecurityType.Base, properties));
 
             // Fetch the entry to ensure we can access it with the ticker
+            #pragma warning disable CS0618
             var fetchedProperties = database.GetSymbolProperties(Market.USA, ticker, SecurityType.Base, "USD");
+            #pragma warning restore CS0618
             Assert.AreSame(properties, fetchedProperties);
+        }
+
+        [Test]
+        public void CustomEntriesAreKeptAfterARefresh()
+        {
+            var database = SymbolPropertiesDatabase.FromDataFolder();
+            var ticker = "BTC";
+            var properties = SymbolProperties.GetDefault("USD");
+
+            // Set the entry
+            Assert.IsTrue(database.SetEntry(Market.USA, ticker, SecurityType.Base, properties));
+
+            // Fetch the custom entry to ensure we can access it with the ticker
+            var symbol = Symbol.Create(ticker, SecurityType.Base, Market.USA);
+            var fetchedProperties = database.GetSymbolProperties(Market.USA, symbol, SecurityType.Base, "USD");
+            Assert.AreSame(properties, fetchedProperties);
+
+            // Refresh the database
+            database.ReloadEntries();
+
+            // Fetch the custom entry again to make sure it was not overridden
+            fetchedProperties = database.GetSymbolProperties(Market.USA, symbol, SecurityType.Base, "USD");
+            Assert.AreSame(properties, fetchedProperties);
+        }
+
+        [Test]
+        public void CanQueryMarketAfterRefresh()
+        {
+            var database = SymbolPropertiesDatabase.FromDataFolder();
+
+            // Get market
+            var result = database.TryGetMarket("AU200AUD", SecurityType.Cfd, out var market);
+            Assert.IsTrue(result);
+            Assert.AreEqual(Market.FXCM, market);
+
+            // Change the data folder so another symbol properties file is used
+            var originalDataFolder = Config.Get("data-folder");
+            Config.Set("data-folder", "./TestData");
+            Globals.Reset();
+
+            // Refresh the database
+            database.ReloadEntries();
+
+            // Get market again
+            result = database.TryGetMarket("AU200AUD", SecurityType.Cfd, out market);
+            Assert.IsTrue(result);
+            Assert.AreEqual(Market.Oanda, market);
+
+            // Restore the original data folder
+            Config.Set("data-folder", originalDataFolder);
+            Globals.Reset();
         }
 
         [TestCase(Market.FXCM, SecurityType.Cfd)]
@@ -170,13 +224,13 @@ namespace QuantConnect.Tests.Common.Securities
             var spList = db.GetSymbolPropertiesList(market, securityType).ToList();
 
             Assert.AreEqual(1, spList.Count);
-            Assert.IsTrue(spList[0].Key.Symbol.Contains("*"));
+            Assert.IsTrue(spList[0].Key.Symbol.Contains('*', StringComparison.InvariantCulture));
         }
 
-        #region GDAX brokerage
+        #region Coinbase brokerage
 
         [Test, Explicit]
-        public void FetchSymbolPropertiesFromGdax()
+        public void FetchSymbolPropertiesFromCoinbase()
         {
             const string urlCurrencies = "https://api.pro.coinbase.com/currencies";
             const string urlProducts = "https://api.pro.coinbase.com/products";
@@ -186,12 +240,12 @@ namespace QuantConnect.Tests.Common.Securities
             using (var wc = new WebClient())
             {
                 var jsonCurrencies = wc.DownloadString(urlCurrencies);
-                var rowsCurrencies = JsonConvert.DeserializeObject<List<GdaxCurrency>>(jsonCurrencies);
+                var rowsCurrencies = JsonConvert.DeserializeObject<List<CoinbaseCurrency>>(jsonCurrencies);
                 var currencyDescriptions = rowsCurrencies.ToDictionary(x => x.Id, x => x.Name);
 
                 var jsonProducts = wc.DownloadString(urlProducts);
 
-                var rowsProducts = JsonConvert.DeserializeObject<List<GdaxProduct>>(jsonProducts);
+                var rowsProducts = JsonConvert.DeserializeObject<List<CoinbaseProduct>>(jsonProducts);
                 foreach (var row in rowsProducts.OrderBy(x => x.Id))
                 {
                     string baseDescription, quoteDescription;
@@ -204,7 +258,7 @@ namespace QuantConnect.Tests.Common.Securities
                         quoteDescription = row.QuoteCurrency;
                     }
 
-                    sb.AppendLine("gdax," +
+                    sb.AppendLine("coinbase," +
                                   $"{row.BaseCurrency}{row.QuoteCurrency}," +
                                   "crypto," +
                                   $"{baseDescription}-{quoteDescription}," +
@@ -219,7 +273,7 @@ namespace QuantConnect.Tests.Common.Securities
             Log.Trace(sb.ToString());
         }
 
-        private class GdaxCurrency
+        private class CoinbaseCurrency
         {
             [JsonProperty("id")]
             public string Id { get; set; }
@@ -231,7 +285,7 @@ namespace QuantConnect.Tests.Common.Securities
             public decimal MinSize { get; set; }
         }
 
-        private class GdaxProduct
+        private class CoinbaseProduct
         {
             [JsonProperty("id")]
             public string Id { get; set; }
@@ -326,7 +380,7 @@ namespace QuantConnect.Tests.Common.Securities
                 foreach (var pair in exchangePairs.Union(marginPairs).OrderBy(x => x))
                 {
                     string baseCurrency, quoteCurrency;
-                    if (pair.Contains(":"))
+                    if (pair.Contains(':', StringComparison.InvariantCulture))
                     {
                         var parts = pair.Split(':');
                         baseCurrency = parts[0];

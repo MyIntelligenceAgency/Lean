@@ -13,6 +13,7 @@
  * limitations under the License.
 */
 
+using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Interfaces;
 using System;
@@ -49,7 +50,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
         /// <param name="data">TradeBars IDictionary object with your stock data</param>
-        public void OnData(TradeBars data)
+        public override void OnData(Slice slice)
         {
             if (Portfolio.Invested) return;
             SetHoldings(_symbol, .5);
@@ -58,10 +59,10 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Raises the data event.
         /// </summary>
-        /// <param name="data">Data.</param>
-        public void OnData(Dividends data) // update this to Dividends dictionary
+        /// <param name="dividends">Data.</param>
+        public override void OnDividends(Dividends dividends) // update this to Dividends dictionary
         {
-            var dividend = data[_symbol];
+            var dividend = dividends[_symbol];
             var holdings = Portfolio[_symbol];
             Debug($"{dividend.Time.ToStringInvariant("o")} >> DIVIDEND >> {dividend.Symbol} - " +
                 $"{dividend.Distribution.ToStringInvariant("C")} - {Portfolio.Cash} - " +
@@ -75,18 +76,18 @@ namespace QuantConnect.Algorithm.CSharp
             // The expected value refers to sum of dividend payments
             if (Portfolio.TotalProfit != _sumOfDividends)
             {
-                throw new Exception($"Total Profit: Expected {_sumOfDividends}. Actual {Portfolio.TotalProfit}");
+                throw new RegressionTestException($"Total Profit: Expected {_sumOfDividends}. Actual {Portfolio.TotalProfit}");
             }
 
             var expectNetProfit = _sumOfDividends - Portfolio.TotalFees;
             if (Portfolio.TotalNetProfit != expectNetProfit)
             {
-                throw new Exception($"Total Net Profit: Expected {expectNetProfit}. Actual {Portfolio.TotalNetProfit}");
+                throw new RegressionTestException($"Total Net Profit: Expected {expectNetProfit}. Actual {Portfolio.TotalNetProfit}");
             }
 
             if (Portfolio[_symbol].TotalDividends != _sumOfDividends)
             {
-                throw new Exception($"{_symbol} Total Dividends: Expected {_sumOfDividends}. Actual {Portfolio[_symbol].TotalDividends}");
+                throw new RegressionTestException($"{_symbol} Total Dividends: Expected {_sumOfDividends}. Actual {Portfolio[_symbol].TotalDividends}");
             }
         }
 
@@ -98,7 +99,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -111,18 +112,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new()
         {
-            {"Total Trades", "1"},
+            {"Total Orders", "1"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "2.354%"},
             {"Drawdown", "28.200%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "120462.08"},
             {"Net Profit", "20.462%"},
             {"Sharpe Ratio", "-0.063"},
+            {"Sortino Ratio", "-0.078"},
             {"Probabilistic Sharpe Ratio", "0.462%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -138,7 +147,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$24000000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "0.02%"},
-            {"OrderListHash", "a35d960ccfbb9476d9501718937e068d"}
+            {"OrderListHash", "efe1c97f2ebdd14ee72b57b1b44a8f7a"}
         };
     }
 }

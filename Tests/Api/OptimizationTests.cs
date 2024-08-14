@@ -24,6 +24,7 @@ using QuantConnect.Optimizer.Objectives;
 using QuantConnect.Optimizer.Parameters;
 using QuantConnect.Statistics;
 using QuantConnect.Util;
+using System.IO;
 
 namespace QuantConnect.Tests.API
 {
@@ -33,12 +34,9 @@ namespace QuantConnect.Tests.API
     [TestFixture, Explicit("Requires configured api access")]
     public class OptimizationTests : ApiTestBase
     {
-        private int testProjectId = 1; // "EnterProjectHere";
-        private string testOptimizationId = "EnterOptimizationHere";
-        
         private string _validSerialization = "{\"optimizationId\":\"myOptimizationId\",\"name\":\"myOptimizationName\",\"runtimeStatistics\":{\"Completed\":\"1\"},"+
-            "\"constraints\":[{\"target\":\"TotalPerformance.PortfolioStatistics.SharpeRatio\",\"operator\":\"GreaterOrEqual\",\"target-value\":1}],"+
-            "\"parameters\":[{\"name\":\"myParamName\",\"min\":2,\"max\":4,\"step\":1}],\"nodeType\":\"O2-8\",\"parallelNodes\":12,\"projectId\":1234567,\"status\":\"completed\","+
+            "\"constraints\":[{\"target\":\"TotalPerformance.PortfolioStatistics.SharpeRatio\",\"operator\":\"GreaterOrEqual\",\"targetValue\":1}],"+
+            "\"parameters\":[{\"name\":\"myParamName\",\"min\":2,\"max\":4,\"step\":1}, {\"name\":\"myStaticParamName\",\"value\":4}],\"nodeType\":\"O2-8\",\"parallelNodes\":12,\"projectId\":1234567,\"status\":\"completed\"," +
             "\"backtests\":{\"myBacktestKey\":{\"name\":\"myBacktestName\",\"id\":\"myBacktestId\",\"progress\":1,\"exitCode\":0,"+
             "\"statistics\":[0.374,0.217,0.047,-4.51,2.86,-0.664,52.602,17.800,6300000.00,0.196,1.571,27.0,123.888,77.188,0.63,1.707,1390.49,180.0,0.233,-0.558,73.0]," +
             "\"parameterSet\":{\"myParamName\":\"2\"},\"equity\":[]}},\"strategy\":\"QuantConnect.Optimizer.Strategies.GridSearchOptimizationStrategy\"," +
@@ -59,12 +57,15 @@ namespace QuantConnect.Tests.API
             Assert.AreEqual("['TotalPerformance'].['PortfolioStatistics'].['SharpeRatio']", deserialized.Constraints[0].Target);
             Assert.IsTrue(deserialized.Constraints[0].Operator == ComparisonOperatorTypes.GreaterOrEqual);
             Assert.IsTrue(deserialized.Constraints[0].TargetValue == 1);
-            Assert.IsTrue(deserialized.Parameters.Count == 1);
+            Assert.IsTrue(deserialized.Parameters.Count == 2);
             var stepParam = deserialized.Parameters.First().ConvertInvariant<OptimizationStepParameter>();
             Assert.IsTrue(stepParam.Name == "myParamName");
             Assert.IsTrue(stepParam.MinValue == 2);
             Assert.IsTrue(stepParam.MaxValue == 4);
             Assert.IsTrue(stepParam.Step == 1);
+            var staticParam = deserialized.Parameters.ElementAt(1).ConvertInvariant<StaticOptimizationParameter>();
+            Assert.IsTrue(staticParam.Name == "myStaticParamName");
+            Assert.IsTrue(staticParam.Value == "4");
             Assert.AreEqual(OptimizationNodes.O2_8, deserialized.NodeType);
             Assert.AreEqual(12, deserialized.ParallelNodes);
             Assert.AreEqual(1234567, deserialized.ProjectId);
@@ -93,10 +94,10 @@ namespace QuantConnect.Tests.API
         [Test]
         public void EstimateOptimization()
         {
-            var compile = ApiClient.CreateCompile(testProjectId);
+            var projectId = GetProjectCompiledAndWithBacktest(out var compile);
 
             var estimate = ApiClient.EstimateOptimization(
-                projectId: testProjectId,
+                projectId: projectId,
                 name: "My Testable Optimization",
                 target: "TotalPerformance.PortfolioStatistics.SharpeRatio",
                 targetTo: "max",
@@ -105,7 +106,7 @@ namespace QuantConnect.Tests.API
                 compileId: compile.CompileId,
                 parameters: new HashSet<OptimizationParameter>
                 {
-                    new OptimizationStepParameter("atrRatioTP", 4, 5, 1, 1) // Replace params with valid optimization parameter data for test project
+                    new OptimizationStepParameter("ema-fast", 20, 50, 1, 1) // Replace params with valid optimization parameter data for test project
                 },
                 constraints: new List<Constraint>
                 {
@@ -117,15 +118,127 @@ namespace QuantConnect.Tests.API
             Assert.IsNotEmpty(estimate.EstimateId);
             Assert.GreaterOrEqual(estimate.Time, 0);
             Assert.GreaterOrEqual(estimate.Balance, 0);
+
+            // Delete the project
+            var deleteProject = ApiClient.DeleteProject(projectId);
+            Assert.IsTrue(deleteProject.Success);
         }
 
         [Test]
         public void CreateOptimization()
         {
-            var compile = ApiClient.CreateCompile(testProjectId);
+            var optimization = GetOptimization(out var projectId);
+            TestBaseOptimization(optimization);
 
+            // Delete the project
+            var deleteProject = ApiClient.DeleteProject(projectId);
+            Assert.IsTrue(deleteProject.Success);
+        }
+
+        [Test]
+        public void ListOptimizations()
+        {
+            GetOptimization(out var projectId);
+
+            var optimizations = ApiClient.ListOptimizations(projectId);
+            Assert.IsNotNull(optimizations);
+            Assert.IsTrue(optimizations.Any());
+            TestBaseOptimization(optimizations.First());
+
+            // Delete the project
+            var deleteProject = ApiClient.DeleteProject(projectId);
+            Assert.IsTrue(deleteProject.Success);
+        }
+
+        [Test]
+        public void ReadOptimization()
+        {
+            var optimization = GetOptimization(out var projectId);
+            var readOptimization = ApiClient.ReadOptimization(optimization.OptimizationId);
+
+            TestBaseOptimization(readOptimization);
+
+            // Delete the project
+            var deleteProject = ApiClient.DeleteProject(projectId);
+            Assert.IsTrue(deleteProject.Success);
+        }
+
+        [Test]
+        public void AbortOptimization()
+        {
+            var optimization = GetOptimization(out var projectId);
+            var response = ApiClient.AbortOptimization(optimization.OptimizationId);
+            Assert.IsTrue(response.Success);
+
+            // Delete the project
+            var deleteProject = ApiClient.DeleteProject(projectId);
+            Assert.IsTrue(deleteProject.Success);
+        }
+
+        [Test]
+        public void UpdateOptimization()
+        {
+            var optimization = GetOptimization(out var projectId);
+            var response = ApiClient.UpdateOptimization(optimization.OptimizationId, "Alert Yellow Submarine");
+            Assert.IsTrue(response.Success);
+
+            // Delete the project
+            var deleteProject = ApiClient.DeleteProject(projectId);
+            Assert.IsTrue(deleteProject.Success);
+        }
+
+        [Test]
+        public void DeleteOptimization()
+        {
+            var optimization = GetOptimization(out var projectId);
+            var response = ApiClient.DeleteOptimization(optimization.OptimizationId);
+            Assert.IsTrue(response.Success);
+
+            // Delete the project
+            var deleteProject = ApiClient.DeleteProject(projectId);
+            Assert.IsTrue(deleteProject.Success);
+        }
+
+        private int GetProjectCompiledAndWithBacktest(out Compile compile)
+        {
+            var file = new ProjectFile
+            {
+                Name = "Main.cs",
+                Code = File.ReadAllText("../../../Algorithm.CSharp/ParameterizedAlgorithm.cs")
+            };
+
+            // Create a new project
+            var project = ApiClient.CreateProject($"Test project - {DateTime.Now.ToStringInvariant()}", Language.CSharp, TestOrganization);
+            var projectId = project.Projects.First().ProjectId;
+
+            // Update Project Files
+            var updateProjectFileContent = ApiClient.UpdateProjectFileContent(projectId, "Main.cs", file.Code);
+            Assert.IsTrue(updateProjectFileContent.Success);
+
+            // Create compile
+            compile = ApiClient.CreateCompile(projectId);
+            Assert.IsTrue(compile.Success);
+
+            // Wait at max 30 seconds for project to compile
+            var compileCheck = WaitForCompilerResponse(projectId, compile.CompileId);
+            Assert.IsTrue(compileCheck.Success);
+            Assert.IsTrue(compileCheck.State == CompileState.BuildSuccess);
+
+            var backtestName = $"Estimate optimization Backtest";
+            var backtest = ApiClient.CreateBacktest(projectId, compile.CompileId, backtestName);
+
+            // Now wait until the backtest is completed and request the orders again
+            var backtestReady = WaitForBacktestCompletion(projectId, backtest.BacktestId);
+            Assert.IsTrue(backtestReady.Success);
+
+            return projectId;
+        }
+
+        private BaseOptimization GetOptimization(out int projectId)
+        {
+            projectId = GetProjectCompiledAndWithBacktest(out var compile);
             var optimization = ApiClient.CreateOptimization(
-                projectId: testProjectId,
+                projectId: projectId,
                 name: "My Testable Optimization",
                 target: "TotalPerformance.PortfolioStatistics.SharpeRatio",
                 targetTo: "max",
@@ -134,7 +247,7 @@ namespace QuantConnect.Tests.API
                 compileId: compile.CompileId,
                 parameters: new HashSet<OptimizationParameter>
                 {
-                    new OptimizationStepParameter("atrRatioTP", 4, 5, 1, 1) // Replace params with valid optimization parameter data for test project
+                    new OptimizationStepParameter("ema-fast", 20, 50, 1, 1) // Replace params with valid optimization parameter data for test project
                 },
                 constraints: new List<Constraint>
                 {
@@ -145,52 +258,7 @@ namespace QuantConnect.Tests.API
                 parallelNodes: 12
             );
 
-            TestBaseOptimization(optimization);
-        }
-
-        [Test]
-        public void ListOptimizations()
-        {
-            var optimizations = ApiClient.ListOptimizations(testProjectId);
-            Assert.IsNotNull(optimizations);
-            Assert.IsTrue(optimizations.Any());
-            TestBaseOptimization(optimizations.First());
-        }
-
-        [Test]
-        public void ReadOptimization()
-        {
-            var optimization = ApiClient.ReadOptimization(testOptimizationId);
-
-            TestBaseOptimization(optimization);
-            Assert.IsTrue(optimization.RuntimeStatistics.Any());
-            Assert.IsTrue(optimization.Constraints.Any());
-            Assert.IsTrue(optimization.Parameters.Any());
-            Assert.Positive(optimization.ParallelNodes);
-            Assert.IsTrue(optimization.Backtests.Any());
-            Assert.IsNotEmpty(optimization.Strategy);
-            Assert.AreNotEqual(default(DateTime), optimization.Requested);
-        }
-
-        [Test]
-        public void AbortOptimization()
-        {
-            var response = ApiClient.AbortOptimization(testOptimizationId);
-            Assert.IsTrue(response.Success);
-        }
-
-        [Test]
-        public void UpdateOptimization()
-        {
-            var response = ApiClient.UpdateOptimization(testOptimizationId, "Alert Yellow Submarine");
-            Assert.IsTrue(response.Success);
-        }
-
-        [Test]
-        public void DeleteOptimization()
-        {
-            var response = ApiClient.DeleteOptimization(testOptimizationId);
-            Assert.IsTrue(response.Success);
+            return optimization;
         }
 
         private void TestBaseOptimization(BaseOptimization optimization)
@@ -201,7 +269,34 @@ namespace QuantConnect.Tests.API
             Assert.IsNotEmpty(optimization.Name);
             Assert.IsInstanceOf<OptimizationStatus>(optimization.Status);
             Assert.IsNotEmpty(optimization.NodeType);
+            Assert.IsTrue(0 <= optimization.OutOfSampleDays);
+            Assert.AreNotEqual(default(DateTime), optimization.OutOfSampleMaxEndDate);
             Assert.IsNotNull(optimization.Criterion);
+            foreach (var item in optimization.Parameters)
+            {
+                Assert.IsFalse(string.IsNullOrEmpty(item.Name));
+            }
+
+            if (optimization is OptimizationSummary)
+            {
+                Assert.AreNotEqual(default(DateTime), (optimization as OptimizationSummary).Created);
+            }
+            else if (optimization is Optimization)
+            {
+                TestOptimization(optimization as Optimization);
+            }
+        }
+
+        private void TestOptimization(Optimization optimization)
+        {
+            Assert.AreNotEqual(default(string), optimization.OptimizationTarget);
+            Assert.IsNotNull(optimization.GridLayout);
+            Assert.IsNotNull(optimization.RuntimeStatistics);
+            Assert.IsNotNull(optimization.Constraints);
+            Assert.IsTrue(0 <= optimization.ParallelNodes);
+            Assert.IsNotNull(optimization.Backtests);
+            Assert.AreNotEqual(default(string), optimization.Strategy);
+            Assert.AreNotEqual(default(DateTime), optimization.Requested);
         }
     }
 }

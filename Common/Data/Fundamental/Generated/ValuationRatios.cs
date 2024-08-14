@@ -26,7 +26,7 @@ namespace QuantConnect.Data.Fundamental
     /// <summary>
     /// Definition of the ValuationRatios class
     /// </summary>
-    public class ValuationRatios : ReusuableCLRObject
+    public class ValuationRatios : FundamentalTimeDependentProperty
     {
         /// <summary>
         /// Dividend per share / Diluted earnings per share
@@ -359,7 +359,7 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14036
         /// </remarks>
         [JsonProperty("14036")]
-        public double PricetoEBITDA => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_PricetoEBITDA);
+        public double PriceToEBITDA => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_PriceToEBITDA);
 
         /// <summary>
         /// Average of the last 60 monthly observations of trailing dividend yield in the last 5 years.
@@ -467,7 +467,7 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14048
         /// </remarks>
         [JsonProperty("14048")]
-        public double EVtoRevenue => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVtoRevenue);
+        public double EVToRevenue => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVToRevenue);
 
         /// <summary>
         /// Indicates what is a company being valued per each dollar of Pretax Income generated.
@@ -476,7 +476,7 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14049
         /// </remarks>
         [JsonProperty("14049")]
-        public double EVtoPreTaxIncome => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVtoPreTaxIncome);
+        public double EVToPreTaxIncome => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVToPreTaxIncome);
 
         /// <summary>
         /// Indicates what is a company being valued per each dollar of asset value; should be the default EV multiple used in an asset driven business.
@@ -485,7 +485,7 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14050
         /// </remarks>
         [JsonProperty("14050")]
-        public double EVtoTotalAssets => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVtoTotalAssets);
+        public double EVToTotalAssets => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVToTotalAssets);
 
         /// <summary>
         /// Indicates what is a company being valued per each dollar of free cash flow generated.
@@ -494,7 +494,7 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14051
         /// </remarks>
         [JsonProperty("14051")]
-        public double EVtoFCF => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVtoFCF);
+        public double EVToFCF => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVToFCF);
 
         /// <summary>
         /// Indicates what is a company being valued per each dollar of EBIT generated.
@@ -503,7 +503,7 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14052
         /// </remarks>
         [JsonProperty("14052")]
-        public double EVtoEBIT => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVtoEBIT);
+        public double EVToEBIT => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_EVToEBIT);
 
         /// <summary>
         /// Funds from operations per share; populated only for real estate investment trusts (REITs), defined as the sum of net income, gain/loss (realized and unrealized) on investment securities, asset impairment charge, depreciation and amortization and gain/ loss on the sale of business and property plant and equipment, divided by shares outstanding.
@@ -521,7 +521,7 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14054
         /// </remarks>
         [JsonProperty("14054")]
-        public double PricetoCashRatio => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_PricetoCashRatio);
+        public double PriceToCashRatio => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_PriceToCashRatio);
 
         /// <summary>
         /// Indicates what is a company being valued per each dollar of estimated EBITDA.
@@ -1142,18 +1142,22 @@ namespace QuantConnect.Data.Fundamental
         /// Morningstar DataId: 14123
         /// </remarks>
         [JsonProperty("14123")]
-        public double NormalizedPEGatio => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_NormalizedPEGatio);
-
-        private readonly ITimeProvider _timeProvider;
-        private readonly SecurityIdentifier _securityIdentifier;
+        public double NormalizedPEGRatio => FundamentalService.Get<double>(_timeProvider.GetUtcNow(), _securityIdentifier, FundamentalProperty.ValuationRatios_NormalizedPEGRatio);
 
         /// <summary>
         /// Creates a new instance for the given time and security
         /// </summary>
         public ValuationRatios(ITimeProvider timeProvider, SecurityIdentifier securityIdentifier)
+            : base(timeProvider, securityIdentifier)
         {
-            _timeProvider = timeProvider;
-            _securityIdentifier = securityIdentifier;
+        }
+
+        /// <summary>
+        /// Clones this instance
+        /// </summary>
+        public override FundamentalTimeDependentProperty Clone(ITimeProvider timeProvider)
+        {
+            return new ValuationRatios(timeProvider, _securityIdentifier);
         }
     }
 }

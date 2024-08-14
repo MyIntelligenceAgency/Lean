@@ -95,7 +95,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var positionGroups = Portfolio.Positions.Groups;
                 if (positionGroups.Count != 2)
                 {
-                    throw new Exception($"Expected 2 position groups, one for each spread, but found {positionGroups.Count}");
+                    throw new RegressionTestException($"Expected 2 position groups, one for each spread, but found {positionGroups.Count}");
                 }
 
                 var positionGroupMatchesSpreadStrategy = (IPositionGroup positionGroup, OptionStrategy strategy) =>
@@ -110,7 +110,7 @@ namespace QuantConnect.Algorithm.CSharp
                 if (!positionGroups.All(group =>
                         positionGroupMatchesSpreadStrategy(group, _bullCallSpread) || positionGroupMatchesSpreadStrategy(group, _bearPutSpread)))
                 {
-                    throw new Exception("Expected both spreads to have a matching position group in the portfolio.");
+                    throw new RegressionTestException("Expected both spreads to have a matching position group in the portfolio.");
                 }
 
                 // Step 2: liquidate spreads
@@ -125,12 +125,12 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!_done)
             {
-                throw new Exception("Expected the algorithm to have bought and sold a Bull Call Spread and a Bear Put Spread.");
+                throw new RegressionTestException("Expected the algorithm to have bought and sold a Bull Call Spread and a Bear Put Spread.");
             }
 
             if (Portfolio.Invested)
             {
-                throw new Exception("The spreads should have been liquidated by the end of the algorithm");
+                throw new RegressionTestException("The spreads should have been liquidated by the end of the algorithm");
             }
         }
 
@@ -142,12 +142,12 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 526804;
+        public long DataPoints => 522277;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -155,18 +155,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "8"},
+            {"Total Orders", "8"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "500000"},
+            {"End Equity", "499592"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -182,7 +190,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$13000.00"},
             {"Lowest Capacity Asset", "GOOCV W78ZERHAOVVQ|GOOCV VP83T1ZUHROL"},
             {"Portfolio Turnover", "1.31%"},
-            {"OrderListHash", "85d15c33656b556a9bae6304ec8d6193"}
+            {"OrderListHash", "61b9991ec6483ed14639c9839a653b9e"}
         };
     }
 }

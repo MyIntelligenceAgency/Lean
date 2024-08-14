@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
  * 
@@ -26,6 +26,7 @@ namespace QuantConnect.Tests.Indicators
     public abstract class CommonIndicatorTests<T>
         where T : IBaseData
     {
+        protected Symbol Symbol { get; set; } = Symbols.SPY;
         [Test]
         public virtual void ComparesAgainstExternalData()
         {
@@ -141,6 +142,21 @@ namespace QuantConnect.Tests.Indicators
             }
         }
 
+        [Test]
+        public virtual void WorksWithLowValues()
+        {
+            var indicator = CreateIndicator();
+            var period = (indicator as IIndicatorWarmUpPeriodProvider)?.WarmUpPeriod;
+
+            var random = new Random();
+            var time = new DateTime(2023, 5, 28);
+            for (int i = 0; i < 2 * period; i++)
+            {
+                var value = (decimal)(random.NextDouble() * 0.000000000000000000000000000001);
+                Assert.DoesNotThrow(() => indicator.Update(GetInput(Symbol, time, i, value, value, value, value)));
+            }
+        }
+
         protected virtual void IndicatorValueIsNotZeroAfterReceiveRenkoBars(IndicatorBase indicator)
         {
             Assert.AreNotEqual(0, indicator.Current.Value);
@@ -151,22 +167,24 @@ namespace QuantConnect.Tests.Indicators
             Assert.AreNotEqual(0, indicator.Current.Value);
         }
 
-        protected static IBaseData GetInput(DateTime startDate, int value) => GetInput(Symbols.SPY, startDate, value);
+        protected static IBaseData GetInput(DateTime startDate, int days) => GetInput(Symbols.SPY, startDate, days);
 
-        protected static IBaseData GetInput(Symbol symbol, DateTime startDate, int value)
+        protected static IBaseData GetInput(Symbol symbol, DateTime startDate, int days) => GetInput(symbol, startDate, days, 100m + days, 105m + days, 95m + days, 100 + days);
+
+        protected static IBaseData GetInput(Symbol symbol, DateTime startDate, int days, decimal open, decimal high, decimal low, decimal close)
         {
             if (typeof(T) == typeof(IndicatorDataPoint))
             {
-                return new IndicatorDataPoint(startDate.AddDays(value), 100m);
+                return new IndicatorDataPoint(symbol, startDate.AddDays(days), close);
             }
 
             return new TradeBar(
-                startDate.AddDays(value),
+                startDate.AddDays(days),
                 symbol,
-                100m + value,
-                105m + value,
-                95m + value,
-                100m + value,
+                open,
+                high,
+                low,
+                close,
                 100m,
                 Time.OneDay
             );
@@ -216,7 +234,16 @@ namespace QuantConnect.Tests.Indicators
         /// </summary>
         protected virtual Action<IndicatorBase<T>, double> Assertion
         {
-            get { return (indicator, expected) => Assert.AreEqual(expected, (double) indicator.Current.Value, 1e-3); }
+            get
+            {
+                return (indicator, expected) =>
+                {
+                    Assert.AreEqual(expected, (double)indicator.Current.Value, 1e-3);
+
+                    var relativeDifference = Math.Abs(((double)indicator.Current.Value - expected) / expected);
+                    Assert.LessOrEqual(relativeDifference, 1); // less than 1% error rate
+                };
+            }
         }
 
         /// <summary>
@@ -237,11 +264,11 @@ namespace QuantConnect.Tests.Indicators
         /// <summary>
         /// Returns the BarSize for the RenkoBar test, namely, AcceptsRenkoBarsAsInput()
         /// </summary>
-        protected decimal RenkoBarSize = 10m;
+        protected decimal RenkoBarSize { get; set; } = 10m;
 
         /// <summary>
         /// Returns the BarSize for the VolumeRenkoBar test, namely, AcceptsVolumeRenkoBarsAsInput()
         /// </summary>
-        protected decimal VolumeRenkoBarSize = 500000m;
+        protected decimal VolumeRenkoBarSize { get; set; } = 500000m;
     }
 }

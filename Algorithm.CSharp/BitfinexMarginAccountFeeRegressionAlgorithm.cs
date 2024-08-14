@@ -48,18 +48,26 @@ namespace QuantConnect.Algorithm.CSharp
         public override int AlgorithmHistoryDataPoints => 28;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public override Dictionary<string, string> ExpectedStatistics => new()
         {
-            {"Total Trades", "49"},
+            {"Total Orders", "49"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000.00"},
+            {"End Equity", "100001.31"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
@@ -75,7 +83,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$640000.00"},
             {"Lowest Capacity Asset", "BTCUSD E3"},
             {"Portfolio Turnover", "0.28%"},
-            {"OrderListHash", "3c23bc8622691cb9d4cacb00de5b0dd8"}
+            {"OrderListHash", "899ef4e299a6cc73c1bd96fb9993db0e"}
         };
     }
 }

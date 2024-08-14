@@ -16,7 +16,6 @@
 using System;
 using Newtonsoft.Json;
 using QuantConnect.Securities;
-using System.Collections.Generic;
 using Newtonsoft.Json.Converters;
 using System.Runtime.Serialization;
 using System.Runtime.CompilerServices;
@@ -35,7 +34,7 @@ namespace QuantConnect
         /// Daily and hourly time format
         public const string TwelveCharacter = "yyyyMMdd HH:mm";
         /// JSON Format Date Representation
-        public static string JsonFormat = "yyyy-MM-ddTHH:mm:ss";
+        public static string JsonFormat { get; } = "yyyy-MM-ddTHH:mm:ss";
         /// MySQL Format Date Representation
         public const string DB = "yyyy-MM-dd HH:mm:ss";
         /// QuantConnect UX Date Representation
@@ -65,42 +64,44 @@ namespace QuantConnect
     public class Holding
     {
         /// Symbol of the Holding:
-        public Symbol Symbol = Symbol.Empty;
+        [JsonProperty(PropertyName = "symbol")]
+        public Symbol Symbol { get; set; } = Symbol.Empty;
 
         /// Type of the security
-        [JsonIgnore]
+        [JsonProperty(PropertyName = "type")]
         public SecurityType Type => Symbol.SecurityType;
 
         /// The currency symbol of the holding, such as $
-        public string CurrencySymbol;
+        [JsonProperty(PropertyName = "currencySymbol")]
+        public string CurrencySymbol { get; set; }
 
         /// Average Price of our Holding in the currency the symbol is traded in
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public decimal AveragePrice;
+        [JsonProperty(PropertyName = "averagePrice", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public decimal AveragePrice { get; set; }
 
         /// Quantity of Symbol We Hold.
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public decimal Quantity;
+        [JsonProperty(PropertyName = "quantity", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public decimal Quantity { get; set; }
 
         /// Current Market Price of the Asset in the currency the symbol is traded in
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public decimal MarketPrice;
+        [JsonProperty(PropertyName = "marketPrice", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public decimal MarketPrice { get; set; }
 
         /// Current market conversion rate into the account currency
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public decimal? ConversionRate;
+        [JsonProperty(PropertyName = "conversionRate", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public decimal? ConversionRate { get; set; }
 
         /// Current market value of the holding
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public decimal MarketValue;
+        [JsonProperty(PropertyName = "marketValue", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public decimal MarketValue { get; set; }
 
         /// Current unrealized P/L of the holding
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public decimal UnrealizedPnL;
+        [JsonProperty(PropertyName = "unrealizedPnl", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public decimal UnrealizedPnL { get; set; }
 
         /// Current unrealized P/L % of the holding
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public decimal UnrealizedPnLPercent;
+        public decimal UnrealizedPnLPercent { get; set; }
 
         /// Create a new default holding:
         public Holding()
@@ -530,22 +531,22 @@ namespace QuantConnect
         /// <summary>
         /// Register this control packet as not defaults.
         /// </summary>
-        public bool Initialized;
+        public bool Initialized { get; set; }
 
         /// <summary>
         /// Current run status of the algorithm id.
         /// </summary>
-        public AlgorithmStatus Status;
+        public AlgorithmStatus Status { get; set; }
 
         /// <summary>
         /// Currently requested chart.
         /// </summary>
-        public string ChartSubscription;
+        public string ChartSubscription { get; set; }
 
         /// <summary>
         /// True if there's subscribers on the channel
         /// </summary>
-        public bool HasSubscribers;
+        public bool HasSubscribers { get; set; }
     }
 
     /// <summary>
@@ -951,285 +952,6 @@ namespace QuantConnect
         /// The channel has subscribers
         /// </summary>
         public const string Occupied = "channel_occupied";
-    }
-
-    /// <summary>
-    /// US Public Holidays - Not Tradeable:
-    /// </summary>
-    public static class USHoliday
-    {
-        /// <summary>
-        /// Public Holidays
-        /// </summary>
-        public static readonly HashSet<DateTime> Dates = new HashSet<DateTime>
-        {
-            /* New Years Day*/
-            new DateTime(1998, 01, 01),
-            new DateTime(1999, 01, 01),
-            new DateTime(2001, 01, 01),
-            new DateTime(2002, 01, 01),
-            new DateTime(2003, 01, 01),
-            new DateTime(2004, 01, 01),
-            new DateTime(2006, 01, 02),
-            new DateTime(2007, 01, 01),
-            new DateTime(2008, 01, 01),
-            new DateTime(2009, 01, 01),
-            new DateTime(2010, 01, 01),
-            new DateTime(2011, 01, 01),
-            new DateTime(2012, 01, 02),
-            new DateTime(2013, 01, 01),
-            new DateTime(2014, 01, 01),
-            new DateTime(2015, 01, 01),
-            new DateTime(2016, 01, 01),
-            new DateTime(2017, 01, 02),
-            new DateTime(2018, 01, 01),
-            new DateTime(2019, 01, 01),
-            new DateTime(2020, 01, 01),
-            new DateTime(2021, 01, 01),
-            new DateTime(2022, 01, 01),
-            new DateTime(2023, 01, 02),
-
-            /* Day of Mouring */
-            new DateTime(2007, 01, 02),
-
-            /* World Trade Center */
-            new DateTime(2001, 09, 11),
-            new DateTime(2001, 09, 12),
-            new DateTime(2001, 09, 13),
-            new DateTime(2001, 09, 14),
-
-            /* Regan Funeral */
-            new DateTime(2004, 06, 11),
-
-            /* Hurricane Sandy */
-            new DateTime(2012, 10, 29),
-            new DateTime(2012, 10, 30),
-
-            /* Martin Luther King Jnr Day*/
-            new DateTime(1998, 01, 19),
-            new DateTime(1999, 01, 18),
-            new DateTime(2000, 01, 17),
-            new DateTime(2001, 01, 15),
-            new DateTime(2002, 01, 21),
-            new DateTime(2003, 01, 20),
-            new DateTime(2004, 01, 19),
-            new DateTime(2005, 01, 17),
-            new DateTime(2006, 01, 16),
-            new DateTime(2007, 01, 15),
-            new DateTime(2008, 01, 21),
-            new DateTime(2009, 01, 19),
-            new DateTime(2010, 01, 18),
-            new DateTime(2011, 01, 17),
-            new DateTime(2012, 01, 16),
-            new DateTime(2013, 01, 21),
-            new DateTime(2014, 01, 20),
-            new DateTime(2015, 01, 19),
-            new DateTime(2016, 01, 18),
-            new DateTime(2017, 01, 16),
-            new DateTime(2018, 01, 15),
-            new DateTime(2019, 01, 21),
-            new DateTime(2020, 01, 20),
-            new DateTime(2021, 01, 18),
-            new DateTime(2022, 01, 17),
-            new DateTime(2023, 01, 16),
-
-            /* Washington / Presidents Day */
-            new DateTime(1998, 02, 16),
-            new DateTime(1999, 02, 15),
-            new DateTime(2000, 02, 21),
-            new DateTime(2001, 02, 19),
-            new DateTime(2002, 02, 18),
-            new DateTime(2003, 02, 17),
-            new DateTime(2004, 02, 16),
-            new DateTime(2005, 02, 21),
-            new DateTime(2006, 02, 20),
-            new DateTime(2007, 02, 19),
-            new DateTime(2008, 02, 18),
-            new DateTime(2009, 02, 16),
-            new DateTime(2010, 02, 15),
-            new DateTime(2011, 02, 21),
-            new DateTime(2012, 02, 20),
-            new DateTime(2013, 02, 18),
-            new DateTime(2014, 02, 17),
-            new DateTime(2015, 02, 16),
-            new DateTime(2016, 02, 15),
-            new DateTime(2017, 02, 20),
-            new DateTime(2018, 02, 19),
-            new DateTime(2019, 02, 18),
-            new DateTime(2020, 02, 17),
-            new DateTime(2021, 02, 15),
-            new DateTime(2022, 02, 21),
-            new DateTime(2023, 02, 20),
-
-            /* Good Friday */
-            new DateTime(1998, 04, 10),
-            new DateTime(1999, 04, 02),
-            new DateTime(2000, 04, 21),
-            new DateTime(2001, 04, 13),
-            new DateTime(2002, 03, 29),
-            new DateTime(2003, 04, 18),
-            new DateTime(2004, 04, 09),
-            new DateTime(2005, 03, 25),
-            new DateTime(2006, 04, 14),
-            new DateTime(2007, 04, 06),
-            new DateTime(2008, 03, 21),
-            new DateTime(2009, 04, 10),
-            new DateTime(2010, 04, 02),
-            new DateTime(2011, 04, 22),
-            new DateTime(2012, 04, 06),
-            new DateTime(2013, 03, 29),
-            new DateTime(2014, 04, 18),
-            new DateTime(2015, 04, 03),
-            new DateTime(2016, 03, 25),
-            new DateTime(2017, 04, 14),
-            new DateTime(2018, 03, 30),
-            new DateTime(2019, 04, 19),
-            new DateTime(2020, 04, 10),
-            new DateTime(2021, 04, 02),
-            new DateTime(2022, 04, 15),
-            new DateTime(2023, 04, 07),
-
-            /* Memorial Day */
-            new DateTime(1998, 05, 25),
-            new DateTime(1999, 05, 31),
-            new DateTime(2000, 05, 29),
-            new DateTime(2001, 05, 28),
-            new DateTime(2002, 05, 27),
-            new DateTime(2003, 05, 26),
-            new DateTime(2004, 05, 31),
-            new DateTime(2005, 05, 30),
-            new DateTime(2006, 05, 29),
-            new DateTime(2007, 05, 28),
-            new DateTime(2008, 05, 26),
-            new DateTime(2009, 05, 25),
-            new DateTime(2010, 05, 31),
-            new DateTime(2011, 05, 30),
-            new DateTime(2012, 05, 28),
-            new DateTime(2013, 05, 27),
-            new DateTime(2014, 05, 26),
-            new DateTime(2015, 05, 25),
-            new DateTime(2016, 05, 30),
-            new DateTime(2017, 05, 29),
-            new DateTime(2018, 05, 28),
-            new DateTime(2019, 05, 27),
-            new DateTime(2020, 05, 25),
-            new DateTime(2021, 05, 31),
-            new DateTime(2022, 05, 30),
-            new DateTime(2023, 05, 29),
-
-            /* Independence Day */
-            new DateTime(1998, 07, 03),
-            new DateTime(1999, 07, 05),
-            new DateTime(2000, 07, 04),
-            new DateTime(2001, 07, 04),
-            new DateTime(2002, 07, 04),
-            new DateTime(2003, 07, 04),
-            new DateTime(2004, 07, 05),
-            new DateTime(2005, 07, 04),
-            new DateTime(2006, 07, 04),
-            new DateTime(2007, 07, 04),
-            new DateTime(2008, 07, 04),
-            new DateTime(2009, 07, 03),
-            new DateTime(2010, 07, 05),
-            new DateTime(2011, 07, 04),
-            new DateTime(2012, 07, 04),
-            new DateTime(2013, 07, 04),
-            new DateTime(2014, 07, 04),
-            new DateTime(2014, 07, 04),
-            new DateTime(2015, 07, 03),
-            new DateTime(2016, 07, 04),
-            new DateTime(2017, 07, 04),
-            new DateTime(2018, 07, 04),
-            new DateTime(2019, 07, 04),
-            new DateTime(2020, 07, 04),
-            new DateTime(2021, 07, 05),
-            new DateTime(2022, 07, 04),
-            new DateTime(2023, 07, 04),
-
-            /* Labor Day */
-            new DateTime(1998, 09, 07),
-            new DateTime(1999, 09, 06),
-            new DateTime(2000, 09, 04),
-            new DateTime(2001, 09, 03),
-            new DateTime(2002, 09, 02),
-            new DateTime(2003, 09, 01),
-            new DateTime(2004, 09, 06),
-            new DateTime(2005, 09, 05),
-            new DateTime(2006, 09, 04),
-            new DateTime(2007, 09, 03),
-            new DateTime(2008, 09, 01),
-            new DateTime(2009, 09, 07),
-            new DateTime(2010, 09, 06),
-            new DateTime(2011, 09, 05),
-            new DateTime(2012, 09, 03),
-            new DateTime(2013, 09, 02),
-            new DateTime(2014, 09, 01),
-            new DateTime(2015, 09, 07),
-            new DateTime(2016, 09, 05),
-            new DateTime(2017, 09, 04),
-            new DateTime(2018, 09, 03),
-            new DateTime(2019, 09, 02),
-            new DateTime(2020, 09, 07),
-            new DateTime(2021, 09, 06),
-            new DateTime(2022, 09, 05),
-            new DateTime(2023, 09, 04),
-
-            /* Thanksgiving Day */
-            new DateTime(1998, 11, 26),
-            new DateTime(1999, 11, 25),
-            new DateTime(2000, 11, 23),
-            new DateTime(2001, 11, 22),
-            new DateTime(2002, 11, 28),
-            new DateTime(2003, 11, 27),
-            new DateTime(2004, 11, 25),
-            new DateTime(2005, 11, 24),
-            new DateTime(2006, 11, 23),
-            new DateTime(2007, 11, 22),
-            new DateTime(2008, 11, 27),
-            new DateTime(2009, 11, 26),
-            new DateTime(2010, 11, 25),
-            new DateTime(2011, 11, 24),
-            new DateTime(2012, 11, 22),
-            new DateTime(2013, 11, 28),
-            new DateTime(2014, 11, 27),
-            new DateTime(2015, 11, 26),
-            new DateTime(2016, 11, 24),
-            new DateTime(2017, 11, 23),
-            new DateTime(2018, 11, 22),
-            new DateTime(2019, 11, 28),
-            new DateTime(2020, 11, 26),
-            new DateTime(2021, 11, 25),
-            new DateTime(2022, 11, 24),
-            new DateTime(2023, 11, 23),
-
-            /* Christmas */
-            new DateTime(1998, 12, 25),
-            new DateTime(1999, 12, 24),
-            new DateTime(2000, 12, 25),
-            new DateTime(2001, 12, 25),
-            new DateTime(2002, 12, 25),
-            new DateTime(2003, 12, 25),
-            new DateTime(2004, 12, 24),
-            new DateTime(2005, 12, 26),
-            new DateTime(2006, 12, 25),
-            new DateTime(2007, 12, 25),
-            new DateTime(2008, 12, 25),
-            new DateTime(2009, 12, 25),
-            new DateTime(2010, 12, 24),
-            new DateTime(2011, 12, 26),
-            new DateTime(2012, 12, 25),
-            new DateTime(2013, 12, 25),
-            new DateTime(2014, 12, 25),
-            new DateTime(2015, 12, 25),
-            new DateTime(2016, 12, 26),
-            new DateTime(2017, 12, 25),
-            new DateTime(2018, 12, 25),
-            new DateTime(2019, 12, 25),
-            new DateTime(2020, 12, 25),
-            new DateTime(2021, 12, 24),
-            new DateTime(2022, 12, 26),
-            new DateTime(2023, 12, 25)
-        };
     }
 
     /// <summary>

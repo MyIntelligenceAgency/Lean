@@ -49,7 +49,7 @@ namespace QuantConnect.Algorithm.CSharp
                 Debug($"SPY {bar.Time} to {bar.EndTime} :: O:{bar.Open} H:{bar.High} L:{bar.Low} C:{bar.Close} V:{bar.Volume}");
                 if (bar.Volume != 1000000)
                 {
-                    throw new Exception("Volume of consolidated bar does not match set value!");
+                    throw new RegressionTestException("Volume of consolidated bar does not match set value!");
                 }
             };
 
@@ -59,7 +59,7 @@ namespace QuantConnect.Algorithm.CSharp
                 Debug($"IBM {bar.Time} to {bar.EndTime} :: O:{bar.Open} H:{bar.High} L:{bar.Low} C:{bar.Close} V:{bar.Volume}");
                 if (bar.Volume != 1000000)
                 {
-                    throw new Exception("Volume of consolidated bar does not match set value!");
+                    throw new RegressionTestException("Volume of consolidated bar does not match set value!");
                 }
                 _tickConsolidated = true;
             };
@@ -102,7 +102,7 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (!_tickConsolidated)
             {
-                throw new Exception("Tick consolidator was never been called");
+                throw new RegressionTestException("Tick consolidator was never been called");
             }
         }
 
@@ -114,7 +114,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
+        public List<Language> Languages { get; } = new() { Language.CSharp, Language.Python };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -127,18 +127,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 390;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "225"},
+            {"Total Orders", "225"},
             {"Average Win", "0.25%"},
             {"Average Loss", "-0.05%"},
             {"Compounding Annual Return", "-48.296%"},
             {"Drawdown", "3.000%"},
             {"Expectancy", "-0.190"},
+            {"Start Equity", "100000"},
+            {"End Equity", "99160.18"},
             {"Net Profit", "-0.840%"},
             {"Sharpe Ratio", "-0.987"},
+            {"Sortino Ratio", "-7.639"},
             {"Probabilistic Sharpe Ratio", "41.344%"},
             {"Loss Rate", "87%"},
             {"Win Rate", "13%"},
@@ -154,7 +162,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$4100000.00"},
             {"Lowest Capacity Asset", "SPY R735QTJ8XC9X"},
             {"Portfolio Turnover", "4497.77%"},
-            {"OrderListHash", "930da43cdd64d84d10fe54ec01fcdc18"}
+            {"OrderListHash", "bc7753018280859a55ca9834f21c511a"}
         };
     }
 }

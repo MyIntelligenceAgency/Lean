@@ -100,6 +100,7 @@ namespace QuantConnect.Securities
         public SymbolProperties SymbolProperties
         {
             get;
+            protected set;
         }
 
         /// <summary>
@@ -721,6 +722,24 @@ namespace QuantConnect.Securities
         }
 
         /// <summary>
+        /// Sets the settlement model
+        /// </summary>
+        /// <param name="settlementModel"> Model that represents a settlement model</param>
+        public void SetSettlementModel(ISettlementModel settlementModel)
+        {
+            SettlementModel = settlementModel;
+        }
+
+        /// <summary>
+        /// Sets the settlement model
+        /// </summary>
+        /// <param name="settlementModel">Model that represents a settlement model</param>
+        public void SetSettlementModel(PyObject settlementModel)
+        {
+            SettlementModel = new SettlementModelPythonWrapper(settlementModel);
+        }
+
+        /// <summary>
         /// Sets the slippage model
         /// </summary>
         /// <param name="slippageModel">Model that represents a slippage model</param>
@@ -1117,6 +1136,26 @@ namespace QuantConnect.Securities
             }
 
             return value;
+        }
+
+        /// <summary>
+        /// Applies the split to the security
+        /// </summary>
+        internal void ApplySplit(Split split)
+        {
+            Cache.ApplySplit(split);
+            UpdateMarketPrice(Cache.GetData());
+        }
+
+        /// <summary>
+        /// Updates the symbol properties of this security
+        /// </summary>
+        internal virtual void UpdateSymbolProperties(SymbolProperties symbolProperties)
+        {
+            if (symbolProperties != null)
+            {
+                SymbolProperties = symbolProperties;
+            }
         }
     }
 }

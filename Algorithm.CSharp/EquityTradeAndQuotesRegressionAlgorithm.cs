@@ -59,13 +59,13 @@ namespace QuantConnect.Algorithm.CSharp
             const int expectedSliceCount = 390;
             if (history.Count != expectedSliceCount)
             {
-                throw new Exception($"History slices - expected: {expectedSliceCount}, actual: {history.Count}");
+                throw new RegressionTestException($"History slices - expected: {expectedSliceCount}, actual: {history.Count}");
             }
 
 
             if (history.Any(s => s.Bars.Count != 1 && s.QuoteBars.Count != 1))
             {
-                throw new Exception($"History not all slices have trades and quotes.");
+                throw new RegressionTestException($"History not all slices have trades and quotes.");
             }
 
             Schedule.On(DateRules.EveryDay(_symbol), TimeRules.AfterMarketOpen(_symbol, 0), () => { _canTrade = true; });
@@ -77,11 +77,11 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
         /// </summary>
-        /// <param name="data">Slice object keyed by symbol containing the stock data</param>
-        public override void OnData(Slice data)
+        /// <param name="slice">Slice object keyed by symbol containing the stock data</param>
+        public override void OnData(Slice slice)
         {
-            _quoteCounter += data.QuoteBars.Count;
-            _tradeCounter += data.Bars.Count;
+            _quoteCounter += slice.QuoteBars.Count;
+            _tradeCounter += slice.Bars.Count;
 
             if (!Portfolio.Invested && _canTrade)
             {
@@ -106,14 +106,14 @@ namespace QuantConnect.Algorithm.CSharp
                           subscriptions.Any(s => s.TickType == TickType.Trade) &&
                           subscriptions.Any(s => s.TickType == TickType.Quote)))
                     {
-                        throw new Exception($"Subscriptions were not correctly added for high resolution.");
+                        throw new RegressionTestException($"Subscriptions were not correctly added for high resolution.");
                     }
                 }
                 else
                 {
                     if (subscriptions.Single().TickType != TickType.Trade)
                     {
-                        throw new Exception($"Subscriptions were not correctly added for low resolution.");
+                        throw new RegressionTestException($"Subscriptions were not correctly added for low resolution.");
                     }
                 }
             }
@@ -127,7 +127,7 @@ namespace QuantConnect.Algorithm.CSharp
                 var expectedFillPrice = orderEvent.Direction == OrderDirection.Buy ? Securities[_symbol].AskPrice : Securities[_symbol].BidPrice;
                 if (orderEvent.FillPrice != expectedFillPrice)
                 {
-                    throw new Exception($"Fill price is not the expected for OrderId {orderEvent.OrderId} at Algorithm Time {Time:s}." +
+                    throw new RegressionTestException($"Fill price is not the expected for OrderId {orderEvent.OrderId} at Algorithm Time {Time:s}." +
                                         $"\n\tExpected fill price: {expectedFillPrice}, Actual fill price: {orderEvent.FillPrice}");
                 }
             }
@@ -139,12 +139,12 @@ namespace QuantConnect.Algorithm.CSharp
             // + 5 daily bars, but those are pumped into OnData every minute 
             if (_tradeCounter <= 1955)
             {
-                throw new Exception($"Fail at trade bars count expected >= 1955, actual: {_tradeCounter}.");
+                throw new RegressionTestException($"Fail at trade bars count expected >= 1955, actual: {_tradeCounter}.");
             }
             // We expect 390 * 5 = 1950 quote bars. 
             if (_quoteCounter != 1950)
             {
-                throw new Exception($"Fail at trade bars count expected: 1950, actual: {_quoteCounter}.");
+                throw new RegressionTestException($"Fail at trade bars count expected: 1950, actual: {_quoteCounter}.");
             }
 
         }
@@ -157,7 +157,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -170,18 +170,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 780;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "250"},
+            {"Total Orders", "250"},
             {"Average Win", "0.12%"},
             {"Average Loss", "-0.10%"},
             {"Compounding Annual Return", "-86.492%"},
             {"Drawdown", "3.300%"},
             {"Expectancy", "-0.225"},
+            {"Start Equity", "100000"},
+            {"End Equity", "97294.97"},
             {"Net Profit", "-2.705%"},
             {"Sharpe Ratio", "-5.072"},
+            {"Sortino Ratio", "-5.033"},
             {"Probabilistic Sharpe Ratio", "1.585%"},
             {"Loss Rate", "65%"},
             {"Win Rate", "35%"},
@@ -197,7 +205,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Estimated Strategy Capacity", "$190000.00"},
             {"Lowest Capacity Asset", "IBM R735QTJ8XC9X"},
             {"Portfolio Turnover", "4996.13%"},
-            {"OrderListHash", "de723f0356fbd566e7ce8784785e14d1"}
+            {"OrderListHash", "c65a9aa12b55e53a49a29cd28a358fcd"}
         };
     }
 }

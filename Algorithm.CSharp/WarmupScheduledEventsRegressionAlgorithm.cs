@@ -71,12 +71,12 @@ namespace QuantConnect.Algorithm.CSharp
                     var expected = _scheduledEvents.Dequeue();
                     if (expected != Time)
                     {
-                        throw new Exception($"Unexpected scheduled event time: {Time}. Expected {expected}");
+                        throw new RegressionTestException($"Unexpected scheduled event time: {Time}. Expected {expected}");
                     }
 
                     if (expected.Day > 7 && IsWarmingUp)
                     {
-                        throw new Exception("Algorithm should be warming up on the 7th!");
+                        throw new RegressionTestException("Algorithm should be warming up on the 7th!");
                     }
                 }
             });
@@ -88,11 +88,11 @@ namespace QuantConnect.Algorithm.CSharp
         {
             if (_scheduledEvents.Count != 0)
             {
-                throw new Exception("Some scheduled event was not fired!");
+                throw new RegressionTestException("Some scheduled event was not fired!");
             }
             if (_onEndOfDayScheduledEvents.Count != 0)
             {
-                throw new Exception("Some OnEndOfDay scheduled event was not fired!");
+                throw new RegressionTestException("Some OnEndOfDay scheduled event was not fired!");
             }
         }
 
@@ -102,11 +102,11 @@ namespace QuantConnect.Algorithm.CSharp
             var expected = _onEndOfDayScheduledEvents.Dequeue();
             if (expected != Time)
             {
-                throw new Exception($"Unexpected OnEndOfDay scheduled event time: {Time}. Expected {expected}");
+                throw new RegressionTestException($"Unexpected OnEndOfDay scheduled event time: {Time}. Expected {expected}");
             }
             if (expected.Day > 7 && IsWarmingUp)
             {
-                throw new Exception("Algorithm should be warming up on the 7th!");
+                throw new RegressionTestException("Algorithm should be warming up on the 7th!");
             }
         }
 
@@ -118,7 +118,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// This is used by the regression test system to indicate which languages this algorithm is written in.
         /// </summary>
-        public Language[] Languages { get; } = { Language.CSharp };
+        public List<Language> Languages { get; } = new() { Language.CSharp };
 
         /// <summary>
         /// Data Points count of all timeslices of algorithm
@@ -131,18 +131,26 @@ namespace QuantConnect.Algorithm.CSharp
         public int AlgorithmHistoryDataPoints => 0;
 
         /// <summary>
+        /// Final status of the algorithm
+        /// </summary>
+        public AlgorithmStatus AlgorithmStatus => AlgorithmStatus.Completed;
+
+        /// <summary>
         /// This is used by the regression test system to indicate what the expected statistics are from running the algorithm
         /// </summary>
         public virtual Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
         {
-            {"Total Trades", "0"},
+            {"Total Orders", "0"},
             {"Average Win", "0%"},
             {"Average Loss", "0%"},
             {"Compounding Annual Return", "0%"},
             {"Drawdown", "0%"},
             {"Expectancy", "0"},
+            {"Start Equity", "100000"},
+            {"End Equity", "100000"},
             {"Net Profit", "0%"},
             {"Sharpe Ratio", "0"},
+            {"Sortino Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "0%"},
             {"Win Rate", "0%"},
