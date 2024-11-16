@@ -43,14 +43,12 @@ namespace QuantConnect.Algorithm.CSharp
             SetEndDate(2021, 1, 10);
             SetCash(1000000);
 
-            var spx = AddIndex("SPX").Symbol;
-
             // regular option SPX contracts
-            var spxOptions = AddIndexOption(spx);
+            var spxOptions = AddIndexOption("SPX");
             spxOptions.SetFilter(u => u.Strikes(0, 1).Expiration(0, 30));
 
             // weekly option SPX contracts
-            var spxw = AddIndexOption(spx, "SPXW");
+            var spxw = AddIndexOption("SPX", "SPXW");
             spxw.SetFilter(u => u.Strikes(0, 1)
                  // single week ahead since there are many SPXW contracts and we want to preserve performance
                  .Expiration(0, 7)
@@ -105,7 +103,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public virtual long DataPoints => 57869;
+        public virtual long DataPoints => 21467;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -125,7 +123,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Total Orders", "5"},
             {"Average Win", "0%"},
             {"Average Loss", "-0.69%"},
-            {"Compounding Annual Return", "59.804%"},
+            {"Compounding Annual Return", "55.039%"},
             {"Drawdown", "0.400%"},
             {"Expectancy", "-0.5"},
             {"Start Equity", "1000000"},

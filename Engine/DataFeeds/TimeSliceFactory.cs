@@ -22,6 +22,7 @@ using QuantConnect.Interfaces;
 using QuantConnect.Data.Market;
 using System.Collections.Generic;
 using QuantConnect.Data.UniverseSelection;
+using System.Linq;
 
 namespace QuantConnect.Lean.Engine.DataFeeds
 {
@@ -451,10 +452,10 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                 {
                     foreach (var addedContract in chain.Contracts)
                     {
-                        addedContract.Value.UnderlyingLastPrice = chain.Underlying.Price;
+                        addedContract.Value.Update(chain.Underlying);
                     }
                 }
-                foreach (var contractSymbol in universeData.FilteredContracts)
+                foreach (var contractSymbol in universeData.FilteredContracts ?? Enumerable.Empty<Symbol>())
                 {
                     chain.FilteredContracts.Add(contractSymbol);
                 }
@@ -464,7 +465,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
             OptionContract contract;
             if (!chain.Contracts.TryGetValue(baseData.Symbol, out contract))
             {
-                contract = OptionContract.Create(baseData, security, chain.Underlying.Price);
+                contract = OptionContract.Create(baseData, security, chain.Underlying);
 
                 chain.Contracts[baseData.Symbol] = contract;
 
@@ -480,19 +481,19 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                 case MarketDataType.Tick:
                     var tick = (Tick)baseData;
                     chain.Ticks.Add(tick.Symbol, tick);
-                    UpdateContract(contract, tick);
+                    contract.Update(tick);
                     break;
 
                 case MarketDataType.TradeBar:
                     var tradeBar = (TradeBar)baseData;
                     chain.TradeBars[symbol] = tradeBar;
-                    UpdateContract(contract, tradeBar);
+                    contract.Update(tradeBar);
                     break;
 
                 case MarketDataType.QuoteBar:
                     var quote = (QuoteBar)baseData;
                     chain.QuoteBars[symbol] = quote;
-                    UpdateContract(contract, quote);
+                    contract.Update(quote);
                     break;
 
                 case MarketDataType.Base:
@@ -518,7 +519,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
             var universeData = baseData as BaseDataCollection;
             if (universeData != null)
             {
-                foreach (var contractSymbol in universeData.FilteredContracts)
+                foreach (var contractSymbol in universeData.FilteredContracts ?? Enumerable.Empty<Symbol>())
                 {
                     chain.FilteredContracts.Add(contractSymbol);
                 }
@@ -569,55 +570,6 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                     break;
             }
             return true;
-        }
-
-        private static void UpdateContract(OptionContract contract, QuoteBar quote)
-        {
-            if (quote.Ask != null && quote.Ask.Close != 0m)
-            {
-                contract.AskPrice = quote.Ask.Close;
-                contract.AskSize = (long)quote.LastAskSize;
-            }
-            if (quote.Bid != null && quote.Bid.Close != 0m)
-            {
-                contract.BidPrice = quote.Bid.Close;
-                contract.BidSize = (long)quote.LastBidSize;
-            }
-        }
-
-        private static void UpdateContract(OptionContract contract, Tick tick)
-        {
-            if (tick.TickType == TickType.Trade)
-            {
-                contract.LastPrice = tick.Price;
-            }
-            else if (tick.TickType == TickType.Quote)
-            {
-                if (tick.AskPrice != 0m)
-                {
-                    contract.AskPrice = tick.AskPrice;
-                    contract.AskSize = (long)tick.AskSize;
-                }
-                if (tick.BidPrice != 0m)
-                {
-                    contract.BidPrice = tick.BidPrice;
-                    contract.BidSize = (long)tick.BidSize;
-                }
-            }
-            else if (tick.TickType == TickType.OpenInterest)
-            {
-                if (tick.Value != 0m)
-                {
-                    contract.OpenInterest = tick.Value;
-                }
-            }
-        }
-
-        private static void UpdateContract(OptionContract contract, TradeBar tradeBar)
-        {
-            if (tradeBar.Close == 0m) return;
-            contract.LastPrice = tradeBar.Close;
-            contract.Volume = (long)tradeBar.Volume;
         }
 
         private static void UpdateContract(FuturesContract contract, QuoteBar quote)

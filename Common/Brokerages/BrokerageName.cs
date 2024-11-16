@@ -180,6 +180,11 @@ namespace QuantConnect.Brokerages
         TerminalLink,
 
         /// <summary>
+        /// Transaction and submit/execution rules will use Charles Schwab models
+        /// </summary>
+        CharlesSchwab,
+        
+        /// <summary>
         /// Transaction and submit/execution rules will use Bitstamp models
         /// </summary>
         Bitstamp

@@ -29,7 +29,7 @@ namespace QuantConnect
     /// </summary>
     [JsonConverter(typeof(SymbolJsonConverter))]
     [ProtoContract(SkipConstructor = true)]
-    public sealed class Symbol : IEquatable<Symbol>, IComparable
+    public sealed class Symbol : IEquatable<Symbol>, IComparable, ISymbol
     {
         private static readonly Lazy<SecurityDefinitionSymbolResolver> _securityDefinitionSymbolResolver = new (() => SecurityDefinitionSymbolResolver.GetInstance());
 
@@ -225,6 +225,44 @@ namespace QuantConnect
         }
 
         /// <summary>
+        /// Provides a convenience method for creating an option Symbol from its SecurityIdentifier and alias.
+        /// </summary>
+        /// <param name="sid">The option SID</param>
+        /// <param name="value">The alias</param>
+        /// <param name="underlying">Optional underlying symbol to use. If null, it will we created from the given option SID and value</param>
+        /// <returns>A new Symbol object for the specified option</returns>
+        public static Symbol CreateOption(SecurityIdentifier sid, string value, Symbol underlying = null)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            if (!sid.SecurityType.IsOption())
+            {
+                throw new ArgumentException(Messages.Symbol.SidNotForOption(sid), nameof(value));
+            }
+
+            if (IsCanonical(sid))
+            {
+                return new Symbol(sid, value);
+            }
+
+            if (underlying == null)
+            {
+                SymbolRepresentation.TryDecomposeOptionTickerOSI(value, sid.SecurityType,
+                    out var _, out var underlyingValue, out var _, out var _, out var _);
+                underlying = new Symbol(sid.Underlying, underlyingValue);
+            }
+            else if (underlying.ID != sid.Underlying)
+            {
+                throw new ArgumentException(Messages.Symbol.UnderlyingSidDoesNotMatch(sid, underlying), nameof(underlying));
+            }
+
+            return new Symbol(sid, value, underlying);
+        }
+
+        /// <summary>
         /// Simple method to create the canonical option symbol for any given underlying symbol
         /// </summary>
         /// <param name="underlyingSymbol">Underlying of this option</param>
@@ -284,10 +322,7 @@ namespace QuantConnect
         /// <returns>true, if symbol is a derivative canonical symbol</returns>
         public bool IsCanonical()
         {
-            return
-                (ID.SecurityType == SecurityType.Future ||
-                (ID.SecurityType.IsOption() && HasUnderlying)) &&
-                ID.Date == SecurityIdentifier.DefaultDate;
+            return IsCanonical(ID);
         }
 
         /// <summary>
@@ -585,20 +620,15 @@ namespace QuantConnect
             if (ReferenceEquals(this, obj)) return true;
 
             // compare strings just as you would a symbol object
-            var sidString = obj as string;
-            if (sidString != null)
+            if (obj is string stringSymbol)
             {
-                SecurityIdentifier sid;
-                if (SecurityIdentifier.TryParse(sidString, out sid))
-                {
-                    return ID.Equals(sid);
-                }
+                return Equals((Symbol)stringSymbol);
             }
 
             // compare a sid just as you would a symbol object
-            if (obj is SecurityIdentifier)
+            if (obj is SecurityIdentifier sid)
             {
-                return ID.Equals((SecurityIdentifier) obj);
+                return ID.Equals(sid);
             }
 
             if (obj.GetType() != GetType()) return false;
@@ -698,11 +728,73 @@ namespace QuantConnect
                 // this is a performance shortcut
                 return true;
             }
-            if (ReferenceEquals(left, null) || left.Equals(Empty))
+
+            if (left is null)
             {
-                return ReferenceEquals(right, null) || right.Equals(Empty);
+                // Rely on the Equals method if possible
+                return right is null || right.Equals(left);
             }
+
             return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Equals operator
+        /// </summary>
+        /// <param name="left">The left operand</param>
+        /// <param name="right">The right operand</param>
+        /// <returns>True if both symbols are equal, otherwise false</returns>
+        /// <remarks>This is necessary in cases like Pythonnet passing a string
+        /// as an object instead of using the implicit conversion</remarks>
+        public static bool operator ==(Symbol left, object right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                // this is a performance shortcut
+                return true;
+            }
+
+            if (left is null)
+            {
+                // Rely on the Equals method if possible
+                return right is null || right.Equals(left);
+            }
+
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Equals operator
+        /// </summary>
+        /// <param name="left">The left operand</param>
+        /// <param name="right">The right operand</param>
+        /// <returns>True if both symbols are equal, otherwise false</returns>
+        /// <remarks>This is necessary in cases like Pythonnet passing a string
+        /// as an object instead of using the implicit conversion</remarks>
+        public static bool operator ==(object left, Symbol right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                // this is a performance shortcut
+                return true;
+            }
+
+            if (left is null)
+            {
+                return right is null;
+            }
+
+            if (left is Symbol leftSymbol)
+            {
+                return leftSymbol.Equals(right);
+            }
+
+            if (left is string leftStr)
+            {
+                return leftStr.Equals(right?.ToString(), StringComparison.InvariantCulture);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -712,6 +804,28 @@ namespace QuantConnect
         /// <param name="right">The right operand</param>
         /// <returns>True if both symbols are not equal, otherwise false</returns>
         public static bool operator !=(Symbol left, Symbol right)
+        {
+            return !(left == right);
+        }
+
+        /// <summary>
+        /// Not equals operator
+        /// </summary>
+        /// <param name="left">The left operand</param>
+        /// <param name="right">The right operand</param>
+        /// <returns>True if both symbols are not equal, otherwise false</returns>
+        public static bool operator !=(Symbol left, object right)
+        {
+            return !(left == right);
+        }
+
+        /// <summary>
+        /// Not equals operator
+        /// </summary>
+        /// <param name="left">The left operand</param>
+        /// <param name="right">The right operand</param>
+        /// <returns>True if both symbols are not equal, otherwise false</returns>
+        public static bool operator !=(object left, Symbol right)
         {
             return !(left == right);
         }
@@ -743,12 +857,6 @@ namespace QuantConnect
             if (SymbolCache.TryGetSymbol(ticker, out symbol))
             {
                 return symbol;
-            }
-
-            SecurityIdentifier sid;
-            if (SecurityIdentifier.TryParse(ticker, out sid))
-            {
-                return new Symbol(sid, sid.Symbol);
             }
 
             return new Symbol(new SecurityIdentifier(ticker, 0), ticker);
@@ -817,6 +925,14 @@ namespace QuantConnect
                 default:
                     return null;
             }
+        }
+
+        private static bool IsCanonical(SecurityIdentifier sid)
+        {
+            return
+                (sid.SecurityType == SecurityType.Future ||
+                (sid.SecurityType.IsOption() && sid.HasUnderlying)) &&
+                sid.Date == SecurityIdentifier.DefaultDate;
         }
     }
 }

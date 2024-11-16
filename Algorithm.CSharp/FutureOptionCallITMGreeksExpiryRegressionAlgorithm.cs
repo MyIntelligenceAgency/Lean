@@ -55,7 +55,7 @@ namespace QuantConnect.Algorithm.CSharp
                 TimeSpan.FromMinutes(1));
 
             // Select a future option expiring ITM, and adds it to the algorithm.
-            _esOption = AddFutureOptionContract(OptionChainProvider.GetOptionContractList(_es19m20.Symbol, new DateTime(2020, 1, 5))
+            _esOption = AddFutureOptionContract(OptionChain(_es19m20.Symbol)
                 .Where(x => x.ID.StrikePrice <= 3200m && x.ID.OptionRight == OptionRight.Call)
                 .OrderByDescending(x => x.ID.StrikePrice)
                 .Take(1)
@@ -165,7 +165,7 @@ namespace QuantConnect.Algorithm.CSharp
         /// <summary>
         /// Data Points count of all timeslices of algorithm
         /// </summary>
-        public long DataPoints => 212195;
+        public long DataPoints => 212196;
 
         /// <summary>
         /// Data Points count of the algorithm history
@@ -203,7 +203,7 @@ namespace QuantConnect.Algorithm.CSharp
             {"Annual Variance", "0.098"},
             {"Information Ratio", "-0.649"},
             {"Tracking Error", "0.483"},
-            {"Treynor Ratio", "-18.589"},
+            {"Treynor Ratio", "-18.59"},
             {"Total Fees", "$7.10"},
             {"Estimated Strategy Capacity", "$24000000.00"},
             {"Lowest Capacity Asset", "ES XFH59UPBIJ7O|ES XFH59UK0MYO1"},

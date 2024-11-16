@@ -146,6 +146,23 @@ namespace QuantConnect.Algorithm
         }
 
         /// <summary>
+        /// Creates a new Average Range (AR) indicator.
+        /// </summary>
+        /// <param name="symbol">The symbol whose Average Range we want to calculate</param>
+        /// <param name="period">The period over which to compute the Average Range</param>
+        /// <param name="resolution">The resolution</param>
+        /// <param name="selector">Selects a value from the BaseData to send into the indicator. If null, defaults to the Value property of BaseData (x => x.Value).</param>
+        /// <returns>The Average Range indicator for the requested symbol over the specified period</returns>
+        [DocumentationAttribute(Indicators)]
+        public AverageRange AR(Symbol symbol, int period, Resolution? resolution = null, Func<IBaseData, IBaseDataBar> selector = null)
+        {
+            var name = CreateIndicatorName(symbol, $"AR({period})", resolution);
+            var averageRange = new AverageRange(name, period);
+            InitializeIndicator(averageRange, resolution, selector, symbol);
+            return averageRange;
+        }
+
+        /// <summary>
         /// Creates a new ARIMA indicator.
         /// </summary>
         /// <param name="symbol">The symbol whose ARIMA indicator we want</param>
@@ -491,14 +508,14 @@ namespace QuantConnect.Algorithm
         /// <param name="selector">Selects a value from the BaseData to send into the indicator, if null defaults to casting the input value to a TradeBar</param>
         /// <returns>The Chande Kroll Stop indicator for the requested symbol.</returns>
         [DocumentationAttribute(Indicators)]
-        public ChandeKrollStop CKS(Symbol symbol, int atrPeriod, decimal atrMult, int period, MovingAverageType movingAverageType = MovingAverageType.Wilders, Resolution ? resolution = null, Func<IBaseData, IBaseDataBar> selector = null)
+        public ChandeKrollStop CKS(Symbol symbol, int atrPeriod, decimal atrMult, int period, MovingAverageType movingAverageType = MovingAverageType.Wilders, Resolution? resolution = null, Func<IBaseData, IBaseDataBar> selector = null)
         {
             var name = CreateIndicatorName(symbol, $"CKS({atrPeriod},{atrMult},{period})", resolution);
             var indicator = new ChandeKrollStop(name, atrPeriod, atrMult, period, movingAverageType);
             InitializeIndicator(indicator, resolution, selector, symbol);
             return indicator;
         }
-      
+
         /// <summary>
         /// Creates a new ChaikinMoneyFlow indicator.
         /// </summary>
@@ -1894,6 +1911,7 @@ namespace QuantConnect.Algorithm
             return simpleMovingAverage;
         }
 
+
         /// <summary>
         /// Creates a new Schaff Trend Cycle indicator
         /// </summary>
@@ -2005,6 +2023,24 @@ namespace QuantConnect.Algorithm
         public Stochastic STO(Symbol symbol, int period, Resolution? resolution = null, Func<IBaseData, TradeBar> selector = null)
         {
             return STO(symbol, period, period, 3, resolution, selector);
+        }
+
+        /// <summary>
+        /// Creates a new instance of the Premier Stochastic Oscillator for the specified symbol.
+        /// </summary>
+        /// <param name="symbol">The symbol for which the stochastic indicator is being calculated.</param>
+        /// <param name="period">The period for calculating the Stochastic K value.</param>
+        /// <param name="emaPeriod">The period for the Exponential Moving Average (EMA) used to smooth the Stochastic K.</param>
+        /// <param name="resolution">The data resolution (e.g., daily, hourly) for the indicator</param>
+        /// <param name="selector">Optional function to select a value from the BaseData. Defaults to casting the input to a TradeBar.</param>
+        /// <returns>A PremierStochasticOscillator instance for the specified symbol.</returns>
+        [DocumentationAttribute(Indicators)]
+        public PremierStochasticOscillator PSO(Symbol symbol, int period, int emaPeriod, Resolution? resolution = null, Func<IBaseData, TradeBar> selector = null)
+        {
+            var name = CreateIndicatorName(symbol, $"PSO({period},{emaPeriod})", resolution);
+            var premierStochasticOscillator = new PremierStochasticOscillator(name, period, emaPeriod);
+            InitializeIndicator(premierStochasticOscillator, resolution, selector, symbol);
+            return premierStochasticOscillator;
         }
 
         /// <summary>
@@ -2378,7 +2414,7 @@ namespace QuantConnect.Algorithm
         public Vortex VTX(Symbol symbol, int period, Resolution? resolution = null, Func<IBaseData, IBaseDataBar> selector = null)
         {
             var name = CreateIndicatorName(symbol, $"VTX({period})", resolution);
-            var indicator = new Vortex(name,period);
+            var indicator = new Vortex(name, period);
             InitializeIndicator(indicator, resolution, selector, symbol);
             return indicator;
         }
@@ -3094,7 +3130,7 @@ namespace QuantConnect.Algorithm
         private IEnumerable<Slice> GetIndicatorWarmUpHistory(IEnumerable<Symbol> symbols, IIndicator indicator, TimeSpan timeSpan, out bool identityConsolidator)
         {
             identityConsolidator = false;
-            if (AssertIndicatorHasWarmupPeriod(indicator))
+            if (!AssertIndicatorHasWarmupPeriod(indicator))
             {
                 return Enumerable.Empty<Slice>();
             }
@@ -3143,16 +3179,17 @@ namespace QuantConnect.Algorithm
             where T : class, IBaseData
         {
             IDataConsolidator consolidator;
-            if (identityConsolidator)
-            {
-                period = TimeSpan.Zero;
-            }
             if (SubscriptionManager.SubscriptionDataConfigService.GetSubscriptionDataConfigs(symbol).Count > 0)
             {
                 consolidator = Consolidate(symbol, period, handler);
             }
             else
             {
+                if (identityConsolidator)
+                {
+                    period = TimeSpan.Zero;
+                }
+
                 var providedType = typeof(T);
                 if (providedType.IsAbstract)
                 {
@@ -3474,6 +3511,10 @@ namespace QuantConnect.Algorithm
         public IndicatorHistory IndicatorHistory(IndicatorBase<IndicatorDataPoint> indicator, IEnumerable<Symbol> symbols, int period, Resolution? resolution = null, Func<IBaseData, decimal> selector = null)
         {
             var warmupPeriod = (indicator as IIndicatorWarmUpPeriodProvider)?.WarmUpPeriod ?? 0;
+            if (warmupPeriod > 0 && period > 0)
+            {
+                warmupPeriod -= 1;
+            }
             var history = History(symbols, period + warmupPeriod, resolution, dataNormalizationMode: GetIndicatorHistoryDataNormalizationMode(indicator));
             return IndicatorHistory(indicator, history, selector);
         }
@@ -3508,6 +3549,10 @@ namespace QuantConnect.Algorithm
             where T : IBaseData
         {
             var warmupPeriod = (indicator as IIndicatorWarmUpPeriodProvider)?.WarmUpPeriod ?? 0;
+            if (warmupPeriod > 0 && period > 0)
+            {
+                warmupPeriod -= 1;
+            }
             var history = History(symbols, period + warmupPeriod, resolution, dataNormalizationMode: GetIndicatorHistoryDataNormalizationMode(indicator));
             return IndicatorHistory(indicator, history, selector);
         }
@@ -3871,13 +3916,9 @@ namespace QuantConnect.Algorithm
             {
                 dividendYieldModel = new ConstantDividendYieldModel(dividendYield.Value);
             }
-            else if (symbol.ID.SecurityType == SecurityType.FutureOption || symbol.ID.SecurityType == SecurityType.IndexOption)
-            {
-                dividendYieldModel = new DividendYieldProvider();
-            }
             else
             {
-                dividendYieldModel = new DividendYieldProvider(symbol.Underlying);
+                dividendYieldModel = DividendYieldProvider.CreateForOption(symbol);
             }
 
             return name;
@@ -3897,13 +3938,17 @@ namespace QuantConnect.Algorithm
             var warmupPeriod = (indicator as IIndicatorWarmUpPeriodProvider)?.WarmUpPeriod ?? 0;
             if (warmupPeriod != 0)
             {
-                foreach (var request in CreateDateRangeHistoryRequests(symbols, start, end, resolution))
+                warmupPeriod -= 1;
+                if (warmupPeriod > 0)
                 {
-                    var adjustedStart = _historyRequestFactory.GetStartTimeAlgoTz(request.StartTimeUtc, request.Symbol, warmupPeriod, request.Resolution,
-                        request.ExchangeHours, request.DataTimeZone, request.DataType, request.IncludeExtendedMarketHours);
-                    if (adjustedStart < start)
+                    foreach (var request in CreateDateRangeHistoryRequests(symbols, start, end, resolution))
                     {
-                        start = adjustedStart;
+                        var adjustedStart = _historyRequestFactory.GetStartTimeAlgoTz(request.StartTimeUtc, request.Symbol, warmupPeriod, request.Resolution,
+                            request.ExchangeHours, request.DataTimeZone, request.DataType, request.IncludeExtendedMarketHours);
+                        if (adjustedStart < start)
+                        {
+                            start = adjustedStart;
+                        }
                     }
                 }
             }
@@ -3936,13 +3981,15 @@ namespace QuantConnect.Algorithm
                 .ToList();
 
             var indicatorsDataPointsByTime = new List<IndicatorDataPoints>();
+            var lastConsumedTime = DateTime.MinValue;
             IndicatorDataPoint lastPoint = null;
             void consumeLastPoint(IndicatorDataPoint newInputPoint)
             {
-                if (lastPoint == null)
+                if (newInputPoint == null || lastConsumedTime == newInputPoint.EndTime)
                 {
                     return;
                 }
+                lastConsumedTime = newInputPoint.EndTime;
 
                 var IndicatorDataPoints = new IndicatorDataPoints { Time = newInputPoint.Time, EndTime = newInputPoint.EndTime };
                 indicatorsDataPointsByTime.Add(IndicatorDataPoints);
@@ -3951,7 +3998,6 @@ namespace QuantConnect.Algorithm
                     var newPoint = indicatorsDataPointPerProperty[i].UpdateValue();
                     IndicatorDataPoints.SetProperty(indicatorsDataPointPerProperty[i].Name, newPoint);
                 }
-                lastPoint = null;
             }
 
             IndicatorUpdatedHandler callback = (object _, IndicatorDataPoint newInputPoint) =>
@@ -3961,16 +4007,15 @@ namespace QuantConnect.Algorithm
                     return;
                 }
 
-                if (lastPoint != null && lastPoint.Time != newInputPoint.Time)
+                if (lastPoint == null || lastPoint.Time != newInputPoint.Time)
                 {
-                    // when the time changes we let through the previous point, some indicators which consume data from multiple symbols might trigger the Updated event
+                    // if null, it's the first point, we transitions from not ready to ready
+                    // else when the time changes we fetch the indicators values, some indicators which consume data from multiple symbols might trigger the Updated event
                     // even if their value has not changed yet
                     consumeLastPoint(newInputPoint);
                 }
                 lastPoint = newInputPoint;
             };
-            // flush the last point
-            consumeLastPoint(lastPoint);
 
             // register the callback, update the indicator and unregister finally
             indicator.Updated += callback;
@@ -3990,10 +4035,14 @@ namespace QuantConnect.Algorithm
                     }
                 }
             }
+            // flush the last point, this will be useful for indicator consuming time from multiple symbols
+            consumeLastPoint(lastPoint);
             indicator.Updated -= callback;
 
             return new IndicatorHistory(indicatorsDataPointsByTime, indicatorsDataPointPerProperty,
-                new Lazy<PyObject>(() => PandasConverter.GetIndicatorDataFrame(indicatorsDataPointPerProperty.Select(x => new KeyValuePair<string, List<IndicatorDataPoint>>(x.Name, x.Values)))));
+                new Lazy<PyObject>(
+                    () => PandasConverter.GetIndicatorDataFrame(indicatorsDataPointPerProperty.Select(x => new KeyValuePair<string, List<IndicatorDataPoint>>(x.Name, x.Values))),
+                    isThreadSafe: false));
         }
 
         private Type GetDataTypeFromSelector(Func<IBaseData, decimal> selector)

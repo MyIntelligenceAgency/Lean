@@ -83,6 +83,8 @@ namespace QuantConnect.Tests.API
 
             //Test create a new project successfully
             var project = ApiClient.CreateProject(name, Language.CSharp, TestOrganization);
+            var stringRepresentation = project.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(project.Success);
             Assert.Greater(project.Projects.First().ProjectId, 0);
             Assert.AreEqual(name, project.Projects.First().Name);
@@ -122,6 +124,8 @@ namespace QuantConnect.Tests.API
 
             // Add random file
             var randomAdd = ApiClient.AddProjectFile(TestProject.ProjectId, fakeFile.Name, fakeFile.Code);
+            var stringRepresentation = randomAdd.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(randomAdd.Success);
             // Update names of file
             var updatedName = ApiClient.UpdateProjectFileName(TestProject.ProjectId, fakeFile.Name, realFile.Name);
@@ -133,6 +137,8 @@ namespace QuantConnect.Tests.API
 
             // Read single file
             var readFile = ApiClient.ReadProjectFile(TestProject.ProjectId, realFile.Name);
+            stringRepresentation = readFile.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(readFile.Success);
             Assert.IsTrue(readFile.Files.First().Code == realFile.Code);
             Assert.IsTrue(readFile.Files.First().Name == realFile.Name);
@@ -165,6 +171,8 @@ namespace QuantConnect.Tests.API
         {
             // Read the nodes
             var nodesResponse = ApiClient.ReadProjectNodes(TestProject.ProjectId);
+            var stringRepresentation = nodesResponse.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(nodesResponse.Success);
             Assert.Greater(nodesResponse.Nodes.BacktestNodes.Count, 0);
 
@@ -257,7 +265,7 @@ namespace QuantConnect.Tests.API
             Assert.AreEqual(CompileState.InQueue, compileCreate.State);
 
             // Read out the compile
-            var compileSuccess = WaitForCompilerResponse(project.Projects.First().ProjectId, compileCreate.CompileId);
+            var compileSuccess = WaitForCompilerResponse(ApiClient, project.Projects.First().ProjectId, compileCreate.CompileId);
             Assert.IsTrue(compileSuccess.Success);
             Assert.AreEqual(CompileState.BuildSuccess, compileSuccess.State);
 
@@ -265,7 +273,7 @@ namespace QuantConnect.Tests.API
             file.Code += "[Jibberish at end of the file to cause a build error]";
             ApiClient.UpdateProjectFileContent(project.Projects.First().ProjectId, file.Name, file.Code);
             var compileError = ApiClient.CreateCompile(project.Projects.First().ProjectId);
-            compileError = WaitForCompilerResponse(project.Projects.First().ProjectId, compileError.CompileId);
+            compileError = WaitForCompilerResponse(ApiClient, project.Projects.First().ProjectId, compileError.CompileId);
             Assert.IsTrue(compileError.Success); // Successfully processed rest request.
             Assert.AreEqual(CompileState.BuildError, compileError.State); //Resulting in build fail.
 
@@ -336,7 +344,7 @@ namespace QuantConnect.Tests.API
                 $"Error updating project file:\n    {string.Join("\n    ", updateProjectFileContent.Errors)}");
 
             var compileCreate = ApiClient.CreateCompile(project.ProjectId);
-            var compileSuccess = WaitForCompilerResponse(project.ProjectId, compileCreate.CompileId);
+            var compileSuccess = WaitForCompilerResponse(ApiClient, project.ProjectId, compileCreate.CompileId);
             Assert.IsTrue(compileSuccess.Success, $"Error compiling project:\n    {string.Join("\n    ", compileSuccess.Errors)}");
 
             var backtestName = $"ReadBacktestOrders Backtest {GetTimestamp()}";
@@ -349,10 +357,18 @@ namespace QuantConnect.Tests.API
             // Now wait until the backtest is completed and request the orders again
             backtestRead = WaitForBacktestCompletion(project.ProjectId, backtest.BacktestId);
             var backtestOrdersRead = ApiClient.ReadBacktestOrders(project.ProjectId, backtest.BacktestId);
+            string stringRepresentation;
+            foreach(var backtestOrder in backtestOrdersRead)
+            {
+                stringRepresentation = backtestOrder.ToString();
+                Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
+            }
             Assert.IsTrue(backtestOrdersRead.Any());
             Assert.AreEqual(Symbols.SPY.Value, backtestOrdersRead.First().Symbol.Value);
 
             var readBacktestReport = ApiClient.ReadBacktestReport(project.ProjectId, backtest.BacktestId);
+            stringRepresentation = readBacktestReport.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(readBacktestReport.Success);
             Assert.IsFalse(string.IsNullOrEmpty(readBacktestReport.Report));
 
@@ -362,6 +378,8 @@ namespace QuantConnect.Tests.API
                 new DateTime(2013, 10, 11).Second,
                 1000,
                 backtest.BacktestId);
+            stringRepresentation = readBacktestChart.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(readBacktestChart.Success);
             Assert.IsNotNull(readBacktestChart.Chart);
 
@@ -474,6 +492,8 @@ namespace QuantConnect.Tests.API
 
             // Read the backtest and verify the tags were added
             var backtestsResult = ApiClient.ListBacktests(TestProject.ProjectId);
+            var stringRepresentation = backtestsResult.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(backtestsResult.Success, $"Error getting backtests:\n    {string.Join("\n    ", backtestsResult.Errors)}");
             Assert.AreEqual(1, backtestsResult.Backtests.Count);
             CollectionAssert.AreEquivalent(tags, backtestsResult.Backtests[0].Tags);
@@ -498,9 +518,13 @@ namespace QuantConnect.Tests.API
                 // Create backtest
                 var backtestName = $"ReadBacktestOrders Backtest {GetTimestamp()}";
                 var backtest = ApiClient.CreateBacktest(projectId, compileId, backtestName);
+                var stringRepresentation = backtest.ToString();
+                Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
 
                 // Try to read the insights from the algorithm
                 var readInsights = ApiClient.ReadBacktestInsights(projectId, backtest.BacktestId, 0, 5);
+                stringRepresentation = readInsights.ToString();
+                Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
                 var finish = DateTime.UtcNow.AddMinutes(2);
                 do
                 {
@@ -556,10 +580,12 @@ namespace QuantConnect.Tests.API
 
             // Create compile
             var compile = ApiClient.CreateCompile(projectId);
+            var stringRepresentation = compile.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(compile.Success);
 
             // Wait at max 30 seconds for project to compile
-            var compileCheck = WaitForCompilerResponse(projectId, compile.CompileId);
+            var compileCheck = WaitForCompilerResponse(ApiClient, projectId, compile.CompileId);
             Assert.IsTrue(compileCheck.Success);
             Assert.IsTrue(compileCheck.State == CompileState.BuildSuccess);
 
@@ -573,10 +599,14 @@ namespace QuantConnect.Tests.API
             {
                 // Create live default algorithm
                 var createLiveAlgorithm = ApiClient.CreateLiveAlgorithm(projectId, compile.CompileId, freeNode.FirstOrDefault().Id, _defaultSettings, dataProviders: dataProviders);
+                stringRepresentation = createLiveAlgorithm.ToString();
+                Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
                 Assert.IsTrue(createLiveAlgorithm.Success, $"ApiClient.CreateLiveAlgorithm(): Error: {string.Join(",", createLiveAlgorithm.Errors)}");
 
                 // Read live algorithm
                 var readLiveAlgorithm = ApiClient.ReadLiveAlgorithm(projectId, createLiveAlgorithm.DeployId);
+                stringRepresentation = readLiveAlgorithm.ToString();
+                Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
                 Assert.IsTrue(readLiveAlgorithm.Success, $"ApiClient.ReadLiveAlgorithm(): Error: {string.Join(",", readLiveAlgorithm.Errors)}");
 
                 // Stop the algorithm
@@ -588,6 +618,8 @@ namespace QuantConnect.Tests.API
                 Assert.IsNotNull(readChart.Chart);
 
                 var readLivePortfolio = ApiClient.ReadLivePortfolio(projectId);
+                stringRepresentation = readLivePortfolio.ToString();
+                Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
                 Assert.IsTrue(readLivePortfolio.Success, $"ApiClient.ReadLivePortfolio(): Error: {string.Join(",", readLivePortfolio.Errors)}");
                 Assert.IsNotNull(readLivePortfolio.Portfolio, "Portfolio was null!");
                 Assert.IsNotNull(readLivePortfolio.Portfolio.Cash, "Portfolio.Cash was null!");
@@ -615,6 +647,8 @@ namespace QuantConnect.Tests.API
         public void ReadVersionsWorksAsExpected()
         {
             var result = ApiClient.ReadLeanVersions();
+            var stringRepresentation = result.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
             Assert.IsTrue(result.Success);
             Assert.IsNotEmpty(result.Versions);
         }
@@ -642,7 +676,7 @@ namespace QuantConnect.Tests.API
             Assert.IsTrue(compile.Success);
 
             // Wait at max 30 seconds for project to compile
-            var compileCheck = WaitForCompilerResponse(projectId, compile.CompileId);
+            var compileCheck = WaitForCompilerResponse(ApiClient, projectId, compile.CompileId);
             Assert.IsTrue(compileCheck.Success);
             Assert.IsTrue(compileCheck.State == CompileState.BuildSuccess);
 
@@ -673,6 +707,8 @@ namespace QuantConnect.Tests.API
                 nodeType: OptimizationNodes.O2_8,
                 parallelNodes: 12
             );
+            var stringRepresentation = optimization.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
 
             var finish = DateTime.UtcNow.AddMinutes(5);
             var readOptimization = ApiClient.ReadOptimization(optimization.OptimizationId);
@@ -682,6 +718,8 @@ namespace QuantConnect.Tests.API
                 readOptimization = ApiClient.ReadOptimization(optimization.OptimizationId);
             }
             while (finish > DateTime.UtcNow && readOptimization.Status != OptimizationStatus.Completed);
+            stringRepresentation = readOptimization.ToString();
+            Assert.IsTrue(ApiTestBase.IsValidJson(stringRepresentation));
 
             Assert.IsNotNull(optimization);
             Assert.IsNotEmpty(optimization.OptimizationId);
@@ -726,7 +764,7 @@ namespace QuantConnect.Tests.API
             compileId = compile.CompileId;
 
             // Wait at max 30 seconds for project to compile
-            var compileCheck = WaitForCompilerResponse(projectId, compile.CompileId);
+            var compileCheck = WaitForCompilerResponse(ApiClient, projectId, compile.CompileId);
             Assert.IsTrue(compileCheck.Success);
             Assert.IsTrue(compileCheck.State == CompileState.BuildSuccess);
         }

@@ -282,6 +282,9 @@ namespace QuantConnect.Brokerages
                 case BrokerageName.TradeStation:
                     return new TradeStationBrokerageModel(accountType);
 
+                case BrokerageName.CharlesSchwab:
+                    return new CharlesSchwabBrokerageModel(accountType);
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(brokerage), brokerage, null);
             }
@@ -381,6 +384,9 @@ namespace QuantConnect.Brokerages
 
                 case TradeStationBrokerageModel _:
                     return BrokerageName.TradeStation;
+
+                case CharlesSchwabBrokerageModel:
+                    return BrokerageName.CharlesSchwab;
 
                 case DefaultBrokerageModel _:
                     return BrokerageName.Default;
